@@ -1,0 +1,62 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
+
+/**
+ * Small HTTP helpers — the same minimal, dependency-free style as
+ * scripts/ai-endpoint/server.mjs. No framework: this project doesn't use one
+ * anywhere else, and the surface here (read a bounded JSON body, send a
+ * typed JSON response) doesn't need one.
+ *
+ * Shared by both route groups (/v1/ai/* and /v1/auth/*, /v1/me) — one error
+ * shape and one `ApiError` class, not a duplicate per domain.
+ */
+
+export type ErrorCode = 'invalid_request' | 'unauthorized' | 'forbidden' | 'conflict' | 'rate_limited' | 'quota_exceeded' | 'space_limit' | 'upstream_error' | 'internal_error';
+
+export interface ApiErrorResponse {
+  ok: false;
+  code: ErrorCode;
+  error: string;
+}
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: ErrorCode;
+  constructor(status: number, code: ErrorCode, message: string) {
+    super(message);
+    this.status = status;
+    this.code = code;
+  }
+
+  toResponse(): ApiErrorResponse {
+    return { ok: false, code: this.code, error: this.message };
+  }
+}
+
+/** Local-dev CORS: permissive by necessity (unpacked extension ids vary per install) — see docs for the production note. */
+export const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export function sendJson(res: ServerResponse, status: number, body: unknown): void {
+  res.writeHead(status, { ...CORS_HEADERS, 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(body));
+}
+
+/** Reads the request body as JSON, rejecting once it exceeds `maxBytes` — never buffers an unbounded body. */
+export async function readJsonBody(req: IncomingMessage, maxBytes: number): Promise<unknown> {
+  let size = 0;
+  const chunks: Buffer[] = [];
+  for await (const chunk of req as AsyncIterable<Buffer>) {
+    size += chunk.length;
+    if (size > maxBytes) throw new ApiError(413, 'invalid_request', 'Request body too large.');
+    chunks.push(chunk);
+  }
+  const text = Buffer.concat(chunks).toString('utf8');
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new ApiError(400, 'invalid_request', 'Malformed JSON body.');
+  }
+}

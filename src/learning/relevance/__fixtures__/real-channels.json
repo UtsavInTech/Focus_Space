@@ -1,0 +1,1752 @@
+{
+ "capturedAt": "2026-09-13",
+ "source": "YouTube public uploads feeds (feeds/videos.xml)",
+ "channels": [
+  {
+   "id": "UCYO_jab_esuFRV4b17AJtAw",
+   "handle": "@3blue1brown",
+   "title": "3Blue1Brown",
+   "videos": [
+    {
+     "id": "GlYgs6v2YfU",
+     "title": "But what is cross-entropy? | Compression is Intelligence Part 2",
+     "description": "Where the loss function for training LLMs comes from.\nJob opportunities aligned to this audience: https://3b1b.co/talent\nEarly views and other perks for supporters: https://3b1b.co/support\nHome page: https://www.3blue1brown.com\n\nPart 1: https://youtu.be/l6DKRf-fAAM\n\nIf you want to learn more about Lagrange Multipliers, I made multiple videos and articles for the topic back in my Khan Academy days:",
+     "publishedAt": 1784202964000
+    },
+    {
+     "id": "l6DKRf-fAAM",
+     "title": "Reinventing Entropy | Compression is Intelligence Part 1",
+     "description": "How to study the compressibility of language.\nCheck out our virtual career fair: https://3b1b.co/talent\nSee new projects before they go live: https://3b1b.co/support\n\nAnimation credit:\nManim scenes by Aaron Gostein and Grant Sanderson\nShannon’s story, as well as those for various pi creatures, by Mitchell Zemil.\nLunar robot and prediction/compression coin by Paul Dancstep\nNanoGPT animations by Cla",
+     "publishedAt": 1780832991000
+    },
+    {
+     "id": "ldxFjLJ3rVY",
+     "title": "How (and why) to take a logarithm of an image",
+     "description": "Escher's Print Gallery, and the tour of complex analysis it invites.\nExplore our virtual career fair: https://3b1b.co/talent\nJoin channel supporters to see videos early: https://3b1b.co/support\nAn equally valuable form of support is to share the videos.\nHome page: https://www.3blue1brown.com\n\nOriginal paper by de Smit and Lenstra:\nhttps://pub.math.leidenuniv.nl/~smitbde/papers/2003-de_smit-lenstra",
+     "publishedAt": 1774184340000
+    },
+    {
+     "id": "fsLh-NYhOoU",
+     "title": "The most beautiful formula not enough people understand",
+     "description": "On the volumes of higher-dimensional spheres\nExplore the 3b1b virtual career fair: See https://3b1b.co/talent\nBecome a supporter for early views of new videos: https://3b1b.co/support\nAn equally valuable form of support is to simply share the videos.\nHome page: https://www.3blue1brown.com\n\nThanks to UC Santa Cruz for letting me film there, and special thanks to \nPedro Morales-Almazan for arranging",
+     "publishedAt": 1772205263000
+    },
+    {
+     "id": "BHdbsHFs2P0",
+     "title": "Why you can't comb a hairy ball, and why we care",
+     "description": "Unexpected applications and a beautiful proof.\nLooking for a new career? Check out https://3b1b.co/talent\nSupporters get early access to new videos: https://3b1b.co/support\nAn equally valuable form of support is to simply share the videos.\nHome page: https://www.3blue1brown.com\n\nCredits:\nSenia Sheydvasser: Co-writing and sphere deformation animations, made in Blender\nPaul Dancstep: Those lovely fl",
+     "publishedAt": 1769871462000
+    },
+    {
+     "id": "FE-hM1kRK4Y",
+     "title": "Why Laplace transforms are so useful",
+     "description": "Studying the forced harmonic oscillator by taking a Laplace transform and studying its poles.\nInstead of sponsored ad reads, these lessons are funded directly by viewers: https://3b1b.co/support\nAn equally valuable form of support is to simply share the videos.\nHome page: https://www.3blue1brown.com\n\nChapter on the Laplace Transform:\nhttps://youtu.be/j0wJBEZdwLs\n\nChapter on the S-plane and Simple ",
+     "publishedAt": 1762348185000
+    },
+    {
+     "id": "j0wJBEZdwLs",
+     "title": "But what is a Laplace Transform?",
+     "description": "Visualizing the most important tool for differential equations.\nPrevious chapter: https://youtu.be/-j8PzkZ70Lg\nInstead of sponsored ad reads, these lessons are funded directly by viewers: https://3b1b.co/support\nAn equally valuable form of support is to simply share the videos.\nHome page: https://www.3blue1brown.com\n\nPi creature car artwork by Kurt Bruns\n\nEngine animation borrowed with permission ",
+     "publishedAt": 1760267993000
+    },
+    {
+     "id": "-j8PzkZ70Lg",
+     "title": "The Physics of Euler's Formula | Laplace Transform Prelude",
+     "description": "The simple harmonic oscillator and the fundamental role of complex exponents for ODEs.\nNext chapter on the Laplace Transform video: https://youtu.be/j0wJBEZdwLs\nInstead of sponsored ad reads, these lessons are funded directly by viewers: https://3b1b.co/support\nAn equally valuable form of support is to simply share the videos.\nHome page: https://www.3blue1brown.com\n\nTimestamps:\n0:00 - Intro\n1:51 -",
+     "publishedAt": 1759672408000
+    },
+    {
+     "id": "M-MgQC6z3VU",
+     "title": "What was Euclid really doing? | Guest video by Ben Syversen",
+     "description": "What role were ruler and compass constructions really serving?\nCheck out Ben's channel: @bensyversen \nInterview with the author of this video: https://youtu.be/VohYM99j8e0\nSupporters get early views of new videos: https://3b1b.co/support\n\nWritten, produced, edited, and animated by Ben Syversen\nAdditional editing: Jack Saxon\n3d Blender model: Jan-Hendrik Müller\nAdditional Blender help: Thibaut Modr",
+     "publishedAt": 1758204785000
+    },
+    {
+     "id": "_BrFKp-U8GI",
+     "title": "Exploration & Epiphany | Guest video by Paul Dancstep",
+     "description": "Sol LeWitt's \"Incomplete Open Cubes\" and rediscovering Burnside's lemma in group theory\nAn interview with the author of this video: https://youtu.be/JEeM2ABUMoo\nInstead of sponsored ad reads, these lessons are funded directly by viewers: https://3b1b.co/support\nAn equally valuable form of support is to share the videos.\nHome page: https://www.3blue1brown.com\n\nThanks to the Wadsworth Atheneum for g",
+     "publishedAt": 1757247903000
+    },
+    {
+     "id": "itRV2jEtV8Q",
+     "title": "Simulating and understanding phase change | Guest video by Vilas Winstein",
+     "description": "Deriving the Boltzmann formula, defining temperature, and simulating liquid/vapor.\n@SpectralCollective has the second part: https://youtu.be/yEcysu5xZH0\nYou can play with a simulation of this model here: https://vilas.us/simulations/liquidvapor/\nThese lessons are funded directly by viewers: https://3b1b.co/support\nHome page: https://www.3blue1brown.com\n\nNotes from Vilas:\n1) This open problem is to",
+     "publishedAt": 1756389647000
+    },
+    {
+     "id": "4NlrfOl0l8U",
+     "title": "The AI that solved IMO Geometry Problems | Guest video by @Aleph0",
+     "description": "How AlphaGeometry combines logic and intuition.\nCheck out Aleph0’s channel: https://youtube.com/@Aleph0\nInstead of sponsored ad reads, these lessons are funded directly by viewers: https://3b1b.co/support\nAn equally valuable form of support is to share the videos.\nHome page: https://www.3blue1brown.com\n\nSpecial thanks to Trieu Trinh for fact-checking the script.\n\nBlog post on an open-sourced geome",
+     "publishedAt": 1755435770000
+    },
+    {
+     "id": "iv-5mZ_9CPY",
+     "title": "But how do AI images and videos actually work? | Guest video by Welch Labs",
+     "description": "Diffusion models, CLIP, and the math of turning text into images\nWelch Labs Book: https://www.welchlabs.com/resources/imaginary-numbers-book\n\nSections\n0:00 - Intro\n3:37 - CLIP\n6:25 - Shared Embedding Space\n8:16 - Diffusion Models & DDPM\n11:44 - Learning Vector Fields\n22:00 - DDIM\n25:25 - Dall E 2\n26:37 - Conditioning\n30:02 - Guidance\n33:39 - Negative Prompts\n34:27 - Outro\n35:32 - About guest video",
+     "publishedAt": 1753445651000
+    },
+    {
+     "id": "Dlsa9EBKDGI",
+     "title": "Where my explanation of Grover’s algorithm failed",
+     "description": "Addressing viewer questions from the last video: https://youtu.be/RQWpF2Gb-gU\nThese lessons are funded directly by viewers: https://3b1b.co/support\nAn equally valuable form of support is to share the videos.\n\nThe subtitles on this video were done using AI, and are likely imperfect, but they are open for community corrections at https://criblate.com/\n\nTimestamps:\n0:00 - The confusion\n1:25 - Example",
+     "publishedAt": 1746359124000
+    },
+    {
+     "id": "RQWpF2Gb-gU",
+     "title": "But what is quantum computing?  (Grover's Algorithm)",
+     "description": "Qubits, state vectors, and Grover's algorithm for search.\nInstead of sponsored ad reads, these lessons are funded directly by viewers: https://3b1b.co/support\nAn equally valuable form of support is to share the videos.\n\nThe subtitles on this video were done using AI, and are likely imperfect, but they are open for community corrections at https://criblate.com/\n\nAdam Brown's paper on the connection",
+     "publishedAt": 1746016339000
+    }
+   ]
+  },
+  {
+   "id": "UCXUPKJO5MZQN11PqgIvyuvQ",
+   "handle": "@AndrejKarpathy",
+   "title": "Andrej Karpathy",
+   "videos": [
+    {
+     "id": "EWvNQjAaOHw",
+     "title": "How I use LLMs",
+     "description": "The example-driven, practical walkthrough of Large Language Models and their growing list of related features, as a new entry to my general audience series on LLMs. In this more practical followup, I take you through the many ways I use LLMs in my own life.\n\nChapters\n00:00:00 Intro into the growing LLM ecosystem\n00:02:54 ChatGPT interaction under the hood\n00:13:12 Basic LLM interactions examples\n0",
+     "publishedAt": 1740695396000
+    },
+    {
+     "id": "7xTGNNLPyMI",
+     "title": "Deep Dive into LLMs like ChatGPT",
+     "description": "This is a general audience deep dive into the Large Language Model (LLM) AI technology that powers ChatGPT and related products. It is covers the full training stack of how the models are developed, along with mental models of how to think about their \"psychology\", and how to get the best use them in practical applications. I have one \"Intro to LLMs\" video already from ~year ago, but that is just ",
+     "publishedAt": 1738779827000
+    },
+    {
+     "id": "l8pRSuU81PU",
+     "title": "Let's reproduce GPT-2 (124M)",
+     "description": "We reproduce the GPT-2 (124M) from scratch. This video covers the whole process: First we build the GPT-2 network, then we optimize its training to be really fast, then we set up the training run following the GPT-2 and GPT-3 paper and their hyperparameters, then we hit run, and come back the next morning to see our results, and enjoy some amusing model generations. Keep in mind that in some place",
+     "publishedAt": 1717975895000
+    },
+    {
+     "id": "zduSFxRajkE",
+     "title": "Let's build the GPT Tokenizer",
+     "description": "The Tokenizer is a necessary and pervasive component of Large Language Models (LLMs), where it translates between strings and tokens (text chunks). Tokenizers are a completely separate stage of the LLM pipeline: they have their own training sets, training algorithms (Byte Pair Encoding), and after training implement two fundamental functions: encode() from strings to tokens, and decode() back from",
+     "publishedAt": 1708449095000
+    },
+    {
+     "id": "zjkBMFhNj_g",
+     "title": "[1hr Talk] Intro to Large Language Models",
+     "description": "This is a 1 hour general-audience introduction to Large Language Models: the core technical component behind systems like ChatGPT, Claude, and Bard. What they are, where they are headed, comparisons and analogies to present-day operating systems, and some of the security-related challenges of this new computing paradigm.\nAs of November 2023 (this field moves fast!).\n\nContext: This video is based o",
+     "publishedAt": 1700706468000
+    },
+    {
+     "id": "kCc8FmEb1nY",
+     "title": "Let's build GPT: from scratch, in code, spelled out.",
+     "description": "We build a Generatively Pretrained Transformer (GPT), following the paper \"Attention is All You Need\" and OpenAI's GPT-2 / GPT-3. We talk about connections to ChatGPT, which has taken the world by storm. We watch GitHub Copilot, itself a GPT, help us write a GPT (meta :D!) . I recommend people watch the earlier makemore videos to get comfortable with the autoregressive language modeling framework ",
+     "publishedAt": 1673973207000
+    },
+    {
+     "id": "t3YJ5hKiMQ0",
+     "title": "Building makemore Part 5: Building a WaveNet",
+     "description": "We take the 2-layer MLP from previous video and make it deeper with a tree-like structure, arriving at a convolutional neural network architecture similar to the WaveNet (2016) from DeepMind. In the WaveNet paper, the same hierarchical architecture is implemented more efficiently using causal dilated convolutions (not yet covered). Along the way we get a better sense of torch.nn and what it is and",
+     "publishedAt": 1668990768000
+    },
+    {
+     "id": "q8SA3rM6ckI",
+     "title": "Building makemore Part 4: Becoming a Backprop Ninja",
+     "description": "We take the 2-layer MLP (with BatchNorm) from the previous video and backpropagate through it manually without using PyTorch autograd's loss.backward(): through the cross entropy loss, 2nd linear layer, tanh, batchnorm, 1st linear layer, and the embedding table. Along the way, we get a strong intuitive understanding about how gradients flow backwards through the compute graph and on the level of e",
+     "publishedAt": 1665510979000
+    },
+    {
+     "id": "P6sfmUTpUmc",
+     "title": "Building makemore Part 3: Activations & Gradients, BatchNorm",
+     "description": "We dive into some of the internals of MLPs with multiple layers and scrutinize the statistics of the forward pass activations, backward pass gradients, and some of the pitfalls when they are improperly scaled. We also look at the typical diagnostic tools and visualizations you'd want to use to understand the health of your deep network. We learn why training deep neural nets can be fragile and int",
+     "publishedAt": 1664901663000
+    },
+    {
+     "id": "TCH_1BHY58I",
+     "title": "Building makemore Part 2: MLP",
+     "description": "We implement a multilayer perceptron (MLP) character-level language model. In this video we also introduce many basics of machine learning (e.g. model training, learning rate tuning, hyperparameters, evaluation, train/dev/test splits, under/overfitting, etc.).\n\nLinks:\n- makemore on github: https://github.com/karpathy/makemore\n- jupyter notebook I built in this video: https://github.com/karpathy/nn",
+     "publishedAt": 1662993786000
+    },
+    {
+     "id": "PaCmpygFfXo",
+     "title": "The spelled-out intro to language modeling: building makemore",
+     "description": "We implement a bigram character-level language model, which we will further complexify in followup videos into a modern Transformer language model, like GPT. In this video, the focus is on (1) introducing torch.Tensor and its subtleties and use in efficiently evaluating neural networks and (2) the overall framework of language modeling that includes model training, sampling, and the evaluation of ",
+     "publishedAt": 1662578087000
+    },
+    {
+     "id": "kVpDARqZdrQ",
+     "title": "Stable diffusion dreams of psychedelic faces",
+     "description": "Prompt: \"psychedelic faces\"\nStable diffusion takes a noise vector as input and samples an image. To create this video I smoothly (spherically) interpolate between randomly chosen noise vectors and render frames along the way.\n\nThis video was produced by one A100 GPU taking about 10 tabs and dreaming about the prompt overnight (~8 hours). While I slept and dreamt about other things.\n\nMusic: Stars b",
+     "publishedAt": 1660933945000
+    },
+    {
+     "id": "2oKjtvYslMY",
+     "title": "Stable diffusion dreams of steampunk brains",
+     "description": "Prompt: \"ultrarealistic steam punk neural network machine in the shape of a brain, placed on a pedestal, covered with neurons made of gears. dramatic lighting. #unrealengine\"\nStable diffusion takes a noise vector as input and samples an image. To create this video I smoothly (spherically) interpolate between randomly chosen noise vectors and render frames along the way.\n\nThis video was produced by",
+     "publishedAt": 1660755481000
+    },
+    {
+     "id": "sM9bozW295Q",
+     "title": "Stable diffusion dreams of tattoos",
+     "description": "Dreams of tattoos. (There are a few discrete jumps in the video because I had to erase portions that got just a little 🌶️, believe I got most of it)\n\nLinks\n- Stable diffusion: https://stability.ai/blog\n- Code used to make this video: https://gist.github.com/karpathy/00103b0037c5aaea32fe1da1af553355\n- My twitter: https://twitter.com/karpathy",
+     "publishedAt": 1660690978000
+    },
+    {
+     "id": "VMj-3S1tku0",
+     "title": "The spelled-out intro to neural networks and backpropagation: building micrograd",
+     "description": "This is the most step-by-step spelled-out explanation of backpropagation and training of neural networks. It only assumes basic knowledge of Python and a vague recollection of calculus from high school.\n\nLinks:\n- micrograd on github: https://github.com/karpathy/micrograd\n- jupyter notebooks I built in this video: https://github.com/karpathy/nn-zero-to-hero/tree/master/lectures/micrograd\n- my websi",
+     "publishedAt": 1660689866000
+    }
+   ]
+  },
+  {
+   "id": "UCeVMnSShP_Iviwkknt83cww",
+   "handle": "@CodeWithHarry",
+   "title": "CodeWithHarry",
+   "videos": [
+    {
+     "id": "IjYs6ZL4TCs",
+     "title": "I Tested GPT-6 Astra With 5 Impossible Tasks!",
+     "description": "Data Science Course: https://www.codewithharry.com/courses/the-ultimate-job-ready-data-science-course\nData Analytics Course: https://www.codewithharry.com/courses/the-ultimate-job-ready-ai-powered-data-analytics-course\nPython Course: https://www.codewithharry.com/courses/complete-python-bootcamp-learn-python-from-scratch\nWeb Development Course: https://www.codewithharry.com/courses/the-ultimate-we",
+     "publishedAt": 1789143773000
+    },
+    {
+     "id": "Pa2G8RzbWZ4",
+     "title": "GPT 6 Astra - End of Developers?",
+     "description": "➡️ Download Notes and CheatSheets: https://www.codewithharry.com/notes/\n➡️ Udemy Python Course: https://goharry.in/python\n➡️ Checkout Data Science The Ultimate Job Ready Data Science Course: https://www.codewithharry.com/courses/the-ultimate-job-ready-data-science-course\n➡️ Data Science (International Students): https://buy.stripe.com/9B65kF3790jS2kCeiZ1gs04\n➡️ Career Advice:\nIf you are into colle",
+     "publishedAt": 1788964571000
+    },
+    {
+     "id": "ldgl9Bd3lLg",
+     "title": "Linux Tutorial For Beginners | Complete Linux Course for DevOps",
+     "description": "Use this link along with coupon code \"HARRYVPS\" to get the best discount deal from Hostinger: https://hostinger.com/HARRYVPS\n\nDownload Handbook: https://www.codewithharry.com/notes#handbooks\nCrontab Website: https://crontab.guru/\n\n\nData Science Course: https://www.codewithharry.com/courses/the-ultimate-job-ready-data-science-course\nData Analytics Course: https://www.codewithharry.com/courses/the-u",
+     "publishedAt": 1788092832000
+    },
+    {
+     "id": "AB3J8ufDYHQ",
+     "title": "Git Tutorial for Beginners: Learn Git in One Video",
+     "description": "Download Handbook: https://www.codewithharry.com/notes#handbooks\nDownload Cheatsheet: https://www.codewithharry.com/notes#cheatsheets\n\n\nTimeStamps:\n00:00:00 Skit\n00:05:35 Introduction\n00:06:48 What Is Git?\n00:07:23 Linus Torvalds got angry!\n00:09:19 Centralised vs Distributed Version Control Systems\n00:11:05 Git vs GitHub\n00:13:42 Installing Git\n00:19:47 How Git Works?\n00:23:17 Hands-on Git\n00:35:",
+     "publishedAt": 1783866079000
+    },
+    {
+     "id": "uyr3370S3UM",
+     "title": "Can AI build my Ecommerce App in 10 minute?",
+     "description": "Build and launch your own app with Lovable: https://lovable.link/KWnPmEw\nI used Lovable to build a real eCommerce app for CodeWithHarry merchandise in this video. If you've ever wanted to turn an idea into a working web app without spending weeks on setup, give it a try.\n➡️ Download Notes and CheatSheets: https://www.codewithharry.com/notes/\n➡️ Udemy Python Course: https://goharry.in/python\n➡️ Che",
+     "publishedAt": 1780140600000
+    },
+    {
+     "id": "2CO8fcbQ_LQ",
+     "title": "Build an AI Powered E-Commerce Website using MongoDB 🔥",
+     "description": "In this video, we build a complete AI Powered E-Commerce Website using MongoDB Atlas, React, Node.js, Express, and AI powered search capabilities.\n\nWe will cover:\n- Authentication\n- Product management\n- Shopping cart & orders\n- MongoDB Atlas\n- AI powered semantic search\n- Vector Search\n- Embeddings\n- Real-world scalable architecture\n\nThis video is sponsored by MongoDB.\n\nMongoDB is the database for",
+     "publishedAt": 1779953769000
+    },
+    {
+     "id": "LkSwZilRyPI",
+     "title": "Stop Vibe Coding Apps - Do this instead!",
+     "description": "Check out Dhaval Sir's Channel: https://www.youtube.com/@codebasics\n➡️ Download Notes and CheatSheets: https://www.codewithharry.com/notes/\n➡️ Udemy Python Course: https://goharry.in/python\n➡️ Checkout Data Science The Ultimate Job Ready Data Science Course: https://www.codewithharry.com/courses/the-ultimate-job-ready-data-science-course\n➡️ Data Science (International Students): https://buy.stripe",
+     "publishedAt": 1779691116000
+    },
+    {
+     "id": "G8-6rr3gTj0",
+     "title": "I Tried Replit Agent 4 - Is It Worth the Hype?",
+     "description": "Try Agent 4 - https://replit.com/refer/codewithharry\nAgent 4 is Replit’s newest AI building agent that lets you plan, design, and build at the same time. Instead of waiting for code to finish before moving forward, you can run multiple agents in parallel, iterate on designs in an infinite canvas, and ship full projects faster.\n\nWhen you sign up and upgrade using my link:\n• You get $10 in Replit cr",
+     "publishedAt": 1773668344000
+    },
+    {
+     "id": "YBB3GbluHjA",
+     "title": "Learn Coding & Get a Job (in 2026) 🔥",
+     "description": "Checkout Bluehost: https://www.bluehost.com/vps-hosting?utm_source=influencer&utm_medium=youtube&utm_campaign=vps&utm_content=code_with_harry&channelid=P99C101S651N0B2A16D0E0000V105\n\nData Analytics Course: https://www.codewithharry.com/courses/the-ultimate-job-ready-ai-powered-data-analytics-course\nData Science Course: https://www.codewithharry.com/courses/the-ultimate-job-ready-data-science-cours",
+     "publishedAt": 1773243139000
+    },
+    {
+     "id": "-4e3ewcTupM",
+     "title": "Web Development Roadmap 2026 (No BS Guide!)",
+     "description": "Udemy WebDev Course: https://goharry.in/webdev\n\n🕛 TimeStamps\n00:00 Introduction\n00:38 Reality Check\n01:25 How Web Development Works\n05:07 When should you use AI Tools?\n06:58 Modern Stack for Web Development\n13:42 Jobs?\n14:45 12 Month Action Plan\n16:30 Conclusion\n\n➡️ Download Notes and CheatSheets: https://www.codewithharry.com/notes/\n➡️ Udemy Python Course: https://goharry.in/python\n➡️ Checkout D",
+     "publishedAt": 1772812801000
+    },
+    {
+     "id": "161yAjOIHAw",
+     "title": "OpenClaw Tutorial for Beginners | Automating Email + Calendar forever 🔥",
+     "description": "Try OpenClaw today: https://www.hostg.xyz/SHIys\nUse Coupon Code: HARRY20 for 20% coupon code until end of March 2026\n\n➡️ Download Notes and CheatSheets: https://www.codewithharry.com/notes/\n➡️ Udemy Python Course: https://goharry.in/python\n➡️ Checkout Data Science The Ultimate Job Ready Data Science Course: https://www.codewithharry.com/courses/the-ultimate-job-ready-data-science-course\n➡️ Data Sc",
+     "publishedAt": 1772517175000
+    },
+    {
+     "id": "s4dLwoanLm0",
+     "title": "2026 will be the Year of Multi-agent AIs - Here's why!",
+     "description": "Oz by Warp is one of the easiest ways to create your AI Agents on the cloud. \nTry Warp today and get an extra 1000 Oz credits. ➞ https://oz.dev/harryyt\n\nIf you are interested in Python, you might want to check out this online conference by JetBrains: https://lp.jetbrains.com/python-unplugged/\n\nTimeStamps 🕰️\n00:00 – Introduction\n00:54 – Will AI Take Jobs?\n01:43 – What Are LLMs?\n03:40 – What Is an ",
+     "publishedAt": 1772034960000
+    },
+    {
+     "id": "Tc1RVGZUXbU",
+     "title": "5 Ways Hackers Use AI to Hack You (For Educational Purpose Only)",
+     "description": "➡️ Download Notes and CheatSheets: https://www.codewithharry.com/notes/\n➡️ Udemy Python Course: https://goharry.in/python\n➡️ Checkout Data Science The Ultimate Job Ready Data Science Course: https://www.codewithharry.com/courses/the-ultimate-job-ready-data-science-course\n➡️ Data Science (International Students): https://buy.stripe.com/9B65kF3790jS2kCeiZ1gs04\n\n⏱️ Timestamps\n\n00:00 – Introduction\n00",
+     "publishedAt": 1771254061000
+    },
+    {
+     "id": "5iliern1SAs",
+     "title": "WordPress Crash Course | Learn WordPress in 30 Minutes",
+     "description": "This video is made in Collaboration with Hostinger\n🔥 Get Flat 20% OFF on Hostinger Hosting! 🔥\n👉 Special Discount Link: http://hostinger.com/codewithharry\n\n🎟Apply Coupon Code at Checkout:\nHARRY20 – Flat 20% OFF on all plans (any duration)\n\n💡 Don’t miss this limited-time offer - grab fast, secure, and affordable Wordpress hosting with Hostinger today!",
+     "publishedAt": 1770476918000
+    },
+    {
+     "id": "xb-fcoMMiTM",
+     "title": "End of Web Development?",
+     "description": "Checkout my Webdev Course: https://goharry.in/webdev\n➡️ Download Notes and CheatSheets: https://www.codewithharry.com/notes/\n➡️ Udemy Python Course: https://goharry.in/python\n➡️ Checkout Data Science The Ultimate Job Ready Data Science Course: https://www.codewithharry.com/courses/the-ultimate-job-ready-data-science-course\n➡️ Data Science (International Students): https://buy.stripe.com/9B65kF3790",
+     "publishedAt": 1768467285000
+    }
+   ]
+  },
+  {
+   "id": "UCsBjURrPoezykLs9EqgamOA",
+   "handle": "@Fireship",
+   "title": "Fireship",
+   "videos": [
+    {
+     "id": "aspmNhKAFMc",
+     "title": "OpenAI's biggest math breakthrough is getting ugly...",
+     "description": "Railway is the smoothest way to deploy software: https://railway.com/?referralCode=fireship\n\nOpenAI claims it cracked a 90 year old math problem, but one NYU professor isn't happy about it. Let's dive in. \n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1789147480000
+    },
+    {
+     "id": "2Xiljy4xzbc",
+     "title": "I built the same game with Astra and Fable 5.1... only one was fun",
+     "description": "Get 20% off Mobbin Pro to help your agent design UIs that actually convert - https://mobbin.com/fireship\n\nNow that Astra is actually available to use, let's see if it lives up to the hype.\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1788971667000
+    },
+    {
+     "id": "Y5rSSvXfL4g",
+     "title": "5 open source tools that replaced my $320/mo AI stack...",
+     "description": "Get 67% off VPS hosting with Hostinger's one-click templates. Use code FIRESHIP for an extra discount - https://hostinger.com/fireship\n\nIn this video we cover 5 free and open-source tools that'll help you cut token costs. Let's dive in.\n\n- Ollama\n- 9router\n- Headroom\n- Diffy\n- OpenHands\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1788801891000
+    },
+    {
+     "id": "FluKUJyeYD8",
+     "title": "Did OpenAI actually build AGI? GPT-6 Astra first look",
+     "description": "CodeRabbit Security protects your code from AI-driven exploits. Get 10 free code scans here: https://coderabbit.link/fireship-010\n\nOpenAI finally announced GPT-6 Astra which they're claiming is AGI... Let's see if that's true.\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1788552852000
+    },
+    {
+     "id": "0Rp9KJCEIvg",
+     "title": "The most interesting hack in history just got weirder...",
+     "description": "Namespace is actually the fastest way to run your GitHub Actions (and more). Try it for free - https://namespace.so/github-actions\n\nOpenAI finally published the postmortem on the Hugging Face hack and it turns out it's way more interesting than we first though. Let's dive in.\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1788375688000
+    },
+    {
+     "id": "r-tzcMlQISk",
+     "title": "The mystery is solved... and the answer is 40x cheaper than Claude",
+     "description": "Exa gives your agents the largest index of public and private data. Get $20 in credits - https://dashboard.exa.ai/billing?coupon=EXA20FIRESHIP\n\nAn anonymous model called Ox Alpha just conquered OpenRouter, serving 42 trillion tokens in six days before being unmasked as Zhipu's GLM-5.3-Flash. Let's break it down.\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Cours",
+     "publishedAt": 1788283887000
+    },
+    {
+     "id": "UuqSy1jPSUw",
+     "title": "The most expensive software bug in history...",
+     "description": "Get $100 in Hyperagent bonus credits when you sign up for a paid plan - https://www.hyperagent.com/fireship100\n\nIn 2012 Knight Capital lost $440 million dollars because of a rogue feature flag. What did we learn from that mistake? Not much.\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1787852893000
+    },
+    {
+     "id": "xBByvFrqmWU",
+     "title": "DeepSeek is back... and Silicon Valley is terrified",
+     "description": "Take BlueDot's Future of AI course for free - https://bluedot.org/fireship\n\nOpenAI just paused its biggest training run in history just as things were getting interesting. Let's dive in.\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1787248417000
+    },
+    {
+     "id": "iuZPTE5qsJY",
+     "title": "The summer Math fell to the machines...",
+     "description": "Railway is the smoothest way to deploy software. Get $20 in free credits - https://railway.com/?referralCode=fireship\n\nAI has killed more open math problems in the last few weeks than the entire human race managed in the previous decade. Let's dive in.\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1787165157000
+    },
+    {
+     "id": "E7la7-dtfVM",
+     "title": "This new startup can query anywhere you've been...",
+     "description": "CodeRabbit Security protects your code from AI-driven exploits. Get 10 free code scans here: https://coderabbit.link/ad-fireship-006\n\nHow Flock Safety turned cheap edge ML cameras into a warrantless tracking network and the open source project trying to stop them.\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1786729499000
+    },
+    {
+     "id": "G55HSGpuh1M",
+     "title": "Meta's new model wants \"deep access\" to your personal life...",
+     "description": "OpenRouter is the only API you need for AI. Every model, the best uptime and no subscription. Try it free: https://openrouter.ai/?utm_source=fireship&utm_medium=video&utm_campaign=2026-08_dev-sponsorships&utm_content=description\n\nMeta just released Muse Glimmer, a 30 billion parameter agentic model under a fully permissive Apache 2.0 license. Let's dive in.\n\n#coding #programming\n\nWant more Fireshi",
+     "publishedAt": 1786559381000
+    },
+    {
+     "id": "aB5LGrHISqY",
+     "title": "I spent 3 days at MIT... the robot hype is worse than you think",
+     "description": "Omnigent is an open source meta-harness to run all your AI agents in one place. Try it free - https://bit.ly/4fXzeo8\n\nI spent last week at MIT's CSAIL lab learning where the frontier of robotics actually is. Here's my takeaway.\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1786464608000
+    },
+    {
+     "id": "2X2V3xv_jik",
+     "title": "The safest way to store Bitcoin was just hacked...",
+     "description": "Build, test, and ship real apps in a day with Lovable: https://lovable.link/11vGHox\n\nLast week the most secure way to store Bitcoin quickly became the least secure. Let's investigate.\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1785953326000
+    },
+    {
+     "id": "jxGJT1weu4w",
+     "title": "Did Anthropic just kill the indie hacker...?",
+     "description": "Try Blacksmith for free to run your GitHub Actions 2x faster - https://www.blacksmith.sh/\n\nAnthropic just dropped Opus 5 and it may be killing the indie hacker dream. Let's dive in.\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1785342831000
+    },
+    {
+     "id": "KOpTWx1Eou4",
+     "title": "The most interesting \"hack\" in history...",
+     "description": "Railway is the easiest way to deploy anything. Get $20 in free credits - https://railway.com/?referralCode=fireship\n\nLast week Hugging Face was hacked. In this video, we'll break down who it was and what they wanted.\n\n#coding #programming\n\nWant more Fireship?\n\n🗞️ Newsletter: https://bytes.dev\n🧠 Courses: https://fireship.dev",
+     "publishedAt": 1784825617000
+    }
+   ]
+  },
+  {
+   "id": "UCXuqSBlHAE6Xw-yeJA0Tunw",
+   "handle": "@LinusTechTips",
+   "title": "Linus Tech Tips",
+   "videos": [
+    {
+     "id": "pvSdeU13hKc",
+     "title": "This GPU can be Hacked to Unlock Secret Memory",
+     "description": "Wherever today takes you, go comfortably with Vessi Weekend Chelsea—made for exploring, rain or shine. One pair. Countless adventures.\n✨ Grab 15% off your first pair here: https://vessi.com/ltt\n• Free shipping • 30‑day returns • 1‑year warranty\n\nFive years ago we looked at the CMP 170HX, a seemingly useless card as it was strictly made for mining crypto currency. But in the big 2026, this card is ",
+     "publishedAt": 1789232409000
+    },
+    {
+     "id": "VfQdPRyqQW4",
+     "title": "I Cooled my PC with a SLUSHIE MACHINE",
+     "description": "Start building your website today! Visit https://squarespace.syuh.net/LTT and use offer code LTT for 10% off\n\nLinus’ latest Facebook Marketplace find is the the ultimate way to keep the crew AND our computers cool, all summer long. Maybe don’t try this one at home...\n\nDiscuss on the forum: https://linustechtips.com/topic/1642640-i-connected-a-slushie-machine-to-my-computer/\n\nCheck out our Channel ",
+     "publishedAt": 1789145817000
+    },
+    {
+     "id": "sL6OWsT47zc",
+     "title": "Apple just Copied Microsoft’s Worst Idea - iPhone Duo, Airpods 5, iPhone 18 Pro & More",
+     "description": "Secure your business with ThreatLocker today using our link: https://www.threatlocker.com/ltt and learn more about how ThreatLocker can help your business safely integrate AI agenic tools here: https://www.threatlocker.com/blog/applying-threatlocker-to-agentic-ai-tools\n\nApple has FINALLY unveiled their entrant into the folding phone market, and it's undoubtedly slick. EXCEPT FOR THIS ONE MAJOR THI",
+     "publishedAt": 1789028932000
+    },
+    {
+     "id": "2KztkwBYD68",
+     "title": "Why are people spending $1,000 for old iPods",
+     "description": "Thanks to Meter for sponsoring this video! Go to https://meter.com/ltt to book a demo now!\n\nMusic streaming services were great at first with all the music at your finger tips at a relatively cheap price. And then they increased the price again, and again, and again, while also REMOVING songs from their services. So it's time to take a trip back to 2001 and upgrade that old iPod into something new",
+     "publishedAt": 1788886812000
+    },
+    {
+     "id": "nZwdIPg7N3A",
+     "title": "We Should Have Hired Someone to do this…",
+     "description": "Get a free 15-day trial of Odoo’s all-in-one business solution and see how it can make your life easier! Check it out at https://www.odoo.com/ltt\n\nPreviously, Elijah and Linus deliberated on whether to run Cat5e or Cat6a in the Tech House. It ultimately ended up in letting all of YOU choose what we should run, and you have chosen to make our hosts fingers go through much pain by having to run MANY",
+     "publishedAt": 1788800400000
+    },
+    {
+     "id": "lmLh29LE2W4",
+     "title": "The Best Value Gaming PC I’ve Ever Seen",
+     "description": "Play War Thunder for FREE on PC, PlayStation, Xbox, and mobile using the links below! New to the game, or returning after six months? You'll get a massive bonus pack on PC and consoles packed with vehicles, boosters, and more. Claim your bonus and start playing today!\n\nPC/Console: https://playwt.link/linustechtips\nMobile: https://wtm.game/linustechtips\n\nA sub-$300 gaming PC might seem completely u",
+     "publishedAt": 1788627611000
+    },
+    {
+     "id": "X8sgBpmdCT8",
+     "title": "We Built the BEST PC",
+     "description": "Get a 15% discount on Saily eSIM data plans! Download the Saily app and use code LTT at checkout. Or go to https://saily.com/ltt\n\nWe built the FASTEST PC money can buy off the shelf in 2026. It’s so fast it’s almost like gaming in the future, and it’s so futuristic that we actually still have to build it! Featuring a monstrous AMD Ryzen 9 9950X3D2, 32 Gigs of elusive DDR5 memory, and a MSI 5090 Li",
+     "publishedAt": 1788454817000
+    },
+    {
+     "id": "fX-g6XNrkiA",
+     "title": "DLSS 5 is NOT What We Expected",
+     "description": "Get 20% off DeleteMe US consumer plans when you go to http://joindeleteme.com/LTT20 and use promo code LTT20 at checkout.\n\nDeleteMe International Plans: https://international.joindeleteme.com/\n\nNvidia claims DLSS 5 is \"reinventing\" computer graphics, but is it a genuine breakthrough or just AI hype? We’re going hands-on to see if this new technology is truly exciting or a cause for dread. From per",
+     "publishedAt": 1788267731000
+    },
+    {
+     "id": "LYMvJW5rYME",
+     "title": "I Built a Fake Home Theater in the Tech House…",
+     "description": "Thanks Wispr Flow for sponsoring this video! Check them out at https://ref.wisprflow.ai/ltt and use code LTT for a free month of Wispr Flow Pro!\n\nHow do you pick the perfect screen size for your new home theater? What’s the best place to put that screen? And the speakers? We took a pile of cardboard to the Tech House to lock in our layout.\n\nDiscuss on the forum: https://linustechtips.com/topic/164",
+     "publishedAt": 1788110477000
+    },
+    {
+     "id": "yFJDP7OinRM",
+     "title": "My Wife Needs a Phone, and I’m NOT Gonna Mess it Up This Time",
+     "description": "Play War Thunder for FREE on PC, PlayStation, Xbox, and mobile using the links below! New to the game, or returning after six months? You'll get a massive bonus pack on PC and consoles packed with vehicles, boosters, and more. Claim your bonus and start playing today!\n\nPC/Console: https://playwt.link/linustechtips\nMobile: https://wtm.game/linustechtips\n\nYvonne needs a new phone after Apple screwed",
+     "publishedAt": 1788021436000
+    },
+    {
+     "id": "oeqUHEp4sYM",
+     "title": "How to Stop Smart TV Spying",
+     "description": "Click this link https://boot.dev/?promo=LTT and use my code LTT to get 25% off your first payment for boot.dev!\n\nIs your smart TV watching you right back? With the massive amount of encrypted traffic flying off modern displays, hiding telemetry is child’s play, and simply ‘opting-out’ feels pretty naive. So what can you do if you don’t want to be watched?\n\nDiscuss on the forum: https://linustechti",
+     "publishedAt": 1787764104000
+    },
+    {
+     "id": "H4BKUbtCmp0",
+     "title": "How do you upgrade a lifelong Tech??? - AMD $5000 Ultimate Tech Upgrade",
+     "description": "Thanks to AMD for being a great partner and sponsoring this series! Check out their latest offerings at https://lmg.gg/f6PMg\n\nGo to https://bit.ly/4gx31UP to enter the sweepstakes to win an AMD RYZEN™ 7 9800X3D CPU and a GIGABYTE Gaming OC RADEON™ RX 9070 XT GPU!\n\nIt's that time again for another $5000 ULTIMATE AMD Upgrade! This time for our writer Jordan. What do you buy for the man that D.I.Y.s ",
+     "publishedAt": 1787677227000
+    },
+    {
+     "id": "ZWCAXHNOIcA",
+     "title": "Your Next Budget PC Upgrade is...Custom Watercooling??",
+     "description": "Thanks to Meter for sponsoring this video! Go to https://meter.com/ltt to book a demo now!\n\nCustom water cooling has always been expensive, but high-end AIOs are getting pretty pricey too. So we used Bykski parts to build a full CPU and GPU custom loop for less than some premium AIOs. The question is, is going custom actually worth the extra hassle?\n\nDiscuss on the forum: https://linustechtips.com",
+     "publishedAt": 1787591281000
+    },
+    {
+     "id": "DXK-F0SjC_E",
+     "title": "I put the NEWEST CPU in the OLDEST Motherboard",
+     "description": "Secure your business with ThreatLocker today using our link: https://www.threatlocker.com/ltt and learn more about how ThreatLocker can help your business safely integrate AI agenic tools here: https://www.threatlocker.com/blog/applying-threatlocker-to-agentic-ai-tools\n\nThe AM4 platform refuses to die, spanning four generations of Zen processors. That got me thinking… Could the best upgrade you co",
+     "publishedAt": 1787418002000
+    },
+    {
+     "id": "36oL-7C_qR4",
+     "title": "There’s NO Excuse Not To Try Linux!",
+     "description": "Thanks to MSI for sponsoring this video! Check out their Intel Gamer Days deals at https://msi.gm/SA322D11\n\nPeople are clearly wanting to try Linux or at least a bit interested in trying Linux, but how do you try Linux without completely getting rid of the current Windows Install. Dual Booting allows you to have multiple operating systems installed on your computer for many different reasons. Toda",
+     "publishedAt": 1787244866000
+    }
+   ]
+  },
+  {
+   "id": "UCX6OQ3DkcsbYNE6H8uQQuVA",
+   "handle": "@MrBeast",
+   "title": "MrBeast",
+   "videos": [
+    {
+     "id": "gTKS8SAwUzE",
+     "title": "I Survived The Most Extreme Places On Earth",
+     "description": "We raced through some of the most extreme places on Earth to see who could make it to the finish line first!\n\nGemini helped us plan, problem-solve, and take on challenges along the way. Try Gemini here: https://gemini.google.com/app/download/mobile?android-min-version=301356232&ios-min-version=322.0&is_sa=1&pt=9008&mt=8&utm_medium=paid&utm_source=partnership&utm_campaign=MrBeast_Sep_Ext_Places&cam",
+     "publishedAt": 1788624001000
+    },
+    {
+     "id": "Qtl8lJwbd4g",
+     "title": "Escape 100 Cops, Win $500,000",
+     "description": "is it possible to escape 100 cops?\n\nSponsored by Call of Duty: Mobile\nDownload it for FREE today:https://codmatvi.onelink.me/jYL7/91xx2x6j\n\nCOD Point Rush Event Details: COD Point Rush runs through September 9, 2026 (UTC). Void where prohibited. Time limited COD Points can be used towards select Season 7 draws and store offers. Time limited COD Points expire September 9, 2026 (UTC) and will not be",
+     "publishedAt": 1787414405000
+    },
+    {
+     "id": "Af6i6ChAVTw",
+     "title": "Last To Leave Mansion, Keeps It",
+     "description": "imagine living in a mansion with strangers for months\n\nClick the link to subscribe to Homecare+ and get 7 services handled by a trained Lowe’s associate for just $99 / Year: https://www.lowes.com/homecareplus\n\nBack-to-school starts at Old Navy. Shop denim, fleece, activewear, graphic tees, and more—backed by a one-year guarantee on all kids' clothing. Shop in store or at https://www.OldNavy.com. E",
+     "publishedAt": 1786204801000
+    },
+    {
+     "id": "lVylRtlPOIE",
+     "title": "I Granted 100 Kids Their Biggest Wish!",
+     "description": "I’m so incredibly honored to give these kids an awesome day that they deserve :)\nDisney’s Moana is only in theaters, get tickets now! https://www.fandango.com/moana-2026-243429/movie-overview\n\nTo Support Cancer Research\nGive now at https://StandUpToCancer.org/MrBeast to create a new Stand Up To Cancer Pediatric Cancer Dream Team and help find cures for kids with cancer, fueled by support from our ",
+     "publishedAt": 1784995205000
+    },
+    {
+     "id": "iYlODtkyw_I",
+     "title": "Survive 30 Days Chained To A Stranger, Win $250,000",
+     "description": "imagine being chained to a random stranger for 30 days lol\n\nNext time you’re roasting s’mores, pick up Feastables! You can find our products at Albertsons, Walmart, or Target :) https://feastables.com/pages/find-a-store FeastablesPartner\n\nSUB TO ALL CHANNELS\nwww.youtube.com/@UCX6OQ3DkcsbYNE6H8uQQuVA\nwww.youtube.com/@UC4-79UOlP48-QNGgCko5p2g \nwww.youtube.com/@UCIPPMRA040LQr5QPyJEbmXA \nwww.youtube.c",
+     "publishedAt": 1782576005000
+    },
+    {
+     "id": "__fmDj0ZJ1Q",
+     "title": "50 YouTube Legends Fight For $1,000,000",
+     "description": "50 YouTube legends all here in one video is actually insane 😅\n\nDon't let pain stop your momentum. Keep the moment going with MOTRIN®- grab it on Amazon https://a.co/d/01LFWI3W\n\nThanks to OverBuilt for providing the car crushers! Check out https://overbuilt.com \n\n\"Just Do It’ - Courtesy of LaBeouf, Rönkkö & Turner\n“MrBeast Faces His Scariest Challenge Yet While Eating Spicy Wings\" - Courtesy of Fi",
+     "publishedAt": 1781366400000
+    },
+    {
+     "id": "GpQSUjNsNm0",
+     "title": "7 Days Stranded in The Arctic",
+     "description": "can the boys and i survive the arctic for 7 days\n\nFind My Jack Link’s Beef Sticks at Walmart Now\nhttps://tinyurl.com/JackLinksBeefSticks\n\nSUB TO ALL CHANNELS\nwww.youtube.com/@UCX6OQ3DkcsbYNE6H8uQQuVA\nwww.youtube.com/@UC4-79UOlP48-QNGgCko5p2g \nwww.youtube.com/@UCIPPMRA040LQr5QPyJEbmXA \nwww.youtube.com/@UCUaT_39o1x6qWjz7K2pWcgw \nwww.youtube.com/@UCAiLfjNXkNv24uhpzUgPa6A \nwww.youtube.com/@UCZzvDDvaYt",
+     "publishedAt": 1780156802000
+    },
+    {
+     "id": "AaMdXZMvT3w",
+     "title": "Survive 30 Days On An Island With Your Ex, Win $250,000",
+     "description": "imagine being trapped on an island with 6 of your exes \n\nThe Sheep Detectives - Now Playing Only In Theaters. Get tickets now: https://www.amazon.com/SALP/thesheepdetectives\n\nNew and current subscribers will receive an entry for a chance to win during the sweepstakes period (May 15, 2026 - June 14, 2026). YouTube account must be set to public and include a valid email address. No purchase necessar",
+     "publishedAt": 1778947201000
+    },
+    {
+     "id": "6Zy5VLcEbZc",
+     "title": "I Stranded 100 People In The Wilderness For $250,000",
+     "description": "what wins in a battle of survival, knowledge or resources?\n\nThanks to Bass Pro Shops for providing these teams with some awesome gear. Shop here: https://www.basspro.com/home\n\nDisclaimer: We are contributing cash towards the wish of your choosing. Rules and conditions apply. Please visit https://bit.ly/MrB_Birthday_YT for additional rules and details.\n\nThe survivalists were told they’d be in a MrB",
+     "publishedAt": 1777737601000
+    },
+    {
+     "id": "zRtGL0-5rg4",
+     "title": "Last To Leave Grocery Store, Wins $250,000",
+     "description": "imagine living in a grocery store\n\nSpecial thanks to my friends at Square for supporting neighborhood businesses like The Bread Lady, Simply Natural Creamery, Blackbeard Coffee, and Blue Ox Games. Square is the all-in-one platform that helps businesses like these run smarter every day. Learn more → https://squareup.com\n\nCoca-Cola is offering a chance to collect limited-edition Panini stickers for ",
+     "publishedAt": 1776528001000
+    },
+    {
+     "id": "DXVHmGoCTco",
+     "title": "50 Streamers Fight for $1,000,000",
+     "description": "i can't believe we got all these streamers together in one place lol\n\nShopify empowers creators every single day to be entrepreneurs, founders, and CEOs. Now it’s your turn. Go to https://www.shopify.com/mrbeast to start your business today. \n\nTomorrow for the livestream, join the chat and make sure your instagram or twitter handle is viewable on your YouTube bio, so I can contact you if you win!\n",
+     "publishedAt": 1775318401000
+    },
+    {
+     "id": "JFtlf8RoPZY",
+     "title": "Trapped On An Island Until I Build A Boat",
+     "description": "I cant believe we got that far\n\nWrite 4x faster with the Typeless voice keyboard. Just speak naturally and Typeless turns your speech into your best writing by understanding your intent: removing fillers, refining wording, and structuring your sentences. Works in any app on any device. Download Typeless here:\nhttps://www.typeless.com/mrbeast\n\nIf you noticed any trash in the video, we had a crew cl",
+     "publishedAt": 1774108800000
+    },
+    {
+     "id": "AoN1K4c7VKE",
+     "title": "Survive 30 Days Stranded With Your Ex, Win $250,000",
+     "description": "I can't believe they actually agreed to this\n\nDownload PUBG MOBILE and enjoy the most popular mobile game with multiple gameplays. Happy 8th Anniversary to PUBG MOBILE, the game for Every #1. Download here to play: https://pubgmobile.go.link/MrBeast\n\nSUB TO ALL CHANNELS\nwww.youtube.com/@UCX6OQ3DkcsbYNE6H8uQQuVA\nwww.youtube.com/@UC4-79UOlP48-QNGgCko5p2g \nwww.youtube.com/@UCIPPMRA040LQr5QPyJEbmXA \nw",
+     "publishedAt": 1772902802000
+    },
+    {
+     "id": "5OLs1GWB4OA",
+     "title": "I Built 10 Schools Around The World",
+     "description": "We built 10 schools around the world in what might be my biggest project ever\n\nTo see how Lowe's is helping other communities across the nation, visit: https://www.lowes.com/howwehelp\n\nFind out more about Fundación Televisa at https://www.fundaciontelevisa.org\n\nThis video wouldn’t have been possible without the help of T-Mobile. Go check out the work they’re doing with Project 10Million at https:/",
+     "publishedAt": 1771693207000
+    },
+    {
+     "id": "9WEQts7b8Pw",
+     "title": "Ages 1 - 100 Race For $250,000!",
+     "description": "Watching 100 people from every age compete was absolute chaos lol\n\nThis Sunday you could win $1,000,000 worth of prizes on Whatnot. I'm going live this Sunday at 10 AM PT. Download Whatnot, follow me on the app, and I will see you there :) https://www.whatnot.com/user/mrbeast\n\nTerms and Conditions: https://bit.ly/MrBeast_Whatnot WhatnotPartner\n\nRFID race-timing services provided by PrimeTime Timin",
+     "publishedAt": 1770483601000
+    }
+   ]
+  },
+  {
+   "id": "UCevUmOfLTUX9MNGJQKsPdIA",
+   "handle": "@NeetCodeIO",
+   "title": "NeetCodeIO",
+   "videos": [
+    {
+     "id": "o1CeDJMpOZ0",
+     "title": "Does Python make sense for large projects?",
+     "description": "The Full Episode:\n\nSpotify - https://open.spotify.com/episode/3P1ADDQYpokpNub0tl1D86?si=-XruqkZCThiGQHqefUtGXg\nApple - https://podcasts.apple.com/us/podcast/neetcode-podcast/id1867041268\n\nYou can find Vasilios here: \n\nYoutube - https://www.youtube.com/@vsyrakis\nLinkedin - https://au.linkedin.com/in/vsyrakis\nTwitch - https://twitch.tv/vsyrakis\n\n\n\nFor sponsorship & business inquiries sponsor-neetcod",
+     "publishedAt": 1781734733000
+    },
+    {
+     "id": "dGmeJemZX5o",
+     "title": "When Casey Muratori stopped using C++",
+     "description": "The Full Episode:\n\nYoutube - https://youtu.be/Z8B4BSi35CI\nSpotify - https://open.spotify.com/episode/4OeSivp47DweDPmyEv2t1W?si=ov1_G4lsSRGbGhHtvXTVbg\nApple - https://podcasts.apple.com/us/podcast/casey-muratori-still-likes-coding/id1867041268?i=1000767767633\n\n\n\n🚀 https://neetcode.io/yt - A better way to prepare for Coding Interviews\n\n#neetcode #python",
+     "publishedAt": 1779055641000
+    },
+    {
+     "id": "rDQdJP_REIU",
+     "title": "Why Casey Muratori avoids AI",
+     "description": "The Full Episode:\n\nYoutube - https://youtu.be/Z8B4BSi35CI\nSpotify - https://open.spotify.com/episode/4OeSivp47DweDPmyEv2t1W?si=ov1_G4lsSRGbGhHtvXTVbg\nApple - https://podcasts.apple.com/us/podcast/casey-muratori-still-likes-coding/id1867041268?i=1000767767633\n\n\n\n🚀 https://neetcode.io/yt - A better way to prepare for Coding Interviews\n\n#neetcode #python",
+     "publishedAt": 1778875116000
+    },
+    {
+     "id": "kmfXj5ph_08",
+     "title": "If our Product was half as good we would be equally successful",
+     "description": "Thank you Posthog for sponsoring. Try them out for free here  https://go.posthog.com/navi\n\n\n\nThe Full Episode with Dax Raad from OpenCode:\n\nYouTube - https://youtu.be/IGsbARhERqc\nSpotify - https://open.spotify.com/episode/4pqIupaKYWHl8D4pZMr5hL?si=1-ESZEHzSTK8K_wJyxLFLw\nApple - https://podcasts.apple.com/us/podcast/building-the-future-of-coding-opencode-with-dax-raad/id1867041268?i=1000752897650\n\n",
+     "publishedAt": 1773583268000
+    },
+    {
+     "id": "AXNLKMKlruA",
+     "title": "Tech Skills alone are Useless",
+     "description": "The Full Episode:\nYoutube - https://youtu.be/IGsbARhERqc?si=e-3XbDX3JymSlnXI\nSpotify - https://open.spotify.com/episode/4pqIupaKYWHl8D4pZMr5hL?si=1-ESZEHzSTK8K_wJyxLFLw\nApple - https://podcasts.apple.com/us/podcast/building-the-future-of-coding-opencode-with-dax-raad/id1867041268?i=1000752897650\n\n\n🚀 https://neetcode.io/ - A better way to prepare for technical interviews\n\n🧑‍💼 LinkedIn: https://w",
+     "publishedAt": 1773484680000
+    },
+    {
+     "id": "baIHCeccbbw",
+     "title": "The future of Coding and Code Quality",
+     "description": "Thank you Greptile for sponsoring. Try them out for free here https://www.greptile.com/go/neetcode\n\n\n\nThe Full Episode:\n\nSpotify - https://open.spotify.com/episode/4pqIupaKYWHl8D4pZMr5hL?si=1-ESZEHzSTK8K_wJyxLFLw\nApple - https://podcasts.apple.com/us/podcast/building-the-future-of-coding-opencode-with-dax-raad/id1867041268?i=1000752897650\n\n\n\n🚀 https://neetcode.io/ - A better way to prepare for te",
+     "publishedAt": 1773365164000
+    },
+    {
+     "id": "jbuascMffJk",
+     "title": "Common Coding Interview Mistakes",
+     "description": "🚀 https://neetcode.io/yt - A better way to prepare for Coding Interviews\n\nFull episode\n\nSpotify: https://open.spotify.com/episode/1J5qKJ3EDtYjNvho6FT0mj?si=A3-_AlkhTceMbeIP0s-Pvg\nYoutube: https://youtu.be/Yzznpt_lvLQ\nYoutube Music: https://music.youtube.com/playlist?list=PLQpVsaqBj4RKTykRK1tfgeVII9KfQRoX-&si=mjrUUf52FT0QDxJJ\n\n🧑‍💼 LinkedIn: https://www.linkedin.com/in/navdeep-singh-3aaa14161/\n🐦",
+     "publishedAt": 1767798081000
+    },
+    {
+     "id": "6yWFKoC_wFQ",
+     "title": "Practice vs Talent, and Deliberate Practice",
+     "description": "🚀 https://neetcode.io/yt - A better way to prepare for Coding Interviews\n\nFull episode\n\nSpotify: https://open.spotify.com/episode/1J5qKJ3EDtYjNvho6FT0mj?si=A3-_AlkhTceMbeIP0s-Pvg\nYoutube: https://youtu.be/Yzznpt_lvLQ\nYoutube Music: https://music.youtube.com/playlist?list=PLQpVsaqBj4RKTykRK1tfgeVII9KfQRoX-&si=mjrUUf52FT0QDxJJ\n\n\n🧑‍💼 LinkedIn: https://www.linkedin.com/in/navdeep-singh-3aaa14161/\n\ud83d",
+     "publishedAt": 1767711612000
+    },
+    {
+     "id": "Yzznpt_lvLQ",
+     "title": "Interviews, Competitive Programming & Vibe Coding (w Ex-Google Competitive Programmer)",
+     "description": "🚀 https://neetcode.io/yt - A better way to prepare for Coding Interviews\n\nFull episode\n\nSpotify: https://open.spotify.com/episode/1J5qKJ3EDtYjNvho6FT0mj?si=A3-_AlkhTceMbeIP0s-Pvg\nYoutube: https://youtu.be/Yzznpt_lvLQ\nYoutube Music: https://music.youtube.com/playlist?list=PLQpVsaqBj4RKTykRK1tfgeVII9KfQRoX-&si=mjrUUf52FT0QDxJJ\n\n\nQiqi's Youtube: @qiqi_impact_official \nQiqi's Twitch: https://www.twit",
+     "publishedAt": 1767617656000
+    },
+    {
+     "id": "7FJrMTpadRI",
+     "title": "Make Sum Divisible by P - Leetcode 1590 - Python",
+     "description": "🚀 https://neetcode.io/ - A better way to prepare for Coding Interviews\n\n\n🧑‍💼 LinkedIn: https://www.linkedin.com/in/navdeep-singh-3aaa14161/\n🐦 Twitter: https://twitter.com/neetcode1\n\n\n⭐ BLIND-75 PLAYLIST: https://www.youtube.com/watch?v=KLlXCFG5TnA&list=PLot-Xpze53ldVwtstag2TL4HQhAnC8ATf\n\n\nProblem Link: https://leetcode.com/problems/make-sum-divisible-by-p/description/\n\n0:00 - Read the problem\n",
+     "publishedAt": 1764465761000
+    },
+    {
+     "id": "BzgZ777a6MU",
+     "title": "Minimum Operations to Make Array Sum Divisible by K - Leetcode 3512 - Python",
+     "description": "🚀 https://neetcode.io/yt - A better way to prepare for Coding Interviews\n\n\n🧑‍💼 LinkedIn: https://www.linkedin.com/in/navdeep-singh-3aaa14161/\n🐦 Twitter: https://twitter.com/neetcode1\n\n\n⭐ BLIND-75 PLAYLIST: https://www.youtube.com/watch?v=KLlXCFG5TnA&list=PLot-Xpze53ldVwtstag2TL4HQhAnC8ATf\n\n\nProblem Link: https://leetcode.com/problems/minimum-operations-to-make-array-sum-divisible-by-k/\n\nleetco",
+     "publishedAt": 1764374477000
+    },
+    {
+     "id": "sL2wc9zSqPM",
+     "title": "Maximum Number of K-Divisible Components - Leetcode 2872 - Python",
+     "description": "🚀 https://neetcode.io/ - A better way to prepare for Coding Interviews\n\n\n🧑‍💼 LinkedIn: https://www.linkedin.com/in/navdeep-singh-3aaa14161/\n🐦 Twitter: https://twitter.com/neetcode1\n\n\n⭐ BLIND-75 PLAYLIST: https://www.youtube.com/watch?v=KLlXCFG5TnA&list=PLot-Xpze53ldVwtstag2TL4HQhAnC8ATf\n\n\nProblem Link: https://leetcode.com/problems/maximum-number-of-k-divisible-components/description/\n\n0:00 - ",
+     "publishedAt": 1764291333000
+    },
+    {
+     "id": "8rwW3iKqP34",
+     "title": "Maximum Subarray Sum With Length Divisible by K - Leetcode 3381 - Python",
+     "description": "🚀 https://neetcode.io/yt - A better way to prepare for Coding Interviews\n\n\n🧑‍💼 LinkedIn: https://www.linkedin.com/in/navdeep-singh-3aaa14161/\n🐦 Twitter: https://twitter.com/neetcode1\n\n\n⭐ BLIND-75 PLAYLIST: https://www.youtube.com/watch?v=KLlXCFG5TnA&list=PLot-Xpze53ldVwtstag2TL4HQhAnC8ATf\n\n\nProblem Link: https://leetcode.com/problems/maximum-subarray-sum-with-length-divisible-by-k/\n\n0:00 - Rea",
+     "publishedAt": 1764206100000
+    },
+    {
+     "id": "j5168Ug7DvA",
+     "title": "Paths in Matrix Whose Sum Is Divisible by K - Leetcode 2435 - Python",
+     "description": "🚀 https://neetcode.io/yt - A better way to prepare for Coding Interviews\n\n\n🧑‍💼 LinkedIn: https://www.linkedin.com/in/navdeep-singh-3aaa14161/\n🐦 Twitter: https://twitter.com/neetcode1\n\n\n⭐ BLIND-75 PLAYLIST: https://www.youtube.com/watch?v=KLlXCFG5TnA&list=PLot-Xpze53ldVwtstag2TL4HQhAnC8ATf\n\n\nProblem Link: https://leetcode.com/problems/paths-in-matrix-whose-sum-is-divisible-by-k/\n\n0:00 - Read th",
+     "publishedAt": 1764121800000
+    },
+    {
+     "id": "HuTS5rOyLLs",
+     "title": "Don't set yourself up for Failure",
+     "description": "🚀 https://neetcode.io/yt - A better way to prepare for Coding Interviews\n\n\n🧑‍💼 LinkedIn: https://www.linkedin.com/in/navdeep-singh-3aaa14161/\n🐦 Twitter: https://twitter.com/neetcode1\n\n\n⭐ BLIND-75 PLAYLIST: https://www.youtube.com/watch?v=KLlXCFG5TnA&list=PLot-Xpze53ldVwtstag2TL4HQhAnC8ATf\n\n\n#neetcode #leetcode #python",
+     "publishedAt": 1764040821000
+    }
+   ]
+  },
+  {
+   "id": "UC4JX40jDee_tINbkjycV4Sg",
+   "handle": "@TechWithTim",
+   "title": "Tech With Tim",
+   "videos": [
+    {
+     "id": "ByWCsa8DbF8",
+     "title": "Build a Local AI Agent in 10 Minutes using Python",
+     "description": "All code in this video is available here: https://www.aiagentbuilders.co/yt-resources/local-python-agent\n\nWant to LEARN how to build useful AI agents that actually get things done? Go here: https://aiagentbuilders.co/yt\n\nIn this quick tutorial I show you the fastest way to build a fully local AI agent in Python — no API keys, no cloud, no subscription. Everything runs on your own machine.\n\nHow to ",
+     "publishedAt": 1789135235000
+    },
+    {
+     "id": "qxygwvBoBTc",
+     "title": "Lovable ADVANCED Tutorial - FULL Guide for Real Websites",
+     "description": "I've built and deployed multiple real sites with Lovable, get started here for free: https://link.lovable.dev/techwithtim\n\nIn this video, I go deeper than any tutorial I've made before. This isn't a landing page demo. We're building a complete, production-ready barbershop booking platform called The Fade Lab, with authentication, a database, Stripe payments, email confirmations, an admin dashboard",
+     "publishedAt": 1789045215000
+    },
+    {
+     "id": "kt5a-TXmWew",
+     "title": "Claude Code: The Advanced Guide (99% of Devs Skip These Features)",
+     "description": "Try Granola, the AI notepad I use for every meeting (100% off your first month): https://go.granola.ai/timothy-ruscica \nGet access to all the resources in this video for free: https://www.aiagentbuilders.co/yt-resources/claude-code\n\nMost people use Claude Code like a smarter autocomplete. In this video I go through nine advanced features that the vast majority of developers have never touched — ea",
+     "publishedAt": 1788804440000
+    },
+    {
+     "id": "8yFb8QfAxRg",
+     "title": "Everyone Needs an AI Brain (This Is the Easiest Way to Build One)",
+     "description": "New registered users can get free credits: https://bit.ly/4514TQq\n\nEvery time you open a new AI conversation, it has no idea who you are. You re-explain your project, paste the same context, and the moment you close that tab — it's all gone. This is the single biggest problem holding AI back right now, and in this video I show you exactly how to fix it.\n\nThe solution is called an AI brain: a perma",
+     "publishedAt": 1788616829000
+    },
+    {
+     "id": "HzGOWq5UyjY",
+     "title": "How AI Agents Actually Work (Every Piece Explained & Built)",
+     "description": "Everyone is talking about AI agents and almost nobody can tell you what one actually is. Ask someone to explain the difference between an agent and ChatGPT and you get hand-waving. In this video I explain every single piece of a real AI agent in plain English — and then prove it by building one from scratch, live, using open source tools.\n\nWant to LEARN how to build useful AI agents that actually ",
+     "publishedAt": 1788444011000
+    },
+    {
+     "id": "eaEtNXWMwLY",
+     "title": "My Complete Local AI Setup - $7000+",
+     "description": "Want to LEARN how to build useful AI agents that actually get things done? Go here: https://aiagentbuilders.co/yt\n\nLocal AI is incredibly powerful — but only if you know how to set it up properly. In this video I share my complete $7,000+ local AI setup: the hardware, the software stack, the models I'm running, and the optimizations that took my inference speed from 16 tokens per second to over 27",
+     "publishedAt": 1788357639000
+    },
+    {
+     "id": "edIHPoWgIKU",
+     "title": "Local AI Explained: How to Run AI Models on Your Computer",
+     "description": "Use the MindsHub Cowork agentic harness for free (open-source): https://mindshub.ai?utm_medium=influencers&utm_source=youtube&utm_campaign=26q3-tech-with-tim&utm_content=integration-2\n\nEveryone's talking about running AI locally, but almost nobody explains what it actually is or how to get it working. In this video I cut through all the jargon — weights, quantization, VRAM, inference engines — and",
+     "publishedAt": 1788184837000
+    },
+    {
+     "id": "c9AnqCeyxbI",
+     "title": "Building AI Agents in Pure Python - Beginner Course",
+     "description": "🔹Download the free guide from HubSpot on Your 2026 Guide to\nAI Agents: https://clickhubspot.com/70c662\n🔹Code in this video (available inside Skool): https://www.skool.com/ai-agent-builders/classroom/faf0d59a?md=5c2ef21c0871418382ad408ad2b1464e\n\nNo frameworks. No vibe coding. No third-party tools. In this beginner course I show you how to build a fully functioning AI agent from scratch in pure Py",
+     "publishedAt": 1788094809000
+    },
+    {
+     "id": "NfctRQhMMdI",
+     "title": "Vibe Coding Has A Security Problem (And How To Fix It)",
+     "description": "Get started with Superblocks and deploy SECURE AI applications: https://superblocks.com/?utm_source=youtube&utm_medium=influencer&utm_content=techwithtim\n\nI built an internal dashboard with AI in about ten minutes — and then hacked it in about ten seconds. By changing a single number in a network request, I could access any other mentor's private student conversations. No special tools. No advance",
+     "publishedAt": 1788008438000
+    },
+    {
+     "id": "ezANo2RNryU",
+     "title": "What You Need to Know About Grok Bot... (it's not that good)",
+     "description": "🔹Host your AI generated sites for FREE with a single prompt using here.now (no signup required), just copy the agent prompt and you're done: https://here.now/r/twt\n🔹Join my free skool community: https://aiagentbuilders.co/yt\n\nWant to see what Grok Bot can actually do? Follow along as I get it installed, configure the agent, and put Computer Use into action. \n\nGrok Bot is more than just a chatbot",
+     "publishedAt": 1787922025000
+    },
+    {
+     "id": "sbuwHi1Sz6k",
+     "title": "Codex vs Claude - an Honest Comparison",
+     "description": "Click this link https://boot.dev/?promo=TECHWITHTIM and use my code TECHWITHTIM to get 25% off your first payment for boot.dev.\n\nEvery Codex vs Claude comparison you've seen is pointing at benchmark charts. The problem? The best independent benchmarks have both in a dead tie. So I gave them both the exact same five real tasks and timed everything.\n\nWant to LEARN how to build useful AI agents that ",
+     "publishedAt": 1787839223000
+    },
+    {
+     "id": "cAtKtvmds1o",
+     "title": "How I Set Up Python for Machine Learning With AI",
+     "description": "Doing Machine Learning? Try PyCharm free and set it up like I showed you: https://jb.gg/tt3\n\nAI-generated machine learning code that runs is not the same as code that actually works. If you spend three days training a model on bad code, you've wasted three days. In this video I show you how to set up Python for serious ML work with AI — including the tools, workflow, and verification habits that c",
+     "publishedAt": 1787752821000
+    },
+    {
+     "id": "ibpSIF3aeGc",
+     "title": "AI Can Finally Get Past Login Screens (Safely)",
+     "description": "#sponsored Claude can now log into your accounts without ever seeing your passwords. In this video I set up 1Password for Claude and put it to work on real tasks: checking an Amazon order and canceling a subscription. When Claude takes control of a browser tab, 1Password's Agentic Mode activates, Claude requests the credential, I approve with Touch ID, and 1Password fills it directly into the page",
+     "publishedAt": 1787662826000
+    },
+    {
+     "id": "An_CJNU9nB0",
+     "title": "How I Would Learn Python (Programming, Data and AI in One Place)",
+     "description": "Top pick courses to learn Python for programming, data and AI in one place:\nDataCamp Python Programming Fundamentals Track: https://datacamp.pxf.io/jRaJPM\nDataCamp Python Data Fundamentals Track: https://datacamp.pxf.io/xJozBx\nDataCamp AI Engineer For Developers Track: https://datacamp.pxf.io/k4AJ5x\nSave 25% Off DataCamp: https://datacamp.pxf.io/PznmoM\n\nIf I had to start completely over today — no",
+     "publishedAt": 1787493635000
+    },
+    {
+     "id": "okjvO4BsW98",
+     "title": "One AI agent built a REAL business in 24 hours…",
+     "description": "Get started with Runable for free: https://runable.com/?utm_source=ytlong&utm_medium=TechWithTim\nCoach Navruz IG: https://www.instagram.com/coach_navruz_dxb/\n\nMy boxing coach is one of the best trainers I’ve ever met but until yesterday, he had no website, no online training program, and no way to take payments online. So I gave one AI agent 24 hours to fix that. It built the full training program",
+     "publishedAt": 1787249588000
+    }
+   ]
+  },
+  {
+   "id": "UCbfYPyITQ-7l4upoX8nvctg",
+   "handle": "@TwoMinutePapers",
+   "title": "Two Minute Papers",
+   "videos": [
+    {
+     "id": "mOvtumfyjCs",
+     "title": "I Never Thought I’d See This Happen",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\n📝 The Navier-Stokes solution paper is available here:\nhttps://openai.com/index/navier-stokes-solution/\n\nMy fluid simulations and papers:\nhttps://users.cg.tuwien.ac.at/zsolnai/gfx/fluid_control_msc_thesis/\nhttps://users.cg.tuwien.ac.at/zsolnai/gfx/real_time_fluid_control_eg/\nThe flow from simulation to reality: htt",
+     "publishedAt": 1789030043000
+    },
+    {
+     "id": "eVBJIUxv8N8",
+     "title": "GPT-6 Astra Changes Everything",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\nLinks / sources:\nHoney sim: search for \"Variational Stokes: A Unified Pressure-Viscosity Solver for Accurate Viscous Liquids\" here: https://cs.uwaterloo.ca/~c2batty/\nhttps://x.com/mindblown_ai/status/2095661874037813298?s=20\nhttps://x.com/aollivier82/status/2096226819401801896?s=46\nhttps://x.com/sahilexec/status/20",
+     "publishedAt": 1788855867000
+    },
+    {
+     "id": "B3LXEW4Pc-w",
+     "title": "Claude Fable AI Is Much Stranger Than The Headlines Suggest",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\n📝 The Claude Fable 5.1 paper is available here:\nhttps://www.anthropic.com/claude-fable-and-mythos-5-1\nhttps://www-cdn.anthropic.com/0339e6a7c5c7b87f5c07798616dc32c215d14235/Claude%20Fable%205.1%20%26%20Claude%20Mythos%205.1%20System%20Card.pdf\n\nSources:\nhttps://x.com/alexalbert__/status/2094860187743986169?s=46\nht",
+     "publishedAt": 1788423817000
+    },
+    {
+     "id": "w9RDunJACkc",
+     "title": "GLM 5.3: Powerful AI Is Becoming Almost Free",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\n📝 GLM 5.3 Flash:\nhttps://z.ai/blog/glm-5.3-flash\n\nSources:\nhttps://x.com/louszbd/status/2092694163104113016\nhttps://x.com/semianalysis_/status/2092623833630998556\nhttps://x.com/skalskip92/status/2092748209802154201\nhttps://x.com/louszbd/status/2093047548550525165\nhttps://x.com/atomic_chat_hq/status/209343391323855",
+     "publishedAt": 1788253496000
+    },
+    {
+     "id": "LBiNcdGNgrg",
+     "title": "The Billion Dollar AI Gap Is Collapsing",
+     "description": "❤️ Check out Weights & Biases and sign up for a free demo here: https://wandb.me/papers\n\n📝 The paper and Qwen3.8-Flash-Next are available here:\nhttps://github.com/QwenLM/Qwen3.8-Flash-Next/blob/main/tech_report.pdf\nhttps://qwen.ai/blog?id=qwen3.8-flash-next\n\nSources:\nhttps://x.com/analogalok/status/2092697021790708148\nhttps://www.reddit.com/r/unsloth/comments/1vzf6j7/mind_blowing_qwen38flashnext_",
+     "publishedAt": 1787910284000
+    },
+    {
+     "id": "L9mMfAFwbl4",
+     "title": "DeepSeek’s New AI System Shouldn’t Be Possible",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\n📝 DeepSeek Harness + paper are available here:\nhttps://deepseek.com/harness/en/\nhttps://github.com/cordiverse/paper\n\n🙏 We would like to thank our generous Patreon supporters who make Two Minute Papers possible:\nAdam Bridges, B Shang, Carlos Galarza, Christian Ahlin, Eric Tyson, Juan Benet, Lukas Biewald, Michael ",
+     "publishedAt": 1787749813000
+    },
+    {
+     "id": "wMl6c_r0ubw",
+     "title": "This Small AI Will Change Everything",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\n📝 The Qwen3.8-27b is available here:\nhttps://huggingface.co/Qwen/Qwen3.8-27B\n\nSources:\nhttps://www.reddit.com/r/unsloth/comments/1vogva0/share_your_results_from_qwen3827b/\nhttps://www.reddit.com/r/LocalLLaMA/comments/1voer8u/qwen_38_27b_aquarium_burst_sample_test/\nhttps://x.com/KyleHessling1/status/208832766773318",
+     "publishedAt": 1787590120000
+    },
+    {
+     "id": "kyYepbhe1g8",
+     "title": "DeepSeek Just Made Closed AI Look Ridiculous",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\nDeepSeek V4 Pro 0813:\nhttps://huggingface.co/deepseek-ai/DeepSeek-V4-Pro-0813\n\nDSpark full episode: https://www.youtube.com/watch?v=1yBU41auQhw\n\nSources:\nhttps://x.com/cline/status/2087602193205694891\nhttps://x.com/TypingMindApp/status/2088214938754167263\nhttps://x.com/stevibe/status/2047546592530747561\nhttps://x.c",
+     "publishedAt": 1787162566000
+    },
+    {
+     "id": "QnGNF8k_uoc",
+     "title": "Claude AI Failed 650 Times…Then Beat The Human Record",
+     "description": "❤️ Check out Weights & Biases and sign up for a free demo here: https://wandb.me/papers\n\n📝 The paper is available here:\nhttps://www.anthropic.com/research/riemann-zeta\n\nSource:\nhttps://www.scientificamerican.com/article/no-ai-didnt-just-solve-the-thorniest-problem-in-math/\n\n🙏 We would like to thank our generous Patreon supporters who make Two Minute Papers possible:\nAdam Bridges, B Shang, Carlos",
+     "publishedAt": 1786696927000
+    },
+    {
+     "id": "JQ97GiDwPxc",
+     "title": "OpenAI’s AI Agents Just Crossed A Line",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\n📝 More reports are available here:\nhttps://openai.com/index/hugging-face-model-evaluation-security-incident/\nhttps://huggingface.co/blog/security-incident-july-2026\nhttps://huggingface.co/blog/agent-intrusion-technical-timeline\n\n🙏 We would like to thank our generous Patreon supporters who make Two Minute Papers p",
+     "publishedAt": 1786462535000
+    },
+    {
+     "id": "vO6SWG-jxvE",
+     "title": "DeepMind Just Changed How AI Sees The World",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\n📝 The Gemma4 paper and some more is available here:\nhttps://arxiv.org/abs/2607.02770\nhttps://x.com/googlegemma/status/2077449152062247219\nhttps://x.com/UnslothAI/status/2078118183085731843\n\n🙏 We would like to thank our generous Patreon supporters who make Two Minute Papers possible:\nAdam Bridges, Benji Rabhan, B ",
+     "publishedAt": 1786090920000
+    },
+    {
+     "id": "ppQh4Tc9BmM",
+     "title": "The Billion Dollar AI Race Just Broke",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\n📝 Qwen 3.8 Max:\nhttps://qwen.ai/blog?id=qwen3.8\n\nSources:\nhttps://x.com/loktar00/status/2082589566934929750\nhttps://x.com/CommandCodeAI/status/2084293498950590839\n\n🙏 We would like to thank our generous Patreon supporters who make Two Minute Papers possible:\nAdam Bridges, Benji Rabhan, B Shang, Cameron Navor, Char",
+     "publishedAt": 1785938069000
+    },
+    {
+     "id": "bm1BjOjS7sQ",
+     "title": "Another DeepSeek Moment Has Arrived",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\n📝 DeepSeek v4 Flash 0731:\nhttps://huggingface.co/deepseek-ai/DeepSeek-V4-Flash-0731\n\nDeepSeek API: https://platform.deepseek.com/\n\n🙏 We would like to thank our generous Patreon supporters who make Two Minute Papers possible:\nAdam Bridges, Benji Rabhan, B Shang, Cameron Navor, Charles Ian Norman Venn, Christian Ah",
+     "publishedAt": 1785750454000
+    },
+    {
+     "id": "8B05cy3UuSE",
+     "title": "NVIDIA's AI Learns Why Copying Humans Isn't Enough",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\n📝 The paper is available here:\nhttps://jiashunwang.github.io/HIL/\n\n🙏 We would like to thank our generous Patreon supporters who make Two Minute Papers possible:\nAdam Bridges, Benji Rabhan, B Shang, Cameron Navor, Charles Ian Norman Venn, Christian Ahlin, Eric T, Fred R, Gordon Child, Juan Benet, Michael Tedder, O",
+     "publishedAt": 1785682870000
+    },
+    {
+     "id": "Xj-QdEUxJkE",
+     "title": "Kimi K3 Just Broke The Economics Of AI",
+     "description": "❤️ Check out Lambda here and sign up for their GPU Cloud: https://lambda.ai/papers\n\n📝 The paper is available here:\nhttps://arxiv.org/abs/2607.24653\n\nTry Kimi K3 (subject to availability): https://www.kimi.com/\n\nLinks:\nhttps://macos27.kimi.page/\nhttps://x.com/mweinbach/status/2077878247920951400\nhttps://x.com/intheworldofai/status/2077838911494336681\nhttps://x.com/chetaslua/status/2077829183989072",
+     "publishedAt": 1785328670000
+    }
+   ]
+  },
+  {
+   "id": "UCZCFT11CWBi3MHNlGf019nw",
+   "handle": "@abdul_bari",
+   "title": "Abdul Bari",
+   "videos": [
+    {
+     "id": "rOocMVYI6Zs",
+     "title": "Bresenham's Circle Drawing Algorithm - Computer Graphics",
+     "description": "Bresenham's Circle Drawing Algorithm.\nContents:\n Derivation of Bresenham's Algorithm\n Program Code\n Tracing of Algorithm\n\nUdemy\nhttps://www.udemy.com/user/mohammed-abdul-bari-2/?kw=abdul+bari&src=sac\n\nWebsite\nhttps://www.abdulbari.in/",
+     "publishedAt": 1744126989000
+    },
+    {
+     "id": "_WncuhSJZyA",
+     "title": "[New] Matrix Chain Multiplication using Dynamic Programming Formula",
+     "description": "Matrix Chain Multiplication using Dynamic Programming Formula\n\nPATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D\n\nC++ Programming\nhttps://www.u",
+     "publishedAt": 1557677436000
+    },
+    {
+     "id": "wAy6nDMPYAE",
+     "title": "4.6.2 [New] Optimal Binary Search Tree Successful and Unsuccessful Probability - Dynamic Programming",
+     "description": "Optimal Binary Search Tree using Successful and Unsuccessful Search Probabilities​\n\nPATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D\n\nC++ Prog",
+     "publishedAt": 1554238862000
+    },
+    {
+     "id": "RGB-wlatStc",
+     "title": "Bresenham's Line Drawing Algorithm",
+     "description": "PATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D\n\nC++ Programming\nhttps://www.udemy.com/course/cpp-deep-dive/?referralCode=E4246A516919D7E8422",
+     "publishedAt": 1552627413000
+    },
+    {
+     "id": "HqPJF2L5h9U",
+     "title": "2.6.3 Heap - Heap Sort - Heapify - Priority Queues",
+     "description": "PATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D\n\nC++ Programming\nhttps://www.udemy.com/course/cpp-deep-dive/?referralCode=E4246A516919D7E8422",
+     "publishedAt": 1552076077000
+    },
+    {
+     "id": "sSno9rV8Rhg",
+     "title": "4.9 Longest Common Subsequence (LCS)  - Recursion and Dynamic Programming",
+     "description": "Longest Common Subsequence Problem using\n1. Recursion\n2. Memoization\n3. Dynamic Programming\n\n\nPATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D",
+     "publishedAt": 1524156923000
+    },
+    {
+     "id": "1FEP_sNb62k",
+     "title": "7.3 Traveling Salesman Problem - Branch and Bound",
+     "description": "Traveling Salesman Problem - Branch and Bound\n\n\nPATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D\n\nC++ Programming\nhttps://www.udemy.com/course",
+     "publishedAt": 1523653929000
+    },
+    {
+     "id": "W5P8GlaEOSI",
+     "title": "DDA Line Drawing Algorithm - Computer Graphics",
+     "description": "DDA explained using Examples.\nDDA (Digital Differential Analyzer) Line Drawing Algorithm\n\n\nPATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D\n\nC",
+     "publishedAt": 1523567242000
+    },
+    {
+     "id": "uJOmqBwENB8",
+     "title": "4.8 Reliability Design - Dynamic Programming",
+     "description": "Reliability Design\nSystem Design\n\nPATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D\n\nC++ Programming\nhttps://www.udemy.com/course/cpp-deep-dive",
+     "publishedAt": 1523476233000
+    },
+    {
+     "id": "qZs767KQcvE",
+     "title": "8.1 NP-Hard Graph Problem - Clique Decision Problem",
+     "description": "NP-Hard Graph Problem - Clique Decision Problem \n\nCDP is proved as NP-Hard\n\nPATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D\n\nC++ Programming\n",
+     "publishedAt": 1523299142000
+    },
+    {
+     "id": "dQr4wZCiJJ4",
+     "title": "6.4 Hamiltonian Cycle - Backtracking",
+     "description": "Hamiltonian Cycle using Backtracking\n\nPATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D\n\nC++ Programming\nhttps://www.udemy.com/course/cpp-deep-",
+     "publishedAt": 1523126330000
+    },
+    {
+     "id": "wU6udHRIkcc",
+     "title": "1.12 Disjoint Sets Data Structure - Weighted Union and Collapsing Find",
+     "description": "Disjoint Sets Data Structure - Weighted Union and Collapsing Find\n\nPATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D\n\nC++ Programming\nhttps://w",
+     "publishedAt": 1522864286000
+    },
+    {
+     "id": "Q4zHb-Swzro",
+     "title": "4.7 [New] Traveling Salesman Problem - Dynamic Programming using Formula",
+     "description": "Traveling Salesman Problem - Dynamic Programming - Explained using Formula\n\nPATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D\n\nC++ Programming\n",
+     "publishedAt": 1522699847000
+    },
+    {
+     "id": "h1Sq8p2GL2g",
+     "title": "6. Everything about Variables in JAVA",
+     "description": "Variables explained in details. all attributes of variables and how they are provided in JAVA\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5E011D\n\nC++ Programming\nhttps://www.udemy.com/course/cpp-dee",
+     "publishedAt": 1522559370000
+    },
+    {
+     "id": "qQ8vS2btsxI",
+     "title": "9.2 Rabin-Karp String Matching Algorithm",
+     "description": "Rabin-Karp String Matching Algorithm\n\nIt is useful for matching multiple patterns simultaneously.\n\nPATREON : https://www.patreon.com/bePatron?u=20475192\n\nCourses on Udemy\n================\nJava Programming\nhttps://www.udemy.com/course/java-se-programming/?referralCode=C71BADEAA4E7332D62B6\n\nData Structures using C and C++\nhttps://www.udemy.com/course/datastructurescncpp/?referralCode=BD2EF8E61A98AB5",
+     "publishedAt": 1522438199000
+    }
+   ]
+  },
+  {
+   "id": "UCNJ1Ymd5yFuUPtn21xtRbbw",
+   "handle": "@aiexplained-official",
+   "title": "AI Explained",
+   "videos": [
+    {
+     "id": "Spuza-KwTJ4",
+     "title": "GPT 6 Astra, so good even OpenAI are worried",
+     "description": "Where to start? A new era of cost-efficient AI on a day benchmark-makers got humbled, traders got excited, and AI safety researchers got unnerved. From monitorability losing hold of GPT-6 Astra’s chains of thought to breakthrough discoveries, Fable-mogging and much more…\n\nExclusive Vids ($9!): https://www.patreon.com/AIExplained\n\nChapters:\n00:00 - Introduction\n00:53 - vs Fable\n05:27 - most impress",
+     "publishedAt": 1788521847000
+    },
+    {
+     "id": "KL9_1GbmCic",
+     "title": "Sam Altman :‘AGI in 2026’, just as Models Start to [Mis]Train Themselves",
+     "description": "First, a Time Magazine spread has Sam Altman declaring AGI is imminent, at the same time as we get two bombshell reports, from OpenAI and METR which on first glance are detailing the AI swarm, but reveal a deeper story about how we are making AI in 2026. From redacted risk reports, to Chinese Labs, pre-training debacles to questionable cybersecurity calls, a lot has happened recently, beneath the ",
+     "publishedAt": 1787858184000
+    },
+    {
+     "id": "xGzseSSStnw",
+     "title": "AI is getting a little out of control",
+     "description": "Wow. Mathematical breakthroughs that would be called genius if done by humans. A secret message-board w/ AI agent swarms leaving notes read by future versions. Hassabis leaves CEO position, or was pushed out? Not to mention news of constitutional breakdowns, Gemini 4 and Jeff Dean…\n\nhttps://80000hours.org/aiexplained\n\n\nExclusive Videos - AI Insiders ($7/month if annual!): https://www.patreon.com/A",
+     "publishedAt": 1786028526000
+    },
+    {
+     "id": "wzY2fV4Mp3U",
+     "title": "GPT-6 Goes Rogue? The HuggingFace Incident, Sans Hype",
+     "description": "An unreleased internal OpenAI model, very likely to be called GPT-6, was able to autonomously break out of its sandbox AND break into HuggingFace, just to score higher on a benchmark prompt. This video has the details you may have missed, a layperson analogy, whether this is truly novel, and more…\n\nDozens more Exclusive videos on Patreon ($9!): https://www.patreon.com/AIExplained\n\nChapters:\n00:00 ",
+     "publishedAt": 1784738213000
+    },
+    {
+     "id": "mWlCituW7wo",
+     "title": "A Model Explosion: GPT 5.6 Sol, Grok 4.5 and Meta Muse Rewrite the Rules",
+     "description": "What a week in AI, for real. GPT 5.6 may actually beat Claude Fable, in what you get for your money, while the new Grok 4.5 and Meta Muse Spark 1.1 make the choice even harder. Uncovering a dozen nuggets of gold you may have missed from all the viral headlines, I can also assure you you’ll learn something you didn’t know before.\n\nFor Exclusive Videos, go to AI Insiders (less than $9!): https://www",
+     "publishedAt": 1783687215000
+    },
+    {
+     "id": "y24lF1q4SFY",
+     "title": "Fable 5 vs GPT 5.6 Sol: The Early Results",
+     "description": "Fable 5 (newly re-released) vs GPT 5.6 Sol, what comparisons can we unearth? Plus, Sonnet 5, a 5% equity seizure by US Govt, the ‘largest heist’, Beetlejuice and more…\n\n\n\nExclusive Vids in AI Insiders ($9!): https://www.patreon.com/AIExplained\n\n\nChapters:\n00:00 - Introduction\n01:06 - Fable Timeline\n02:59 - Sol Release?\n06:01 - the Chinese Angle\n07:35 - 5% Stake\n09:10 - Fable vs Sol - the numbers\n1",
+     "publishedAt": 1783009646000
+    },
+    {
+     "id": "Qj71N0tBzRo",
+     "title": "Claude Fable Blocked - 11 Quiet Details on What’s Next",
+     "description": "Claude Fable 5 banned, but what’s the bigger story. We go through 11 under-reported details, so you have the context to see what’s coming next for your use of AI. From whether the ban will last, what the possible motives are, what the model can actually do, and some wild over-extrapolations going on.\n\n\nCheck out my fast-growing (!) app, free to use, and code INSIDER15 for paid tiers: https://lmcou",
+     "publishedAt": 1781448747000
+    },
+    {
+     "id": "haK1KoQWm18",
+     "title": "Claude Fable 5 - Full 319 page Breakdown",
+     "description": "Fable 5 is out - and it’s good, very good. But beyond the splashy demos, I want to bring you the 20+ nuggets from the 319 page system card, which I read in full, all day, plus benchmarks you may not have noticed. \n\nhttps://assemblyai.com/aiexplained\n\nPlus two worrying trends inside the ‘mind’ of Claude, how OpenAI counter, and the transformer inventor’s warning.\n\n\n\nCheck out my fast-growing (!) ap",
+     "publishedAt": 1781116992000
+    },
+    {
+     "id": "aJvP3nXWkwM",
+     "title": "New Claude Opus 4.8: 15 Things You May’ve Missed",
+     "description": "The ‘best’ generally available AI model just dropped, but there is plenty I bet you missed about what it is, how it performs, and what the release tells us. 15 highlights from the 244 page system card, plus private testing, leader interview and more.\n\nAI Insiders ($9!): https://www.patreon.com/AIExplained\n\nChapters:\n00:00 - Introduction\n00:49 - Mythos in Weeks\n01:49 - Adaptive not necessary\n02:26 ",
+     "publishedAt": 1780067255000
+    },
+    {
+     "id": "o_av1b9rs2g",
+     "title": "Two Rival Bets on AGI: Google I/O Highlights",
+     "description": "The biggest Google AI push of the year, but what is the bigger story? Why is Google pursuing a different fork in the road than OpenAI or Anthropic? \n\nhttps://assemblyai.com/aiexplained\n\nWhat does Gemini 3.5 Flash mean for the near-term future of AI? Plus the highlights from a provocative new paper on AI, 8 key moments you may have missed, and the signal from 5+ hours of AI lab interviews.\n\n\n\nCheck",
+     "publishedAt": 1779295834000
+    },
+    {
+     "id": "jz0rNhfAKo8",
+     "title": "GPT 5.5 Arrives, DeepSeek V4 Drops, and the Compute War Intensifies",
+     "description": "GPT 5.5 full analysis, plus DeepSeek V4 paper highlights, comparisons with Mythos, a vibe-coded game w/ GPT Image 2, and 50 data-points you wouldn’t get from just reading the headlines.\n\nhttps://80000hours.org/aiexplained\n\n\n\nCheck out my fast-growing (!) app, free to use, and code INSIDER15 for paid tiers: https://lmcouncil.ai\n\nAI Insiders ($9!): https://www.patreon.com/AIExplained\n\n\nChapters:\n00:",
+     "publishedAt": 1777056302000
+    },
+    {
+     "id": "QVJcdfkRpH8",
+     "title": "Claude Opus 4.7 - A New Frontier, in Performance … and Drama",
+     "description": "Claude Opus 4.7 just dropped, but behind every headline lies a deeper story. From a bonanza of benchmarks, to seeing the fruits of one of the biggest mega-projects in US history, to sneaky Mythos disclaimers, to Anthropic admitting compute restraints and, forcing lower capability of Opus 4.7. Where the new model falls behind Gemini but ahead of GPT 5.4, plus why some users are furious at Anthropic",
+     "publishedAt": 1776449266000
+    },
+    {
+     "id": "txx6ec6MLNY",
+     "title": "Claude Mythos: Highlights from 244-page Release",
+     "description": "The model, the mythos, the legend. We have a new best AI model, but not all of us. How good is it, what does it’s new offensive capabilities mean? Why does it’s 244 page report card remind me of Her, and why did the creator of Claude Code call it ‘terrifying’. 30+ highlights sourced by reading the paper in full, old-school, no AI summary.\n\nhttps://80000hours.org/aiexplained\n\n\nCheck out my fast-gro",
+     "publishedAt": 1775669960000
+    },
+    {
+     "id": "s4tptozUJ8Y",
+     "title": "Two AI Models Set to “stir government urgency”, But Will This Challenge Undo Them?",
+     "description": "First look at exclusive reports about OpenAI's new Spud model, and the model Anthropic think will stir governments to urgency, all in the context of the newly-launched ARC-AGI-3. What does the extreme difficulty of that benchmarks, and its quirky scoring metrics, mean for AI in 2026?\n\nhttps://assemblyai.com/aiexplained\n\n\nCheck out my fast-growing (!) app, free to use, and code INSIDER15 for paid t",
+     "publishedAt": 1774556112000
+    },
+    {
+     "id": "zizoDORjmlQ",
+     "title": "What the New ChatGPT 5.4 Means for the World",
+     "description": "Just 48 hours after releasing GPT 5.3 Instant, OpenAI have released GPT 5.4 Thinking, so either their is an imminent singularity or perhaps we are being distracted from other news. This video will give 9 crucial bits of context, not just on the GPT 5.4 drop but on the background to the meltdown between the Pentagon and Anthropic. What does this say about the state of AI progress, your job, and wha",
+     "publishedAt": 1772814326000
+    }
+   ]
+  },
+  {
+   "id": "UCh9nVJoWXmFb7sLApWGcLPQ",
+   "handle": "@codebasics",
+   "title": "codebasics",
+   "videos": [
+    {
+     "id": "ml_ToQk9lVk",
+     "title": "GPT-6 Astra: Is AGI here finally?",
+     "description": "I tried GPT-6 Astra on some of my real life (not dummy) end-to-end tasks, and oh boy, I was impressed!\n\nDo you want to learn technology from me? Check https://codebasics.io/?utm_source=description&utm_medium=yt&utm_campaign=description&utm_id=description for my affordable video courses.\n\nNeed help building software or data analytics/AI solutions? My company https://www.atliq.com/ can help. Click o",
+     "publishedAt": 1789211411000
+    },
+    {
+     "id": "CkX6Y1qcfto",
+     "title": "Swiggy Stopped Using LeetCode for AI Hiring?! | Swiggy AI Podcast",
+     "description": "In this podcast, we visit Swiggy’s Bengaluru office to understand how one of India’s leading tech companies is embracing AI.\n\nWe talk about AI-powered products at Swiggy, AI-native engineering, coding agents, hiring in the AI era, and how the roles of engineers and product managers are evolving.\n\n⭐️ Timestamps ⭐️\n\n00:00 – Precap\n00:40 – Inside Swiggy’s Bengaluru Office\n01:23 – What Does Swiggy’s A",
+     "publishedAt": 1789047006000
+    },
+    {
+     "id": "2o0Q85JUZNk",
+     "title": "Graph RAG Simply Explained",
+     "description": "In this video, we explore GraphRAG and understand how it solves some of the limitations of traditional (Naive) RAG.\n\nWe’ll cover how Knowledge Graphs, graph traversal, and multi-hop reasoning help connect information across documents and improve context-aware retrieval.\n\nWe’ll also understand GraphRAG vs Vector RAG and when you should use each approach.\n\nCheckout Progress Data Platforms: https://w",
+     "publishedAt": 1788787807000
+    },
+    {
+     "id": "qkw-eC8tULI",
+     "title": "Inside Ford: How a Global Automaker Actually Uses Data & AI",
+     "description": "Ford builds 12,000 cars a day. Ever wondered how data and AI drive the decisions behind that scale?\n\nIn this video, I sit down with Ford's tech leaders at their Chennai office. From the Director of Enterprise Data Platforms to the Head of AI for Ford Pro, plus a data scientist and a data analyst, you will hear directly from the people doing the work.\nWhat you will learn:\n • How Ford uses AI for pr",
+     "publishedAt": 1787578207000
+    },
+    {
+     "id": "9PMSGu16174",
+     "title": "LIVE Data Engineering Bootcamp for Data Analysts",
+     "description": "The roles of data analyst and data engineer are merging. As some of the low level technical work is being automated by AI, data analysts are moving up in the chain and contributing to data engineering. We are launching a live data engineering bootcamp for data analysts to fulfill the learning demand due to this market trend.\n\nBootcamp link: https://resources.codebasics.io/uzhryy\n\nDBT article: http",
+     "publishedAt": 1787059806000
+    },
+    {
+     "id": "SkvBO4ROl3Q",
+     "title": "Machine Learning Tutorial for Beginners",
+     "description": "In this beginner friendly machine learning crash course, we will go over the theory and coding for all the required machine learning fundamentals. At the end, we have end  to end capstone project as well.\n\nResources: https://codebasics.io/resources/machine-learning-crash-course\n\nCheckout Descope: https://descope.plug.dev/ICmzZ5Q\n\n⭐️ Timestamps ⭐️\n0:00:00 Intro\n0:03:47 What is ML\n0:13:33 Prereq\n0:1",
+     "publishedAt": 1786722245000
+    },
+    {
+     "id": "fn5q0mtb988",
+     "title": "Forward Deployed Engineer FDE: A hot new AI Career Role",
+     "description": "Forward deployed engineer also known as FDE is a new hot AI career role that is on the rise recently. In this video, we will discuss what this role is about, what skills you need to become one, salaries, expectations etc. We have Pankaj Jaiswal joining with us who is an FDE working for Supervity, he also interviews people for FDE role.\n\nPankaj's linkedin: https://linkedin.com/in/pankaj29\nSupervity",
+     "publishedAt": 1785763807000
+    },
+    {
+     "id": "Ltjjq4Wz7SU",
+     "title": "LIVE AI Engineering Bootcamp for Software Engineers",
+     "description": "Our LIVE Software Engineering Bootcamp is back with its 3rd cohort after the successful completion of the first two batches.\n\nCheck it out here: https://resources.codebasics.io/4tO1WY\n\nDo you want to learn technology from me? Check https://codebasics.io/?utm_source=description&utm_medium=yt&utm_campaign=description&utm_id=description for my affordable video courses.\n\nNeed help building software or",
+     "publishedAt": 1785504638000
+    },
+    {
+     "id": "T4Xjplt-ZKs",
+     "title": "Build Agents That Don't Break | Harness Engineering Easy Explanation",
+     "description": "What exactly is harness engineering? In this video, we will understand Harness Engineering through a simple example. We will also have a code demo to shows how you can implement harness engineering. Harness engineering explained simply.\n\nCheck out Arcade.dev: https://arcade.dev.plug.dev/U4WEI2b\n\nGet the resource files: https://resources.codebasics.io/oBl2Nm\n\n00:00 Harness engineering simple explan",
+     "publishedAt": 1784295006000
+    },
+    {
+     "id": "6GuyMZ-cSzE",
+     "title": "Python Tutorial for AI: Everything You Need in 2 Hours",
+     "description": "This Python mini-course is built by keeping in mind the use case of AI. Any AI aspirant who wants to learn AI using Python or want to build AI applications using Python will find this useful.\n\nCode link: https://resources.codebasics.io/kv98ik\n\nAI Engineering Cohort link: https://resources.codebasics.io/aOt61Y\n\n⭐️ Timestamps ⭐️\n0:00:00 Intro\n0:01:27 Why Python is popular in AI?\n0:02:47 Should you l",
+     "publishedAt": 1782913661000
+    },
+    {
+     "id": "FW8bCjhl3zE",
+     "title": "NVIDIA DGX Spark in 12 Minutes",
+     "description": "NVIDIA DGX Spark is a mini AI super computer that fits in your palm. In this video, we will unbox it, go  through initial setup and then run local inference using Gemma models through ollama. \n\n⭐️ Timestamps ⭐️\n0:00 Unboxing and Overview of the DGX Spark\n0:46 Powering Up and Connecting the DGX Spark\n2:19 Initial Setup and Viewing System Specs\n3:11 Hardware Architecture and Performance Overview\n4:5",
+     "publishedAt": 1782480606000
+    },
+    {
+     "id": "eHS0WIWNtu0",
+     "title": "Claude Tutorial for Beginners, Become a Pro in One Hour",
+     "description": "This is the Claude tutorial for a total beginners. Non technical people will find it specially useful. Claude is an AI tool by Anthropic which can not just answer the questions but help you build useful things.\n\nJoin the FREE Codebasics AI Community - https://www.skool.com/codebasics-ai-community/about\n\nFiles & Prompts to follow along the video - https://resources.codebasics.io/UChA3l\n\nAI PRO Subs",
+     "publishedAt": 1782316551000
+    },
+    {
+     "id": "NVTDicU4UX4",
+     "title": "Do this to get hired at Google",
+     "description": "What does it take to get hired by Google's Gemini team? Does your college degree still matter? And how are frontier AI models like Gemini actually built?\n \nIn this conversation, I sit down with Omar, a leader in Developer Experience at Google DeepMind and former Head of Platform & Community at Hugging Face. We explore how Google develops and evaluates Gemini models, the future of software engineer",
+     "publishedAt": 1781616607000
+    },
+    {
+     "id": "7_Z-HMEgdM0",
+     "title": "Data Engineering Live Cohort for Analysts",
+     "description": "We are launching a LIVE Data Engineering Bootcamp for working Data Analysts. This will be a fast-paced 8-week live cohort. Here we will teach you how you can build and own end-to-end data pipelines, going from dashboards to production and also how to transition from a Data Analyst into a full-time AI-Enabled Data Engineer.\n\nLink: https://resources.codebasics.io/czRyjd\n\nDo you want to learn technol",
+     "publishedAt": 1780929301000
+    },
+    {
+     "id": "V1HRrdi4nOs",
+     "title": "Data Engineering Fundamentals for Analysts",
+     "description": "In this video, we cover the data engineering fundamentals every data analyst needs to know to start building real pipelines — not just dashboards.\n \n🚀 Ready to go from Data Analyst to AI-Enabled Data Engineer? Our live bootcamp takes you from dashboards to production pipelines: https://codebasics.io/bootcamps/data-engineering-bootcamp-for-analysts\n \n🎮 Want to learn by doing? Datakata is a free, ",
+     "publishedAt": 1780584424000
+    }
+   ]
+  },
+  {
+   "id": "UCNU_lfiiWBdtULKOw6X0Dig",
+   "handle": "@krishnaik06",
+   "title": "Krish Naik",
+   "videos": [
+    {
+     "id": "ngdTklpkMRM",
+     "title": "AI Forward Deployed Engineer(FDE) Bootcamp",
+     "description": "AI FDE Bootcamp Enrollment link:\nhttps://www.krishnaik.in/liveclass2/Forward_Deployed_Engineer?id=14\n\nReach out to Krish Naik's counselling team on 📞 +919111533440 or +918484837781 in case of any queries we are there to help you out.\n\nBuild Production-Ready Enterprise AI Systems\n\nMaster the skills to become an AI Forward Deployed Engineer—from software engineering and AWS deployment to RAG, Knowl",
+     "publishedAt": 1789198744000
+    },
+    {
+     "id": "FSZhPDzESPU",
+     "title": "Complete End To End AI Forward Deployed Engineer(FDE) Project Implementation",
+     "description": "Project Code: https://github.com/nimowhyca/cold-chain-logistics-FDE-Project\n\nIn this project, we build a complete enterprise-grade AI solution from raw logistics data to production deployment, demonstrating what an AI Forward Deployed Engineer (AI FDE) actually does in a real-world project.\n\nWe start with raw logistics data containing GPS locations, truck temperatures, routes, and telemetry and bu",
+     "publishedAt": 1789040269000
+    },
+    {
+     "id": "T9pOKtWbQaI",
+     "title": "Build a Complete AI SaaS Application with Lovable",
+     "description": "You can visit Lovable here:-https://lovable.link/hXzIz24\n\n🚀 Build a Complete AI SaaS Application with Lovable\nWhat does it take to turn an idea into a real, working SaaS product?\nIn this video, I build a Chat With Your Docs application completely inside Lovable, a software creation platform that helps developers go from prompt to deployed application with authentication, backend, hosting, GitHub ",
+     "publishedAt": 1788952961000
+    },
+    {
+     "id": "avoCzARQ5oc",
+     "title": "Complete AI Forward Deployed Engineer(FDE) Roadmap With Usecases",
+     "description": "Check out AI FDE Bootcamp :\nEnrollment Link: https://www.krishnaik.in/liveclass2/Forward_Deployed_Engineer?id=14 \nstarting this month\nRoadmap link: https://docs.google.com/presentation/d/1RKWbxnFbx0kU8-7slhFLYxXQHMDIyZyV/edit?usp=sharing&ouid=103011585068380873251&rtpof=true&sd=true\n\nMaster the skills to become an AI Forward Deployed Engineer—from software engineering and AWS deployment to RAG, Kn",
+     "publishedAt": 1788765830000
+    },
+    {
+     "id": "bZxyvFW3Ha8",
+     "title": "Build Production-Grade AI Agents with the Gemini Enterprise Agent Platform",
+     "description": "🚀 Build Production-Grade AI Agents with the Gemini Enterprise Agent Platform |  Tutorial\n\nCheck the agent platform: https://fandf.co/4q6KvH4 \n\ncode: https://fandf.co/4gMLp7G\nAI agents are moving beyond demos and into production. In this video, you'll learn how to build, deploy, and manage a production-grade multi-agent system using the Gemini Enterprise Agent Platform.\n\nStarting from an empty Goo",
+     "publishedAt": 1788433158000
+    },
+    {
+     "id": "bQg1Ac0c7uQ",
+     "title": "Complete Claude Ecosystem - AI, Code, Cowork, M365 & Certification Udemy Course",
+     "description": "Udemy Course Link : https://www.udemy.com/course/claude-ecosystem-ai-code-cowork-m365-certification/?couponCode=CLAUDE01\n\nMaster Claude Chat, Code, Cowork, Skills & MCP - hands-on projects, real workflows, and CCA-F exam prep included.This course evolves alongside Claude. As Anthropic introduces new features and capabilities, we continuously add new lessons and updates—so you’re always learning th",
+     "publishedAt": 1787467957000
+    },
+    {
+     "id": "yAczx0_NtyU",
+     "title": "Complete AI LLM Gateway Crash Course With Mesh API",
+     "description": "Check out Mesh API :  https://link.meshapi.ai/krishnaik\n\nMeshAPI Gateway Complete Crash Course — everything you need to go \nfrom zero to building real-world AI applications using MeshAPI's \nunified gateway for 1000+ LLMs, all in one video.\n\nOne API. One line of code. Every model.\n\n💻 Full Source Code & Resources:\n👉 GitHub: https://github.com/d-hackmt/meshapi\nStar the repo if this helped you! ⭐\n\nM",
+     "publishedAt": 1787315376000
+    },
+    {
+     "id": "05ZezulZKkQ",
+     "title": "AI Engineering Vs AI Forward Deployed Engineer(FDE)",
+     "description": "Learn from us from our amazing bootcamps on AI engineering And AI FDE\nvisit :https://krishnaik.in/liveclasses\nUse KRISH20 to avail 20% off\nThe easiest way to understand the difference:\n\n👉 AI Engineer = Builds the AI product/system.\n\n👉 AI FDE = Takes that AI technology to the customer, understands their business problem, integrates it with their existing systems, customizes it, and makes it work ",
+     "publishedAt": 1787215826000
+    },
+    {
+     "id": "3uO6V05LBjU",
+     "title": "Loop Engineering And Harness Engineering Crash Course",
+     "description": "Code: https://drive.google.com/drive/folders/10Wd8Ps_a8L4uZmSysZchfu1Z5uyCthEl\n\nThanks to our sponsor:\nCheck out Apodex : https://www.apodex.ai/\nApodex Frontier Program : https://www.apodex.com/frontier-program\n------------------------------------------------------------------------------------------------\n🚀 **Loop Engineering vs Harness Engineering – The Next Evolution of Agentic AI**\n\nBuilding ",
+     "publishedAt": 1787155983000
+    },
+    {
+     "id": "49rFUJEN4b4",
+     "title": "Start Your AI Engineering Journey With These 2 Tracks",
+     "description": "https://www.krishnaik.in/liveclass2/Datascience?id=13\nUse coupon code KRISH20 to avail 20% off\nThis course is a comprehensive journey through modern Data Science and AI, designed to take learners from Python programming basics all the way to next-generation Agentic AI systems. You will begin by mastering Python, statistics, and core machine learning techniques, then progress into deep learning, ge",
+     "publishedAt": 1787048052000
+    },
+    {
+     "id": "K_vM_4MV_vk",
+     "title": "Our Hackathon Platform Is Live! Participate And Win Cash Rewards",
+     "description": "Platform link: https://career.krishnaik.in/dashboard/hackathons?h=smartreco-build-challenge-2026\nhis is not a simple \"related products\" widget. You are building an agentic recommendation system: a backend agent that continuously observes a user's activity, understands their interests, retrieves the most relevant products from a knowledge base, and generates personalized, convincing recommendations",
+     "publishedAt": 1785774114000
+    },
+    {
+     "id": "XewfVdagS_s",
+     "title": "New Udemy Course-AI Security Bootcamp-Guardrails,LLM Gateways,Observability",
+     "description": "https://www.udemy.com/course/ai-security-bootcamp-guardrailsllm-gatewaysobservability/?couponCode=JULY399\n\nThis comprehensive bootcamp is designed to teach you how to build secure, observable, and production-ready AI applications using the latest tools, frameworks, and best practices adopted across the industry.\n\nUnlike traditional Generative AI courses that focus only on prompting or building cha",
+     "publishedAt": 1784956669000
+    },
+    {
+     "id": "G4zrHUoKgjk",
+     "title": "Stop Building AI Agents-Start Building AI Teammates",
+     "description": "🎁 Get Started with Hyperagent\n\nSign up for a paid Hyperagent plan and get $500 in bonus credits.\n\n👉 https://www.hyperagent.com/krish\n\n⏱️ What You'll Learn\n\nBuilding autonomous AI teammates\n\nRecurring AI workflows\n\nAI agent memory and skills\n\nSlack & Telegram integrations\n\nGoogle Docs automation\n\nEnterprise AI agents\n\nMulti-agent workflows\n\nProduction AI systems",
+     "publishedAt": 1784546600000
+    },
+    {
+     "id": "6GEluIP_O8o",
+     "title": "Final Call For Enrollments-Advanced Route Production AI Engineering Bootcamp",
+     "description": "Enrollment Link: https://www.krishnaik.in/liveclass2/Advanded-Route?id=12\n\nThis 8-month, industry-focused program is designed for experienced practitioners who want to move beyond foundational theory and master the architecture of high-scale, real-world AI systems. This is not an introductory course; it is a deep dive into the complete modern LLM stack—from transformer core mechanics and advanced ",
+     "publishedAt": 1784205450000
+    },
+    {
+     "id": "XT78ESl8PbM",
+     "title": "Getting Started With Using Microsoft Copilot Cowork-End To End Use Case Implementation",
+     "description": "https://fandf.co/4ehEnq9\nEnterprise intelligence is shifting to an agent-first model, and Work IQ is the layer that powers it. It provides a workplace intelligence layer that enables agents to access and reason over organizational data, context, and tools, continuously building a semantic understanding across Microsoft 365 and external systems with built-in, permission-aware governance. \n\nCombinin",
+     "publishedAt": 1783953481000
+    }
+   ]
+  },
+  {
+   "id": "UCawZsQWqfGSbCI5yjkdVkTA",
+   "handle": "@matthew_berman",
+   "title": "Matthew Berman",
+   "videos": [
+    {
+     "id": "U-rsvXds9ck",
+     "title": "Deepseek did it again...",
+     "description": "Check out MindsHub: https://tinyurl.com/5cra6js2\n\nJoin My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉🏻 Discord: https://discord.gg/u7wTTGWhuJ\n👉🏻 Spotify: https://open.spotify.com/show/6dBxDwxtHl1hpqHhfoXmy8\n\nMedia/",
+     "publishedAt": 1789153316000
+    },
+    {
+     "id": "jQIeVznGG3k",
+     "title": "We need to talk about this...",
+     "description": "Join My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉🏻 Discord: https://discord.gg/u7wTTGWhuJ\n👉🏻 Spotify: https://open.spotify.com/show/6dBxDwxtHl1hpqHhfoXmy8\n\nMedia/Sponsorship Inquiries ✅ \nhttps://bit.ly/44TC45V\n\nL",
+     "publishedAt": 1789072463000
+    },
+    {
+     "id": "e7t9HU2Z6t8",
+     "title": "We need to talk about this...",
+     "description": "Join My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉🏻 Discord: https://discord.gg/u7wTTGWhuJ\n👉🏻 Spotify: https://open.spotify.com/show/6dBxDwxtHl1hpqHhfoXmy8\n\nMedia/Sponsorship Inquiries ✅ \nhttps://bit.ly/44TC45V\n\nL",
+     "publishedAt": 1788977917000
+    },
+    {
+     "id": "ZTgFyP0PZJo",
+     "title": "I've had early access to Astra... it's INSANE",
+     "description": "Astra will be available soon in Box AI: https://bit.ly/4gOJnE2\n\nCheck out the full GPT-6 Review: https://signals.forwardfuture.com/astra-review/\n\nJoin My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉🏻 Discord: https://",
+     "publishedAt": 1788548631000
+    },
+    {
+     "id": "xdXLzFzxA9Q",
+     "title": "ASTRA IS HERE (GPT-6 RELEASED)",
+     "description": "Tell your agent to use this: https://here.now/r/matthewberman\n\nCheck out the full GPT-6 Review: https://signals.forwardfuture.com/astra-review/\n\nJoin My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉🏻 Discord: https://d",
+     "publishedAt": 1788463970000
+    },
+    {
+     "id": "2uVH2WUYb5E",
+     "title": "GOOGLE IS BACK! (Gemini 3.8 Flash)",
+     "description": "Join My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉🏻 Discord: https://discord.gg/u7wTTGWhuJ\n👉🏻 Spotify: https://open.spotify.com/show/6dBxDwxtHl1hpqHhfoXmy8\n\nMedia/Sponsorship Inquiries ✅ \nhttps://bit.ly/44TC45V\n\nL",
+     "publishedAt": 1788415974000
+    },
+    {
+     "id": "epogfA_0R4E",
+     "title": "Anthropic went CRAZY (Mythos/Fable 5.1)",
+     "description": "Tell your agent to use this: https://here.now/r/matthewberman\n\nFloating Islands: https://autumn-koan-ejqf.here.now/\nApple Site: https://quartz-maple-zwby.here.now/\nDGX Spark Site: https://starry-yarrow-tsa6.here.now/\nRubber Duck Site: https://rustic-paddle-jhxc.here.now/\nGalaxy Z Fold Site: https://oaken-comet-eeqt.here.now/\nModel Y Site: https://chilly-clover-rbh9.here.now/\n\nJoin My Newsletter fo",
+     "publishedAt": 1788307051000
+    },
+    {
+     "id": "U6Ie2br8lxs",
+     "title": "Cursor just got BANNED (It's because of Elon...)",
+     "description": "Try Greptile Free for 14 days: https://www.greptile.com/go/berman/review\n\nJoin My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉🏻 Discord: https://discord.gg/u7wTTGWhuJ\n👉🏻 Spotify: https://open.spotify.com/show/6dBxDw",
+     "publishedAt": 1788284793000
+    },
+    {
+     "id": "TOWXXhn7ctY",
+     "title": "Cancel your subscriptions, Ox-Alpha is here! (GLM 5.3 Flash)",
+     "description": "Check out Higgsfield API: https://higgsfield.ai/s/TvYKkQ\n\nJoin My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉🏻 Discord: https://discord.gg/u7wTTGWhuJ\n👉🏻 Spotify: https://open.spotify.com/show/6dBxDwxtHl1hpqHhfoXmy8",
+     "publishedAt": 1788044198000
+    },
+    {
+     "id": "0RqTLAeaVMM",
+     "title": "AI is escaping containment",
+     "description": "Check out Zapier! https://bit.ly/4xraX1f\n\nJoin My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉🏻 Discord: https://discord.gg/u7wTTGWhuJ\n👉🏻 Spotify: https://open.spotify.com/show/6dBxDwxtHl1hpqHhfoXmy8\n\nMedia/Sponsors",
+     "publishedAt": 1787944773000
+    },
+    {
+     "id": "z1ez0yWu1P4",
+     "title": "This feels illegal...",
+     "description": "Join My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉🏻 Discord: https://discord.gg/u7wTTGWhuJ\n👉🏻 Spotify: https://open.spotify.com/show/6dBxDwxtHl1hpqHhfoXmy8\n\nMedia/Sponsorship Inquiries ✅ \nhttps://bit.ly/44TC45V\n\nL",
+     "publishedAt": 1787865162000
+    },
+    {
+     "id": "2w7ZdceZT-g",
+     "title": "The Most Important Chart In AI Right Now",
+     "description": "Connect Higgsfield yourself – 30 seconds: Settings → Connectors → https://higgsfield.ai/s/tSInNY\n\nSlides: https://cloud.box.com/s/xl26fdjfddql136vjuxypowq7ur0rdn8 \n\nJoin My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉\ud83c",
+     "publishedAt": 1787766318000
+    },
+    {
+     "id": "4qjEgPojjzM",
+     "title": "How to Understand the Next Wave of AI Before Everyone Else | Tibo Interview",
+     "description": "OpenAI’s Tibo joins me to break down what’s next for Codex, ultra-fast AI, recursive self-improvement, and the future of personal AI agents. We also get into OpenAI vs. Anthropic, why Codex usage is exploding, and how AI could soon work faster than humans can keep up with...\n\nHuge thanks to Tibo for joining me! https://x.com/thsottiaux\n\nJoin My Newsletter for Regular AI Updates 👇🏼\nhttps://forwar",
+     "publishedAt": 1787595085000
+    },
+    {
+     "id": "5CSXUsljJ_E",
+     "title": "11 Grok Bot Use Cases That Feel Like Cheating",
+     "description": "Tell Grok Bot to use this: https://here.now/r/matthewberman\n\nMy Prompts: https://pearly-rivulet-zd47.here.now/\n\nJoin My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉🏻 Discord: https://discord.gg/u7wTTGWhuJ\n👉🏻 Spotify",
+     "publishedAt": 1787250530000
+    },
+    {
+     "id": "1RTq_EWv2Yo",
+     "title": "You NEED to try these 6 Open-Source Projects NOW",
+     "description": "Use code MATTHEWB for 10% off: http://hostinger.com/matthewhermes\n\nJoin My Newsletter for Regular AI Updates 👇🏼\nhttps://forwardfuture.com\n\nMy Links 🔗\n👉🏻 X: https://x.com/matthewberman\n👉🏻 Forward Future X: https://x.com/forwardfuture\n👉🏻 Instagram: https://www.instagram.com/matthewberman_ai\n👉🏻 Discord: https://discord.gg/u7wTTGWhuJ\n👉🏻 Spotify: https://open.spotify.com/show/6dBxDwxtHl1hp",
+     "publishedAt": 1786993676000
+    }
+   ]
+  },
+  {
+   "id": "UCBJycsmduvYEL83R_U4JriQ",
+   "handle": "@mkbhd",
+   "title": "Marques Brownlee",
+   "videos": [
+    {
+     "id": "Od6M0AXpcxQ",
+     "title": "iPhone 18 Pro/Duo Impressions: Mogged",
+     "description": "The first folding iPhone Duo and iPhone 18 Pro are here, and this is everything you need to know.\n\nCheck out Ridge’s latest iPhone tech gear at https://ridge.com/MKBHD\n\niOS 27: https://youtu.be/_oRgdlJUD18\n\nMKBHD Merch: http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro music: https://goo.gl/B3AWV5\n\n~\nhttp://twitter.com/MKBHD\nhttp://instagram.com/MKBHD\nhttp://facebook.com/MKBHD",
+     "publishedAt": 1789025395000
+    },
+    {
+     "id": "ANmTVYkEtLw",
+     "title": "Google Pixel 11/Pro Review: Poker Face",
+     "description": "Pixel 11 proves Google is going all in in one thing.\n\nEnter for free for a chance to win $100,000 or 1 of 3 cars at https://ridge.com/MKBHD \n\nMKBHD Merch: http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro music: https://goo.gl/B3AWV5\nPhones provided by Google for review.\n\n~\nhttp://twitter.com/MKBHD\nhttp://instagram.com/MKBHD\nhttp://facebook.com/MKBHD",
+     "publishedAt": 1788643129000
+    },
+    {
+     "id": "fo-uubnajWM",
+     "title": "I Made a Bet with Tesla",
+     "description": "Tesla held a Cybercab event today and it was kinda weird...\n\nOriginal Robotaxi Impressions: https://youtu.be/fgm5uZaS3-E\n\n(I will definitely be donating in January anyway)\n\nMKBHD Merch: http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro music: https://goo.gl/B3AWV5\n\n~\nhttp://twitter.com/MKBHD\nhttp://instagram.com/MKBHD\nhttp://facebook.com/MKBHD",
+     "publishedAt": 1788484714000
+    },
+    {
+     "id": "ngPkbaZliaU",
+     "title": "The Truth About the Bezelless Concept Phone",
+     "description": "This TECNO 0mm \"borderless\" concept phone actually has some interesting quirks\n\nMKBHD Merch: http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro music: https://goo.gl/B3AWV5\n\n~\nhttp://twitter.com/MKBHD\nhttp://instagram.com/MKBHD\nhttp://facebook.com/MKBHD",
+     "publishedAt": 1787603270000
+    },
+    {
+     "id": "mfmdXPT7nAM",
+     "title": "I Said Yes to Every Email for a Month! (Again)",
+     "description": "I said yes to every review request I got for an entire month. I'm sorry? You're welcome?\n\nThanks Best Buy for sponsoring this video. You can find the tech upgrades you need to elevate your daily life at https://www.bestbuy.com/discover\n\nMKBHD Merch: http://shop.MKBHD.com\n\nDC Rainmaker Garmin CIRQA video: https://youtu.be/2K4x0CnuQug?si=9k68ymP8IUkciJUE\n\nPlaylist of MKBHD Intro music: https://goo.g",
+     "publishedAt": 1787338387000
+    },
+    {
+     "id": "o4SSoURPODY",
+     "title": "Google Pixel 11/Pro/Fold Impressions: It Is What It Is",
+     "description": "Every year, a new Pixel, and new hopes and dreams...\n\nProtect your new Pixel 11 or old Pixel 10 with dbrand at https://dbrand.com/shop/pixel11\n\nAffiliate Links:\nPixel 11 Pro: https://geni.us/iypnawz\nPixel 11 Pro XL: https://geni.us/Jfybl\nPixel 11 Pro Fold: https://geni.us/XaTcge\nPixel Watch 5: https://geni.us/2s9sEq\n\nMKBHD Merch: http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro music: https://goo.gl",
+     "publishedAt": 1786543235000
+    },
+    {
+     "id": "Z6z_feacXW8",
+     "title": "Galaxy Z Fold 8 Review: Honeymoon's Over",
+     "description": "This is a really easy phone to fall in love with. Beware.\n\nEnter to win $100,000 USD or 3 cars for free at https://ridge.com/MKBHD\n\n(Affiliate Link) Samsung Galaxy Z Fold 8: https://geni.us/GEv50B \n\nMKBHD Merch: http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro music: https://goo.gl/B3AWV5\n\nPhone provided by Samsung for review.\n\n~\nhttp://twitter.com/MKBHD\nhttp://instagram.com/MKBHD\nhttp://facebook.co",
+     "publishedAt": 1785542700000
+    },
+    {
+     "id": "_xjxwl1zLMc",
+     "title": "Framework 13 Pro: The Modular Laptop is Real!",
+     "description": "The modular Macbook Pro for Linux users. Color me impressed.\n\nMKBHD Merch: http://shop.MKBHD.com\n\nFramework 13 Pro: https://geni.us/SVkxq\n\nPlaylist of MKBHD Intro music: https://goo.gl/B3AWV5\n\nLaptop provided by Framework for review.\n\n~\nhttp://twitter.com/MKBHD\nhttp://instagram.com/MKBHD\nhttp://facebook.com/MKBHD",
+     "publishedAt": 1785166701000
+    },
+    {
+     "id": "8Hx2yvWSgs0",
+     "title": "Samsung Z Fold 8 (Wide) Impressions: Better Than I Thought!",
+     "description": "Samsung's wide fold is surprisingly nice to use. And everything is more expensive.\n\nProtect your next Samsung Flip or Fold with dbrand at https://dbrand.com/shop/fold8\n\nAffiliate Links:\nSamsung Galaxy Z Fold 8: https://geni.us/GEv50B\nSamsung Galaxy Z Fold 8 Ultra: https://geni.us/kWg2rl3\nSamsung Galaxy Z Flip 8: https://geni.us/2An1N\n\nMKBHD Merch: http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro mus",
+     "publishedAt": 1784725265000
+    },
+    {
+     "id": "_oRgdlJUD18",
+     "title": "iOS 27 Hands-On: Top 5 New Features!",
+     "description": "First look at iOS 27 - coming soon to an iPhone near you. It's about time.\n\nMKBHD Merch: http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro music: https://goo.gl/B3AWV5\n\n~\nhttp://twitter.com/MKBHD\nhttp://instagram.com/MKBHD\nhttp://facebook.com/MKBHD",
+     "publishedAt": 1783981622000
+    },
+    {
+     "id": "eWKY0OnPByg",
+     "title": "Apple Lost the AI Race",
+     "description": "Apple lost the AI race. Actually, Apple won the AI race. Wait.\n\nThat shirt: http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro music: https://goo.gl/B3AWV5\n\n~\nhttp://twitter.com/MKBHD\nhttp://instagram.com/MKBHD\nhttp://facebook.com/MKBHD",
+     "publishedAt": 1783539898000
+    },
+    {
+     "id": "DUgPFNRmsCQ",
+     "title": "Nothing Phone 4b: They Can't Say It!",
+     "description": "They won't tell us what the b stands for, but...\n\nMKBHD Merch: http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro music: https://goo.gl/B3AWV5\n\nPhone provided by Nothing for review.\n\n~\nhttp://twitter.com/MKBHD\nhttp://instagram.com/MKBHD\nhttp://facebook.com/MKBHD",
+     "publishedAt": 1783420302000
+    },
+    {
+     "id": "7KRabLH7jcE",
+     "title": "The Best Car I've Ever Driven: McLaren W1",
+     "description": "I may never see this car again. But it's incredible.\n\nFor car videos: http://youtube.com/Autofocus\n\nRimac Nevera: https://youtu.be/sF9xYtouZjY?si=ChdSpLzC6TcR4Wdz\n\nMKBHD Merch: http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro music: https://goo.gl/B3AWV5\n\n~\nhttp://twitter.com/MKBHD\nhttp://instagram.com/MKBHD\nhttp://facebook.com/MKBHD",
+     "publishedAt": 1783024965000
+    },
+    {
+     "id": "ZpF6IE0rdxA",
+     "title": "Antigravity A1: A New Take on Drones!",
+     "description": "Thanks Antigravity for sponsoring this video! Get 25% off the A1 at https://geni.us/lQlFcj for a limited time, and get 20% off accessories during Prime Day! Also, the first 25 people get a free flight battery and a double-lens replacement kit with their A1 purchase.\n\nMKBHD Merch: http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro music: https://goo.gl/B3AWV5\n\n~\nhttp://twitter.com/MKBHD\nhttp://instagra",
+     "publishedAt": 1782760940000
+    },
+    {
+     "id": "QrT4S9i3agE",
+     "title": "Top 5 Android 17 Features: I Swear It's New!",
+     "description": "Android 17 Cinnamon bun. We're bringing the dessert names back.\n\nSave 60% off site-wide with dbrand at https://dbrand.com/summersale during their limited-time Summer Sale!\n\nThat shirt! http://shop.MKBHD.com\n\nPlaylist of MKBHD Intro music: https://goo.gl/B3AWV5\n\n~\nhttp://twitter.com/MKBHD\nhttp://instagram.com/MKBHD\nhttp://facebook.com/MKBHD",
+     "publishedAt": 1782335211000
+    }
+   ]
+  },
+  {
+   "id": "UCfzlCWGWYyIQ0aLC5w48gBQ",
+   "handle": "@sentdex",
+   "title": "sentdex",
+   "videos": [
+    {
+     "id": "KSXm_KCMR60",
+     "title": "Effective Doomerism",
+     "description": "Neural Networks from Scratch book: https://nnfs.io\nChannel membership: https://www.youtube.com/channel/UCfzlCWGWYyIQ0aLC5w48gBQ/join\nDiscord: https://discord.gg/sentdex\nReddit: https://www.reddit.com/r/sentdex/ \nSupport the content: https://pythonprogramming.net/support-donate/\nTwitter: https://twitter.com/sentdex\nInstagram: https://instagram.com/sentdex\nFacebook: https://www.facebook.com/pythonpr",
+     "publishedAt": 1789135801000
+    },
+    {
+     "id": "PJBZmCy1Hfg",
+     "title": "All Roads Lead back To GLM!",
+     "description": "An in-depth look into GLM 5.3 Flash.\n\nwriteup: https://hkinsley.com/reflections/all-roads-lead-back-to-glm\nxgo kickstarter: https://www.kickstarter.com/projects/xgorobot/xgo-mini2sw\n\nNeural Networks from Scratch book: https://nnfs.io\nChannel membership: https://www.youtube.com/channel/UCfzlCWGWYyIQ0aLC5w48gBQ/join\nDiscord: https://discord.gg/sentdex\nReddit: https://www.reddit.com/r/sentdex/ \nSuppo",
+     "publishedAt": 1788533083000
+    },
+    {
+     "id": "H50xoAzNfB0",
+     "title": "The Right Harness is All You Need - For local Frontier AI",
+     "description": "Our continued journey to run frontier AI at home, talking PCIe switches, deepseek v4 flash 0731/preview/dspark, GLM 5.2, Poolside laguna s 2.1, Qwen 3.8, and more!\n\nBenchmarks and writeup: https://hkinsley.com/reflections/right-harness-is-all-you-need\n\nOMP harness: https://github.com/can1357/oh-my-pi\n\nC-Payne switches and such: https://c-payne.com/products/pcie-gen5-mcio-switch-100-lane-microchip-",
+     "publishedAt": 1786209738000
+    },
+    {
+     "id": "IY3b4HTxpgU",
+     "title": "OpenAI hacked HuggingFace",
+     "description": "HuggingFace's writeup of the incident: https://huggingface.co/blog/security-incident-july-2026\n\nOpenAI's writeup of the incident: https://openai.com/index/hugging-face-model-evaluation-security-incident/\n\nNeural Networks from Scratch book: https://nnfs.io\nChannel membership: https://www.youtube.com/channel/UCfzlCWGWYyIQ0aLC5w48gBQ/join\nDiscord: https://discord.gg/sentdex\nReddit: https://www.reddit",
+     "publishedAt": 1784737696000
+    },
+    {
+     "id": "GkClGdrGViQ",
+     "title": "You Can Just Download More Tokens/Sec",
+     "description": "Talking DeepSeek DSpark / DeepSeek V4 Flash, Kimi K3, GPT-5.6, model speed, keeping hardware running and more.\n\nWriteup with dspark bench perf: https://hkinsley.com/reflections/you-can-just-download-more-tokens-sec-dspark\nDSpark paper: https://arxiv.org/pdf/2607.05147\nMinion coding agent: https://github.com/Sentdex/minion\nPCIe switches, slimsas, PCIe timers...etc: https://c-payne.com/\npre-owned/re",
+     "publishedAt": 1784559901000
+    },
+    {
+     "id": "31MvP7yHzxM",
+     "title": "In search of frontier AI at home",
+     "description": "Analyzing a handful of local models that fit within a specific GPU memory ceiling, looking to learn how much compression impacts performance, how differently compressed models @ similar size compare, and how kv cache impacts attention in some cases.\n\nBenchmarks writeup: https://hkinsley.com/reflections/in-search-of-the-frontier-at-home\nDeepSeek V4 Flash: https://huggingface.co/deepseek-ai/DeepSeek",
+     "publishedAt": 1783609373000
+    },
+    {
+     "id": "AgpeggCsRH4",
+     "title": "Could Open Source AI be Banned?",
+     "description": "Could we see a ban on open source or chinese AI models? More on anthropic's lobbying efforts in Washington. A bit on how to run local AI.\n\nOpenRouter for API access to a bunch of models: https://openrouter.ai/\n\nTogether Compute for API: https://www.together.ai/\n\nTom's Hardware reporting of NSA hack walk-back: https://www.tomshardware.com/tech-industry/artificial-intelligence/anthropics-powerful-my",
+     "publishedAt": 1782830987000
+    },
+    {
+     "id": "DA2E8szXjoA",
+     "title": "There has been a situation in AI",
+     "description": "Chatting about some of the latest developments in the AI space.\n\nGLM 5.2 quantized GGUFs: https://huggingface.co/unsloth/GLM-5.2-GGUF\nGLM 5.2 on Open Router: https://openrouter.ai/z-ai/glm-5.2\nMinion coding agent: https://github.com/Sentdex/minion\nA decent consolidation of models/benchmarks: https://artificialanalysis.ai/\nDeepSWE: https://deepswe.datacurve.ai/\nThrowback to ChatGLM paper a few year",
+     "publishedAt": 1781887355000
+    },
+    {
+     "id": "FGnAeUXRZ4E",
+     "title": "Training a Unitree G1 to Walk w/ Reinforcement Learning",
+     "description": "Using mjlab and PPO to train the Unitree G1 humanoid to walk inside and outside\n\nNeural Networks from Scratch book: https://nnfs.io\nChannel membership: https://www.youtube.com/channel/UCfzlCWGWYyIQ0aLC5w48gBQ/join\nDiscord: https://discord.gg/sentdex\nReddit: https://www.reddit.com/r/sentdex/ \nSupport the content: https://pythonprogramming.net/support-donate/\nTwitter: https://twitter.com/sentdex\nIns",
+     "publishedAt": 1766155246000
+    },
+    {
+     "id": "Ah0-l0HZwLA",
+     "title": "Unitree G1 Security Disaster",
+     "description": "Cybersecurity AI: Humanoid Robots as Attack Vectors: https://arxiv.org/abs/2509.14139\n\nUnipwn repo for simple demo of the RCE/bluetooth vulnerabilities: https://github.com/Bin4ry/UniPwn/tree/main\n\nNeural Networks from Scratch book: https://nnfs.io\nChannel membership: https://www.youtube.com/channel/UCfzlCWGWYyIQ0aLC5w48gBQ/join\nDiscord: https://discord.gg/sentdex\nReddit: https://www.reddit.com/r/s",
+     "publishedAt": 1759265415000
+    },
+    {
+     "id": "eRPSRSGiAA8",
+     "title": "Testing VLMs and LLMs for robotics w/ the Jetson Thor devkit",
+     "description": "Exploring the Jetson Thor devkit w/ some local LLMs and VLMs.\nMore info on the Jetson Thor Devkit: https://nvda.ws/45xIU4B\n\nNeural Networks from Scratch book: https://nnfs.io\nChannel membership: https://www.youtube.com/channel/UCfzlCWGWYyIQ0aLC5w48gBQ/join\nDiscord: https://discord.gg/sentdex\nReddit: https://www.reddit.com/r/sentdex/ \nSupport the content: https://pythonprogramming.net/support-donat",
+     "publishedAt": 1756567261000
+    },
+    {
+     "id": "wiIUF9pIDYw",
+     "title": "Reinforcement learning with Unitree G1 humanoid - Dev w/ G1 P.5",
+     "description": "Training and testing out an arm Policy for the Unitree G1 using the PPO algorithm.\n\nGithub repo: https://github.com/Sentdex/unitree_g1_vibes/tree/main/RL-shenanigans\n\nNeural Networks from Scratch book: https://nnfs.io\nChannel membership: https://www.youtube.com/channel/UCfzlCWGWYyIQ0aLC5w48gBQ/join\nDiscord: https://discord.gg/sentdex\nReddit: https://www.reddit.com/r/sentdex/ \nSupport the content: ",
+     "publishedAt": 1753457638000
+    },
+    {
+     "id": "cmnJhOWp2z4",
+     "title": "A bigger brain for the Unitree G1- Dev w/ G1 Humanoid P.4",
+     "description": "Adding a vision language model and procrastinating a little longer about going into the sim\n\nUnitree G1 series playlist: https://www.youtube.com/playlist?list=PLQVvvaa0QuDdNJ7QbjYeDaQd6g5vfR8km\n\nNeural Networks from Scratch book: https://nnfs.io\nChannel membership: https://www.youtube.com/channel/UCfzlCWGWYyIQ0aLC5w48gBQ/join\nDiscord: https://discord.gg/sentdex\nReddit: https://www.reddit.com/r/sen",
+     "publishedAt": 1748619245000
+    },
+    {
+     "id": "Uc1nhT8beTU",
+     "title": "Unitree G1 - Moving the arms/hands - Dev w/ G1 Humanoid P.3",
+     "description": "Figuring out how to move the hands/arms in an abstract way in XYZ space rather than per-joint.\n\nUnitree G1 series playlist: https://www.youtube.com/playlist?list=PLQVvvaa0QuDdNJ7QbjYeDaQd6g5vfR8km\n\nGithub for this project: https://github.com/Sentdex/unitree_g1_vibes\n\nNeural Networks from Scratch book: https://nnfs.io\nChannel membership: https://www.youtube.com/channel/UCfzlCWGWYyIQ0aLC5w48gBQ/join",
+     "publishedAt": 1746805361000
+    },
+    {
+     "id": "sJYlJlIEBpg",
+     "title": "Unitree G1 LiDAR, SLAM, navigation and control. Dev w/ G1 Humanoid P.2",
+     "description": "Doing SLAM with the LiDAR, occupancy graph, better navigation, and a bunch of improvements.\n\nUnitree G1 playlist: https://www.youtube.com/playlist?list=PLQVvvaa0QuDdNJ7QbjYeDaQd6g5vfR8km\n\nNeural Networks from Scratch book: https://nnfs.io\nChannel membership: https://www.youtube.com/channel/UCfzlCWGWYyIQ0aLC5w48gBQ/join\nDiscord: https://discord.gg/sentdex\nReddit: https://www.reddit.com/r/sentdex/ \n",
+     "publishedAt": 1746028600000
+    }
+   ]
+  },
+  {
+   "id": "UCtYLUTtgS3k1Fg4y5tAhLbw",
+   "handle": "@statquest",
+   "title": "StatQuest with Josh Starmer",
+   "videos": [
+    {
+     "id": "2FaI2Fen1mQ",
+     "title": "The GELU, SiLU and SwiGLU activation functions, clearly explained!!!",
+     "description": "There's a new activation function in town. Actually, there are a bunch of new activation functions in town. This StatQuest gives you the essential information you need at the very start, followed by a surprisingly interesting derivation of each of these new activation functions. It turns out that Dropout is all you need. Who knew?\n\nIf you'd like to support StatQuest, please consider...\nPatreon: ht",
+     "publishedAt": 1788840004000
+    },
+    {
+     "id": "UwbASFlIS7A",
+     "title": "Another three (3) more lessons from my Pop!",
+     "description": "Since September 4th is Global Frank Starmer Day (and also his birthday), we'll celebrate by talking about another three (3) more lessons from him that influenced me over the span of my career so far.\n\nIf you'd like to support StatQuest, please consider...\nPatreon: https://www.patreon.com/statquest\n...or...\nYouTube Membership: https://www.youtube.com/channel/UCtYLUTtgS3k1Fg4y5tAhLbw/join\n\n...buying",
+     "publishedAt": 1788494421000
+    },
+    {
+     "id": "lgD9lNB9Ums",
+     "title": "The Simplex Algorithm, Mathematical Details!!!",
+     "description": "In the StatQuest, Optimization with Linear Programming (and the Simplex Algorithm), Main Ideas!!!, we learned the Main Ideas of Linear Programming and the Simplex Algorithm. Now let's dive into the nitty gritty details of how it's done, one step at a time. BAM!\n\nNOTE: This StatQuest is brought to you by Gurobi, the solver trusted by experts. To learn more see: https://www.gurobi.com/?utm_source=yo",
+     "publishedAt": 1783915215000
+    },
+    {
+     "id": "h5o1n1QMcmM",
+     "title": "Optimization with Linear Programming (and the Simplex Algorithm), Main Ideas!!!",
+     "description": "If you've ever wondered how airplane schedules are optimized, warehouses are optimized or how crops are optimized, then you've wondered about Linear Programming. This StatQuest introduces you to the main ideas of how Linear Programming can be used to optimize problems, and, specifically, we'll learn about the Simplex Algorithm. BAM!\n\nNOTE: This StatQuest is brought to you by Gurobi, the solver tru",
+     "publishedAt": 1783310430000
+    },
+    {
+     "id": "mIlw5j3WyVk",
+     "title": "StatQuest: Random Forests Part 2: Missing data and clustering",
+     "description": "NOTE: This StatQuest is the updated version of the original Random Forests Part 3 and includes two minor corrections.\n\nLast time we talked about how to create, use and evaluate random forests. Now it's time to see how they can deal with missing data and how they can be used to cluster samples, even when the data comes from all kinds of crazy sources.\n\nNOTE: This StatQuest is based on Leo Breiman's",
+     "publishedAt": 1780930925000
+    },
+    {
+     "id": "L3nlGfSyHV0",
+     "title": "False Discovery Rates, FDR, clearly explained",
+     "description": "One of the best ways to prevent p-hacking is to adjust p-values for multiple testing. This StatQuest explains how the Benjamini-Hochberg method corrects for multiple-testing and FDR.\n\nFor a complete index of all the StatQuest videos, check out:\nhttps://statquest.org/video-index/\n\nIf you'd like to support StatQuest, please consider...\n\nPatreon: https://www.patreon.com/statquest\n...or...\nYouTube Mem",
+     "publishedAt": 1780930895000
+    },
+    {
+     "id": "aFDOzpTeg0s",
+     "title": "The Essence of Linear Regression!!!",
+     "description": "This StatQuest takes you through basic linear regression, step-by-step, explaining both the method and the motivation behind the method. Each step is broken down into easy-to-understand parts so that anyone can develop a deep understanding of how to do and interpret a linear regression. BAM!\n\nIf you'd like to support StatQuest, please consider...\nPatreon: https://www.patreon.com/statquest\n...or...",
+     "publishedAt": 1779076801000
+    },
+    {
+     "id": "q-BiW5srMFQ",
+     "title": "How AI works in Super Simple Terms!!!",
+     "description": "In this StatQuest we explain how AI, like ChatGPT, works. However, instead of using lots of complicated math, we're going to use a super simple example and super simple terms. If math scares you, this StatQuest is for you! And even if math doesn't scare you, this StatQuest will give you a deeper understanding of what goes on under the hood. BAM!\n\nIf you'd like to support StatQuest, please consider",
+     "publishedAt": 1768194066000
+    },
+    {
+     "id": "WRYk7oZiogg",
+     "title": "StatQuest: Career Advice from Tech Industry Leaders",
+     "description": "This year, for my Pop's birthday, we're going to hear from current tech industry leaders that all started out working for my pop in the IT-Lab at the Medical University of South Carolina. These leaders have started all kinds of startups, pioneered Oscar award winning computer graphics and designed the best user interfaces that I've ever seen. I believe the advice that these leaders give is so valu",
+     "publishedAt": 1756958442000
+    },
+    {
+     "id": "qPN_XZcJf_s",
+     "title": "Reinforcement Learning with Human Feedback (RLHF), Clearly Explained!!!",
+     "description": "Generative Large Language Models, like ChatGPT and DeepSeek, are trained on massive text based datasets, like the entire Wikipedia. However, this training alone fails to teach the models how to generate polite and useful responses to your prompts. Thus, LLMs rely on Supervised Fine-Tuning and Reinforcement Learning with Human Feedback (RLHF) to align the models to how we actually want to use them.",
+     "publishedAt": 1746417663000
+    },
+    {
+     "id": "DVGmsnxB2UQ",
+     "title": "Reinforcement Learning with Neural Networks: Mathematical Details",
+     "description": "Here we go through the math required to update a parameter in a neural network using reinforcement learning and we do it one step a time. We show how the derivatives are calculated (BAM!), then updated (DOUBLE BAM!!), and then used to optimize the parameters (TRIPLE BAM!!!).\n\nIf you'd like to support StatQuest, please consider...\nPatreon: https://www.patreon.com/statquest\n...or...\nYouTube Membersh",
+     "publishedAt": 1744603227000
+    },
+    {
+     "id": "9hbQieQh7-o",
+     "title": "Reinforcement Learning with Neural Networks: Essential Concepts",
+     "description": "Reinforcement Learning has helped train neural networks to win games, drive cars and even get ChatGPT to sound more human when it responds to your prompt. This StatQuest covers the essential concepts of how this process works. BAM!\n\nIf you'd like to support StatQuest, please consider...\nPatreon: https://www.patreon.com/statquest\n...or...\nYouTube Membership: https://www.youtube.com/channel/UCtYLUTt",
+     "publishedAt": 1743998417000
+    },
+    {
+     "id": "Z-T0iJEXiwM",
+     "title": "Reinforcement Learning: Essential Concepts",
+     "description": "Reinforcement Learning is one of the most useful methodologies for training AI systems right now, and, while it might seem intimidating, is actually very similar to how you and I learn. This StatQuest cuts through the hype and helps you learn the essential concepts behind reinforcement learning one step at a time.\n\nFor a complete index of all the StatQuest videos, check out:\nhttps://statquest.org/",
+     "publishedAt": 1743393625000
+    },
+    {
+     "id": "GDN649X_acE",
+     "title": "Encoder-Only Transformers (like BERT) for RAG, Clearly Explained!!!",
+     "description": "Encoder-Only Transformers are the backbone for RAG (retrieval augmented generation), sentiment analysis and classification problems, and clustering. This StatQuest covers the main ideas of how these powerhouses do what they do so well, making sure each step is clearly explained!\n\nNOTE: If you'd like to learn more details about the various components mentioned in the video, check out these 'Quests:",
+     "publishedAt": 1731906011000
+    },
+    {
+     "id": "DkmfIQRDyXc",
+     "title": "Human Stories in AI: Nana Janashia@TechWorld With Nana",
+     "description": "In this episode we have special guest Nana Janashia, of the insanely popular youtube channel, TechWorld With Nana https://www.youtube.com/c/techworldwithnana . With well over a million subscribers, Nana teaches all things DevOps - an inclusive application development style that brings everyone together with a shared goal of building better products faster.\n\nFor a complete index of all the StatQues",
+     "publishedAt": 1725854417000
+    }
+   ]
+  },
+  {
+   "id": "UCJskGeByzRRSvmOyZOz61ig",
+   "handle": "@takeUforward",
+   "title": "take U forward",
+   "videos": [
+    {
+     "id": "4Xh9DLUQCWs",
+     "title": "Launching the best DSA Course + Platform",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\n\nAlso our other social’s: https://linktr.ee/tak",
+     "publishedAt": 1723034354000
+    },
+    {
+     "id": "z9bJUPxzFOw",
+     "title": "L18. Implement LRU Cache",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nImplement LRU Ca",
+     "publishedAt": 1721150832000
+    },
+    {
+     "id": "cEadsbTeze4",
+     "title": "L17. The Celebrity Problem | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nThe Celebrity Pr",
+     "publishedAt": 1721150772000
+    },
+    {
+     "id": "NwBvene4Imo",
+     "title": "L16. Sliding Window Maximum | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nSliding Window M",
+     "publishedAt": 1721150623000
+    },
+    {
+     "id": "eay-zoSRkVc",
+     "title": "L15. Stock Span Problem | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nStock Span Probl",
+     "publishedAt": 1721150516000
+    },
+    {
+     "id": "jmbuRzYPGrg",
+     "title": "L14. Remove K Digits | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nL14. Remove K Di",
+     "publishedAt": 1721150309000
+    },
+    {
+     "id": "ttVu6G7Ayik",
+     "title": "L13. Maximal Rectangle | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nMaximal Rectangl",
+     "publishedAt": 1721150197000
+    },
+    {
+     "id": "Bzat9vgD0fs",
+     "title": "L12. Largest Rectangle in Histogram | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nLargest Rectangl",
+     "publishedAt": 1721150127000
+    },
+    {
+     "id": "_eYGqw_VDR4",
+     "title": "L11. Aestroid Collisions | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nL11. Aestroid Co",
+     "publishedAt": 1721150065000
+    },
+    {
+     "id": "gIrMptNPf5M",
+     "title": "L10. Sum of subarray ranges | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nL10. Sum of suba",
+     "publishedAt": 1721149881000
+    },
+    {
+     "id": "v0e8p9JCgRc",
+     "title": "L9. Sum of Subarray Minimum | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nL9. Sum of Subar",
+     "publishedAt": 1721149818000
+    },
+    {
+     "id": "1_5VuquLbXg",
+     "title": "L8. Trapping Rainwater | 2 Approaches | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nL8. Trapping Rai",
+     "publishedAt": 1721149727000
+    },
+    {
+     "id": "zMdbdGJNlh4",
+     "title": "L7. Previous Smaller Element | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\n\nAlso our other social’s: https://linktr.ee/tak",
+     "publishedAt": 1721149452000
+    },
+    {
+     "id": "7PrncD7v9YQ",
+     "title": "L6. Next Greater Element - II | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nL6. Next Greater",
+     "publishedAt": 1721149350000
+    },
+    {
+     "id": "e7XQLtOQM3I",
+     "title": "L5. Next Greater Element | Stack and Queue Playlist",
+     "description": "Check out TUF+: https://takeuforward.org/plus?source=youtube\n\n\nFind DSA, LLD, OOPs, Core Subjects, 1000+ Premium Questions company wise, Aptitude, SQL, AI doubt support and many other features that will help you to stay focussed inside one platform under one affordable subscription. Have a hassle free one stop solution for up-skilling and preparing.\n\nCheckout the problem link 👇🏼\nL5. Next Greater",
+     "publishedAt": 1721149235000
+    }
+   ]
+  }
+ ]
+}

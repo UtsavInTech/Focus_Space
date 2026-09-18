@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-server/
+dist-web/
+e2e-artifacts/
+*.log
+.DS_Store
+# Layer 2B: local SQLite identity DB (server/auth/db.ts, DB_PATH) — dev data, never committed.
+data/
+*.sqlite
+*.sqlite-*
+.env

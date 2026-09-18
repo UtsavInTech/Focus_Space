@@ -1,0 +1,38 @@
+{
+  "name": "focusspace",
+  "private": true,
+  "version": "0.4.0",
+  "description": "FocusSpace \u2014 an intent-driven learning layer for YouTube (Chrome extension, Manifest V3).",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run icons && (vite build --mode development --watch & vite build --config vite.content.config.ts --mode development --watch & vite build --config vite.content.config.ts --mode bridge --watch)",
+    "build": "npm run icons && npm run typecheck && npm run build:fast",
+    "build:fast": "vite build && vite build --config vite.content.config.ts && vite build --config vite.content.config.ts --mode bridge",
+    "dev:web": "vite --config vite.web.config.ts",
+    "build:web": "vite build --config vite.web.config.ts",
+    "icons": "node scripts/generate-icons.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "node scripts/e2e/run.mjs",
+    "ai-endpoint": "node scripts/ai-endpoint/server.mjs",
+    "build:server": "vite build --config vite.server.config.ts",
+    "ai-api": "npm run build:server && node --env-file-if-exists=.env dist-server/index.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "@types/node": "^22.20.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "playwright": "^1.49.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "vitest": "^2.1.8"
+  }
+}

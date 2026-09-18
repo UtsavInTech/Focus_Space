@@ -1,0 +1,1168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+ <link rel="self" href="http://www.youtube.com/feeds/videos.xml?playlist_id=UULF8butISFwT-Wl7EV0hUK0BQ"/>
+ <id>yt:playlist:UULF8butISFwT-Wl7EV0hUK0BQ</id>
+ <yt:playlistId>UULF8butISFwT-Wl7EV0hUK0BQ</yt:playlistId>
+ <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+ <title>Videos</title>
+ <author>
+  <name>freeCodeCamp.org</name>
+  <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+ </author>
+ <published>2021-10-13T07:10:08+00:00</published>
+ <entry>
+  <id>yt:video:o3CX_Y59_74</id>
+  <yt:videoId>o3CX_Y59_74</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>OpenAI Codex Crash Course – Build &amp; Deploy Apps with Autonomous AI</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=o3CX_Y59_74"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-09-10T15:04:22+00:00</published>
+  <updated>2026-09-11T08:32:25+00:00</updated>
+  <media:group>
+   <media:title>OpenAI Codex Crash Course – Build &amp; Deploy Apps with Autonomous AI</media:title>
+   <media:content url="https://www.youtube.com/v/o3CX_Y59_74?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i4.ytimg.com/vi/o3CX_Y59_74/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Learn the core fundamentals of OpenAI Codex, from setting up scheduled automations and custom skills to mastering Plan and Go modes. Follow along step-by-step as we build, test, and deploy a voice-controlled Flappy Bird game built entirely with Codex.
+
+Course developed by @SkyrocketingTech 
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+⭐️ Chapters ⭐️
+- 00:00 Introduction to OpenAI Codex
+- 01:17 Download &amp; Installation
+- 02:08 Pricing &amp; Plan Options
+- 03:27 Left Sidebar Overview &amp; Scheduled Automations
+- 05:08 Projects vs. Chats
+- 07:09 Integrations &amp; Plugins (Supabase, Notion, Gmail)
+- 09:21 Updated Interface &amp; ChatGPT Desktop Integration
+- 11:08 GitHub Pull Requests in Codex
+- 12:07 Deploying Web Apps with Sites
+- 14:02 Main Work Area: Voice Input, Models &amp; Speed Settings
+- 17:06 Permission Levels &amp; Context Inputs
+- 19:13 Commands, Codex Pet &amp; Reusable Skills
+- 26:04 Plan Mode vs. Go Mode Explained
+- 30:25 Building the Voice-Controlled Flappy Bird Game
+- 34:32 Testing &amp; Demonstrating the Game
+- 38:20 Open-Source Repo &amp; Converting to Mobile with Expo
+- 39:30 Conclusion &amp; What's Next
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="929" average="5.00" min="1" max="5"/>
+    <media:statistics views="96254"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:kLZgQWjnUz0</id>
+  <yt:videoId>kLZgQWjnUz0</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>Learn Python – Interactive Course 2026</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=kLZgQWjnUz0"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-09-09T13:46:04+00:00</published>
+  <updated>2026-09-10T07:33:12+00:00</updated>
+  <media:group>
+   <media:title>Learn Python – Interactive Course 2026</media:title>
+   <media:content url="https://www.youtube.com/v/kLZgQWjnUz0?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i4.ytimg.com/vi/kLZgQWjnUz0/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Discover Python, one of the most in-demand programming languages, from the ground up, building three real projects along the way.
+
+💻 Study this course interactively on Scrimba: https://scrimba.com/learn-python-c03?via=scrimbafcc
+
+Code is available on the Scrimba course page for each lesson.
+
+Python is one of the world’s most popular and widely used programming languages, and it’s a great first language for beginners. Python’s clear, readable syntax makes it easier to focus on fundamental programming concepts without getting overwhelmed by unnecessary complexity. It’s used across web development, automation, data science, artificial intelligence, and many other fields, so the skills you learn can take you in many different directions. In this course, you’ll start from the absolute basics. No previous coding experience is required.
+
+Scrimba on YouTube: https://www.youtube.com/c/Scrimba
+
+⭐️ Chapters ⭐️
+- 0:00:00 Learn Python Intro
+- 0:01:49 What We'll Build
+- 0:03:23 Python: First Look
+- 0:07:03 Store Information with Variables
+- 0:09:30 Variables in Action
+- 0:13:13 Strings
+- 0:19:14 String Formatting with f-Strings
+- 0:22:53 PayUp App: Display a Summary
+- 0:26:57 Capture User Input
+- 0:30:51 PayUp App: Get Input from Users
+- 0:35:11 Basic Math: Arithmetic Operators
+- 0:40:36 Type Checking and Type Conversion
+- 0:45:25 PayUp App: Convert User Input
+- 0:48:34 PayUp App: Calculate the Expense Split
+- 0:52:54 PayUp App: Format Floats Inside F-Strings
+- 0:55:27 PayUp App: Finishing Touches 2
+- 0:58:32 Congratulations!
+2. Python Logic and Loops
+- 0:59:18 Intro
+- 1:01:37 Lists Part 1
+- 1:04:30 Lists Part 2
+- 1:09:16 List Function
+- 1:13:35 Random
+- 1:18:21 Join
+- 1:21:36 Scrambler Project
+- 1:24:21 Equality Operator
+- 1:31:06 Comparison Operators
+- 1:36:41 If-else
+- 1:41:16 If-else-elif
+- 1:46:36 String Methods
+- 1:53:28 Check Guess Project
+- 1:59:27 Tuples
+- 2:05:05 Project: Add Hints
+- 2:09:53 While Loops
+- 2:16:41 Project: Add Game Loop
+- 2:20:33 Append
+- 2:23:31 While Loop
+- 2:28:29 Avoid Repeat Words
+- 2:31:14 Track the Score
+- 2:36:01 Outro
+3. Python Functions and Error Handling
+- 2:37:12 Intro
+- 2:40:27 Functions
+- 2:47:29 Function Parameters
+- 2:54:32 Return Values
+- 3:00:17 Project: Get Up and Running
+- 3:09:14 For Loops Part 1
+- 3:13:03 For Loops Part 2
+- 3:15:44 Display The Queue
+- 3:17:51 Add Singer
+- 3:21:25 Remove Singer
+- 3:28:00 Number Queue
+- 3:31:54 Call Next
+- 3:35:44 Move to Top
+- 3:41:32 Logical Operators
+- 3:45:30 Guard Clauses
+- 3:49:34 Guard Against Crashes and Bad Output
+- 4:00:25 Try Except
+- 4:04:54 Validate User Input
+- 4:07:19 Outro</media:description>
+   <media:community>
+    <media:starRating count="2102" average="5.00" min="1" max="5"/>
+    <media:statistics views="128899"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:FGT7LZbZe-g</id>
+  <yt:videoId>FGT7LZbZe-g</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>Inside the AI Hardware Engine – Full Semiconductor Supply Chain Course</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=FGT7LZbZe-g"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-09-03T13:38:43+00:00</published>
+  <updated>2026-09-04T16:41:12+00:00</updated>
+  <media:group>
+   <media:title>Inside the AI Hardware Engine – Full Semiconductor Supply Chain Course</media:title>
+   <media:content url="https://www.youtube.com/v/FGT7LZbZe-g?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i3.ytimg.com/vi/FGT7LZbZe-g/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Welcome to this comprehensive course on the semiconductor supply chain, where you will learn how a chip moves from design to the data center. You will learn all about semiconductor physics, design, fabrication, memory, packaging, and rack-scale integration. Your instructor, Kian, will guide you through this journey to help you understand the hardware infrastructure powering modern artificial intelligence.
+
+Course created by @neuralkian 
+
+Course info: https://github.com/kiankyars/chips
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+⭐️ Chapters ⭐️
+- 0:00:00 Intro &amp; Course Overview
+- 0:04:21 GB300 Architecture &amp; Scale-Up vs. Scale-Out
+- 0:08:44 Reticle Limits, Dual Dies &amp; NV-HBI
+- 0:11:00 High Bandwidth Memory (HBM)
+- 0:13:28 Caches, NVLink &amp; PCIe Routing
+- 0:16:15 Inference Walkthrough &amp; Memory Hierarchy
+- 0:19:55 Hardware Economics &amp; Transistor Budgets
+- 0:22:41 Vera Rubin &amp; Next-Gen Roadmap
+- 0:24:46 Part 1: Semiconductor Physics
+- 0:26:07 Logic vs. Memory &amp; Clock Speeds
+- 0:28:34 1T1C DRAM Cells, SRAM &amp; 3D TSVs
+- 0:30:14 Transistor Basics &amp; Scaling History
+- 0:32:46 What Process Nodes Mean (PPA)
+- 0:35:28 Planar, FinFET &amp; Gate-All-Around
+- 0:40:50 End of Dennard Scaling
+- 0:42:04 Rock’s Law &amp; Fab Economics
+- 0:43:40 The Great Unbundling: Fabless &amp; Foundries
+- 0:45:44 4 Modern Semiconductor Business Models
+- 0:47:16 Part 2: Chip Design &amp; EDA
+- 0:48:24 SMs, Tensor Cores &amp; Parallelism
+- 0:50:39 CUDA: The Software Moat
+- 0:52:16 Nvidia Margins &amp; Market Dominance
+- 0:53:14 The EDA Flow: RTL to Tape-Out
+- 0:55:46 Leading-Edge Design Costs
+- 0:56:56 Synopsys, Cadence &amp; Siemens EDA
+- 1:00:16 Choke Point #1: Certified EDA Tools
+- 1:01:00 EDA Export Controls
+- 1:02:22 Semiconductor IP: ARM vs. RISC-V
+- 1:04:47 ARM's Move into Custom Silicon
+- 1:06:59 Fabless: Merchant, In-House &amp; Custom ASICs
+- 1:08:49 Part 3: Foundries &amp; Manufacturing
+- 1:10:30 History of TSMC &amp; Morris Chang
+- 1:12:15 Die Size, Defect Density &amp; Yield Models
+- 1:14:56 The Fab Scale Flywheel &amp; Capex
+- 1:16:33 How Apple De-Risked Node Ramps
+- 1:18:49 5 Pillars of a Dependable Foundry
+- 1:20:09 TSMC Roadmaps (N2, A16) &amp; High-NA EUV
+- 1:22:21 Wafer Pricing Trends
+- 1:23:06 Choke Point #2: Leading-Edge Foundry Capacity
+- 1:25:20 Geographic Concentration &amp; TSMC Global Fabs
+- 1:26:23 The Fall &amp; Restructuring of Intel
+- 1:31:32 Intel 18A / 14A Turnaround Plan
+- 1:34:56 Rapidus, SMIC &amp; Global Foundry Frontier
+- 1:36:23 Wafer Fab Equipment (WFE) Overview
+- 1:37:16 Silicon Ingots &amp; Spruce Pine Quartz
+- 1:38:21 Photomasks &amp; Reticle Costs
+- 1:40:27 Inside the Fab: Building a Wafer Layer
+- 1:44:17 Doping &amp; Annealing
+- 1:45:51 Inline Inspection &amp; Wafer Travel
+- 1:48:08 Why Wafer Cycles Take 3–4 Months
+- 1:50:41 Cleanroom Standards: ISO 1 Air
+- 1:51:56 ASML &amp; High-NA EUV Colossus
+- 1:53:14 Optical Columns &amp; Carl Zeiss Mirrors
+- 1:56:34 The Extreme Supply Chain Behind EUV
+- 1:58:10 Numerical Aperture &amp; Resolution Limits
+- 2:00:00 3D NAND Stacking &amp; High Aspect Etch
+- 2:01:00 Applied Materials, Lam Research &amp; TEL
+- 2:04:56 Metrology &amp; Inspection: KLA’s Moat
+- 2:07:54 Choke Point #3: Japanese Materials
+- 2:10:06 Material Shocks: Neon, Quartz &amp; Embargoes
+- 2:11:51 The Other 90%: Legacy Nodes &amp; Auto Shortages
+- 2:13:21 Part 4: Memory Cycles &amp; HBM
+- 2:14:35 DRAM Economics &amp; Supplier History
+- 2:17:03 The AI Memory Wall
+- 2:18:02 HBM3E Specs &amp; TSV Wafer Penalty
+- 2:20:56 Part 5: Advanced Packaging &amp; Interconnect
+- 2:22:34 Anatomy of CoWoS-L
+- 2:24:58 Choke Point #4: Advanced Packaging
+- 2:26:02 NVLink, NV-Switch Trays &amp; SuperNICs
+- 2:27:14 Part 6: Geopolitics &amp; Policy Risk
+- 2:28:20 Escalation of US-China Export Controls
+- 2:29:30 Nvidia’s Access to China
+- 2:30:20 Collateral Impact: Automotive Mature Nodes
+- 2:31:50 China's Counter-Strategy: Yield vs. Power
+- 2:32:40 Tooling &amp; Domestic Supply Chain Gaps
+- 2:33:40 Taiwan Conflict Scenarios &amp; Economic Impact
+- 2:34:20 Diverging AI Hardware Stacks
+- 2:35:20 Rack-Scale Power Limits (135 kW)
+- 2:36:00 Conclusion: Core Supply Chain Choke Points
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="1845" average="5.00" min="1" max="5"/>
+    <media:statistics views="168614"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:gvhsKtjAmgc</id>
+  <yt:videoId>gvhsKtjAmgc</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>Excel Formulas &amp; Functions – Full Course</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=gvhsKtjAmgc"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-09-01T14:57:53+00:00</published>
+  <updated>2026-09-01T15:03:20+00:00</updated>
+  <media:group>
+   <media:title>Excel Formulas &amp; Functions – Full Course</media:title>
+   <media:content url="https://www.youtube.com/v/gvhsKtjAmgc?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i4.ytimg.com/vi/gvhsKtjAmgc/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Master Excel formulas &amp; functions. Learn the theory first, then immediately put it into practice with the free companion Formula Wars quiz and practice problem material.
+
+To gain access to this companion material for free, signup here: https://formulawars.com/signup/excel-formulas-and-functions-course-unlocked/
+
+✏️ Course from @formula_wars 
+
+📚 Course Content
+👋 (0:00:00) Course Intro
+📘 (0:05:08) Lesson 1 - Part 1: Arithmetic, Comparison, and Text Operators
+📘 (0:08:31) Lesson 1 - Part 2: How Excel Evaluates a Formula
+📘 (0:13:34) Lesson 2: Relative, Absolute, and Mixed Cell Referencing
+📘 (0:18:42) Lesson 3: Function Structure
+📘 (0:23:58) Lesson 4: Error Basics
+📘 (0:28:59) Lesson 5: Logic Functions
+📘 (0:34:38) Lesson 6: Core Aggregation Functions
+🧩 (0:38:47) Core Practice Problem
+📘 (0:42:41) Lesson 7: Conditional Aggregation
+📘 (0:49:25) Lesson 8: Lookup Functions
+📘 (1:06:21) Lesson 9 - Part 1: Text Normalization &amp; Comparison
+📘 (1:11:49) Lesson 9 - Part 2: Text Searching &amp; Extraction
+📘 (1:15:10) Lesson 10: Date Foundations
+📘 (1:23:54) Lesson 11: Dynamic Array Functions
+🏁 (1:40:40) Course Wrap Up
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="1506" average="5.00" min="1" max="5"/>
+    <media:statistics views="124484"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:b-P5ZQ1NxxE</id>
+  <yt:videoId>b-P5ZQ1NxxE</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>Meta Muse Code &amp; Muse Spark Course – Build AI Agents, APIs, and Full-Stack Apps</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=b-P5ZQ1NxxE"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-08-26T15:08:03+00:00</published>
+  <updated>2026-08-26T15:11:08+00:00</updated>
+  <media:group>
+   <media:title>Meta Muse Code &amp; Muse Spark Course – Build AI Agents, APIs, and Full-Stack Apps</media:title>
+   <media:content url="https://www.youtube.com/v/b-P5ZQ1NxxE?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i3.ytimg.com/vi/b-P5ZQ1NxxE/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Learn how to build full-stack applications and autonomous AI workflows using Meta's Muse models and the Muse Code coding harness. Andrew Brown guides you through model architecture, structured outputs, search grounding, and programmatic API integrations with SDKs like LangChain. You will also master advanced developer workflows in the Muse Code CLI, including custom skills, MCP server setup, automated goal decomposition, and containerized deployments with Docker Compose.
+
+✏️ Course created by @ExamProChannel 
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+⭐️ Contents ⭐️
+- 0:00:00 Introduction &amp; MetaMuse Course Overview
+- 0:00:49 Meta Muse Models, Architecture &amp; Pricing Breakdown
+- 0:12:14 Getting Started in the Meta AI Playground
+- 0:14:56 Prompting Muse Spark &amp; Vision Capabilities
+- 0:20:53 Generating a Retro Single-Page Layout (PHP-Nuke Concept)
+- 0:27:07 Conceptualizing Community Engagement Features &amp; Mermaid Diagrams
+- 0:36:45 Evaluating Search Grounding Capabilities
+- 0:44:57 Structured Outputs with JSON Schema
+- 1:00:00 Programmatic API Integration (OpenAI &amp; Anthropic SDKs)
+- 1:14:45 Building with the Agent SDK Framework
+- 1:21:38 Integrating Meta API with LangChain
+- 1:36:49 Configuring &amp; Launching Claude Code with Muse Models
+- 1:44:22 Installing &amp; Initializing Muse Code CLI
+- 1:49:28 Setting Context with the agents.md File
+- 1:54:46 Managing Global &amp; Workspace Settings
+- 1:57:23 Controlling Reasoning Effort
+- 1:58:21 Session Management, Status Checks &amp; Compaction
+- 2:00:15 Structuring Backend Architecture &amp; Database Rules
+- 2:18:35 Using the Goal Feature for Autonomous Tasks
+- 2:23:08 Full-Stack Integration with React, Go &amp; Docker Compose
+- 2:36:03 Switching Models via CLI
+- 2:36:33 Bypassing Permissions with YOLO Mode
+- 2:37:24 Resuming Previous Sessions
+- 2:37:52 Creating &amp; Triggering Custom Skills
+- 2:41:53 Running in Headless Mode
+- 2:43:15 Managing Persistent Project Memory
+- 2:45:48 Configuring Approval Modes &amp; Security
+- 2:47:17 Enabling Sandboxed Execution with Bubblewrap
+- 2:49:23 Guardrail &amp; Permission Toggles
+- 2:50:30 Setting Up &amp; Troubleshooting MCP Servers
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="433" average="5.00" min="1" max="5"/>
+    <media:statistics views="61899"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:g3X8JauSWTM</id>
+  <yt:videoId>g3X8JauSWTM</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>Stop Building AI Slop – Build High-End Web Apps with AI</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=g3X8JauSWTM"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-08-25T12:14:06+00:00</published>
+  <updated>2026-08-25T14:25:16+00:00</updated>
+  <media:group>
+   <media:title>Stop Building AI Slop – Build High-End Web Apps with AI</media:title>
+   <media:content url="https://www.youtube.com/v/g3X8JauSWTM?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i4.ytimg.com/vi/g3X8JauSWTM/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Learn how to move past generic AI-generated interfaces and ship high-end, production-ready web applications using modern AI coding workflows. In this hands-on course, you will gather deep project context, clone and restyle proven UI architectures, and implement dynamic, Apple-style scroll animations using Hicksfield AI. Finally, you'll see the complete end-to-end front-end build deployed live to Cloudflare.
+
+✏️ Course developed by @EricWTech 
+
+🔗 Join Eric's Skool community: https://www.skool.com/erictech/about
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+⭐️ Chapters ⭐️
+- 00:00 Intro
+- 02:25 Build Context
+- 05:32 Clone Strategy
+- 10:55 Cloning CMC
+- 14:24 Merge Context
+- 18:04 Impeccable Skill
+- 23:49 Worktree Variations
+- 31:26 Final Touches
+- 36:48 Scroll Animations
+- 42:30 Frame Analysis
+- 48:15 Video Generation
+- 55:44 Animated About
+- 1:00:05 Cloudflare Deploy
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="1714" average="5.00" min="1" max="5"/>
+    <media:statistics views="119736"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:jIo2ccqPnLQ</id>
+  <yt:videoId>jIo2ccqPnLQ</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>The Paper That Created Modern AI</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=jIo2ccqPnLQ"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-08-21T11:00:31+00:00</published>
+  <updated>2026-08-26T03:39:48+00:00</updated>
+  <media:group>
+   <media:title>The Paper That Created Modern AI</media:title>
+   <media:content url="https://www.youtube.com/v/jIo2ccqPnLQ?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i3.ytimg.com/vi/jIo2ccqPnLQ/hqdefault.jpg" width="480" height="360"/>
+   <media:description>This video tells the story of the Transformer, the architecture behind ChatGPT, Gemini, Claude, and much of modern AI. It explains why older language models struggled with long text, how attention changed everything, and why the 2017 paper Attention Is All You Need became such a turning point. You’ll also learn how a small group of Google researchers accidentally helped create the foundation for today’s biggest AI companies.
+
+Video created by @aniakubow 
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="923" average="5.00" min="1" max="5"/>
+    <media:statistics views="38646"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:RpLnQnurpLY</id>
+  <yt:videoId>RpLnQnurpLY</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>Learn Data Structures and Algorithms Visually – Crash Course</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=RpLnQnurpLY"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-08-20T10:14:35+00:00</published>
+  <updated>2026-08-28T17:30:45+00:00</updated>
+  <media:group>
+   <media:title>Learn Data Structures and Algorithms Visually – Crash Course</media:title>
+   <media:content url="https://www.youtube.com/v/RpLnQnurpLY?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i3.ytimg.com/vi/RpLnQnurpLY/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Build an intuitive mental model of core data structures and algorithms using relatable, real-world analogies. Topics range from arrays and hash maps to trees, graphs, and dynamic programming. Once you grasp the underlying logic and problem-solving mechanics covered here, implementing them in any programming language becomes easy.
+
+- Sumit's YouTube Channel: https://youtube.com/@logicBaseLabs
+- Sumit's Bangla-language YouTube Channel: https://youtube.com/@LearnwithSumit
+- Sumit's website: https://www.sumitsaha.me/
+- logicBase Labs Facebook page: https://facebook.com/logicBaseLabs
+- Sumit's previous freeCodeCamp videos:
+    ➡ Next.js Caching Masterclass:https://www.youtube.com/watch?v=qYk_BqGHXEg
+    ➡ JavaScript DOM Course:https://www.youtube.com/watch?v=c6IyCwAV6BY
+    ➡ Git-GitHub Course: https://www.youtube.com/watch?v=mAFoROnOfHs
+- Sumit's many freeCodeCamp handbooks and tutorials: https://www.freecodecamp.org/news/author/sumitsaha/
+- Sumit's Interview with freeCodeCamp Founder Quincy Larson: https://www.freecodecamp.org/news/how-to-stay-curious-as-a-dev-in-the-ai-hype-era-with-sumit-saha-podcast-205/
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+⭐️ Contents ⭐️
+- 0:00:00 Introduction to DSA
+- 0:07:13 Array
+- 0:11:38 Linked List
+- 0:16:01 Stack
+- 0:18:54 Queue
+- 0:24:06 Priority Queue &amp; Heap
+- 0:29:41 Hash Table &amp; Set
+- 0:30:11 Tree
+- 0:36:39 Trie
+- 0:41:03 Graph
+- 0:44:25 Algorithm - Searching
+- 0:47:54 Algorithm - Sorting
+- 0:51:20 Recursion
+- 0:57:06 Graph Traversal (DFS/BFS)
+- 0:59:36 Shortest Path – Dijkstra’s Algorithm
+- 1:02:25 Algorithm Technique
+- 1:07:47 Conclusion
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="7031" average="5.00" min="1" max="5"/>
+    <media:statistics views="210897"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:R5fPn6W8m6k</id>
+  <yt:videoId>R5fPn6W8m6k</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>Code a Reinforcement Learning Library in C from Scratch (Full Course)</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=R5fPn6W8m6k"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-08-19T10:00:28+00:00</published>
+  <updated>2026-08-26T01:27:49+00:00</updated>
+  <media:group>
+   <media:title>Code a Reinforcement Learning Library in C from Scratch (Full Course)</media:title>
+   <media:content url="https://www.youtube.com/v/R5fPn6W8m6k?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i3.ytimg.com/vi/R5fPn6W8m6k/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Learn how to build a complete reinforcement learning framework from scratch in C. The course begins with constructing a custom computational graph and automatic differentiation (autograd) engine to handle matrix operations alongside forward and backward passes. It then walks through developing a standalone Snake game environment from the ground up, including custom state vector encoding and collision reward logic. Finally, the lesson ties everything together by implementing the REINFORCE policy gradient algorithm, trajectory rollouts, and an end-to-end training pipeline to train the agent.
+
+💻 Code: https://github.com/harshbhatt7585/cRL
+
+✏️ Course created by @harshbhatt7585 
+socials: 
+Twitter: https://x.com/harshbhatt7585
+Insta:   harshbhatt.ai
+
+⭐️ Chapters ⭐️
+- 0:00:00 Introduction &amp; Overview
+- 0:02:48 Setting Up the Autograd Engine &amp; Variables
+- 0:16:09 Matrix Creation &amp; Allocation Logic
+- 0:26:27 Building Nodes &amp; Computational Graph Traversal
+- 0:56:12 Forward &amp; Backward Activation Operations
+- 1:04:40 Matrix Multiplication (Row-Major &amp; Transpose Operations)
+- 1:23:49 Building the Snake Game RL Environment
+- 1:37:16 State Vector Encoding &amp; Reward System
+- 1:44:10 Training Pipeline &amp; Rollout Buffers Setup
+- 1:59:22 Implementing the Actor-Critic Model
+- 2:07:39 Computing Returns, Advantages &amp; Backward Pass
+- 2:14:41 Optimizer Step, Evaluation &amp; Conclusion
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="1024" average="5.00" min="1" max="5"/>
+    <media:statistics views="40194"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:iqRcGCah0Kw</id>
+  <yt:videoId>iqRcGCah0Kw</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>System Design for AI Agents – Building a Multi-Agent PR Reviewer</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=iqRcGCah0Kw"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-08-14T10:00:24+00:00</published>
+  <updated>2026-08-26T11:12:27+00:00</updated>
+  <media:group>
+   <media:title>System Design for AI Agents – Building a Multi-Agent PR Reviewer</media:title>
+   <media:content url="https://www.youtube.com/v/iqRcGCah0Kw?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i2.ytimg.com/vi/iqRcGCah0Kw/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Learn how to design and build a production-ready, multi-agent AI system that automates pull request reviews with senior-level engineering judgment. This comprehensive tutorial covers everything from fault-tolerant system architecture and database modeling to utilizing the Genesis kit for reliable, AI-native development.
+
+Code: https://github.com/ayush488-glitch/genesis-kit
+
+Course created by @AyushSinghSh 
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+⭐️ Chapters ⭐️
+- 0:00:00 Introduction: Building a Production-Ready AI PR Review Agent
+- 0:06:35 The System Design Lens &amp; Mapping the Mess
+- 0:19:12 Addressing AI Failure Modes &amp; Reliability Engineering
+- 0:33:04 Part 1: First Principles &amp; Reclaiming Senior Engineer Attention
+- 0:42:44 The Four Mindsets of a Reviewer (Security, Quality, Testing, Docs)
+- 0:54:08 Implementing the Agentic Fan-Out and Fan-In Pattern
+- 1:00:08 Part 2: Data Engineering &amp; Memory Shapes
+- 1:17:23 Database Selection
+- 1:28:32 Part 3: System Architecture Assembly
+- 1:38:48 Orchestration Engine Selection: LangGraph vs. Temporal
+- 1:52:15 Part 4: Implementation Using the Genesis Kit
+- 2:03:40 Running Milestones and Independent AI Code Verification
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="1730" average="5.00" min="1" max="5"/>
+    <media:statistics views="68129"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:eDqVqVyCo6k</id>
+  <yt:videoId>eDqVqVyCo6k</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>Python for Engineers &amp; Robotics – Master NumPy, Pandas, and ChatGPT Automation</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=eDqVqVyCo6k"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-08-11T10:15:25+00:00</published>
+  <updated>2026-08-13T10:56:46+00:00</updated>
+  <media:group>
+   <media:title>Python for Engineers &amp; Robotics – Master NumPy, Pandas, and ChatGPT Automation</media:title>
+   <media:content url="https://www.youtube.com/v/eDqVqVyCo6k?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i2.ytimg.com/vi/eDqVqVyCo6k/hqdefault.jpg" width="480" height="360"/>
+   <media:description>In this comprehensive course, you will learn Python programming from scratch specifically tailored for mechanical engineering and robotics using ChatGPT. You'll start with fundamental concepts like variables, operators, and control flow before mastering essential scientific libraries including NumPy for numerical computations, Pandas for data handling, and Matplotlib for engineering analysis. Through real-world engineering case studies, material selection problems, and automated data workflows, you will gain practical coding skills to optimize your technical analysis and design workflows.
+
+Created by https://gaugehow.com/
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+⭐️ Chapters ⭐️
+- 00:00 Course Overview &amp; Python Basics
+- 01:14 Introduction to Python for Mechanical Engineers
+- 02:43 Important Features &amp; Execution of Python
+- 05:12 Significance of Python in Mechanical Engineering
+- 06:30 Top Applications: Data Analysis, CFD, &amp; Robotics
+- 10:44 Setting Up Python &amp; VS Code on Windows
+- 13:38 Running Your First Python Program
+- 18:53 Interactive Shell (REPL) vs. Python Scripts
+- 25:44 Single-Line &amp; Multi-Line Comments in Python
+- 31:48 Understanding Variables &amp; Naming Rules
+- 35:33 Variable Assignment Methods &amp; Data Types
+- 43:00 Python Literals Explained
+- 46:50 Implicit &amp; Explicit Type Conversion
+- 55:33 Basic Input &amp; Output (Print Formatting)
+- 1:05:46 User Input &amp; Split Method
+- 1:12:46 Arithmetic &amp; Logical Operators
+- 1:20:11 Comparison, Assignment, &amp; Identity Operators
+- 1:30:30 Operator Precedence Rules &amp; Examples
+- 1:35:28 Using ChatGPT to Learn Python
+- 1:41:11 Control Flow: Conditional Statements (if/elif/else)
+- 1:51:14 Engineering Practical Examples for Conditional Logic
+- 2:04:42 Loops: For Loops &amp; The `range()` Function
+- 2:16:53 Mechanical Engineering Applications Using For Loops
+- 2:22:48 While Loops &amp; Simulating Dynamic Processes
+- 2:32:52 Loop Control Statements: `break` &amp; `continue`
+- 2:37:58 Nested Loops
+- 2:42:48 Mechanical Engineering Case Studies with Loops
+- 2:52:58 ChatGPT Prompts for Loops &amp; Conditionals
+- 2:57:48 Functions &amp; Code Reusability
+- 3:04:54 Function Arguments &amp; Return Values
+- 3:11:59 Arbitrary Positional (`*args`) &amp; Keyword (`**kwargs`) Arguments
+- 3:18:56 Understanding Variable Scope &amp; LEGB Rule
+- 3:24:10 Working with Global Variables
+- 3:28:19 Introduction to Python Modules
+- 3:33:35 Useful Built-in Modules for Engineering
+- 3:38:19 Creating &amp; Importing User-Defined Modules
+- 3:41:51 Designing Functions with ChatGPT
+- 3:47:00 Introduction to NumPy &amp; Installation
+- 3:53:30 Methods for Creating NumPy Arrays
+- 3:59:41 Creating Multi-Dimensional (`ND`) Arrays
+- 4:07:48 NumPy Data Types &amp; Type Conversion
+- 4:13:32 Essential NumPy Array Attributes
+- 4:18:14 NumPy Array Indexing (1D, 2D, 3D)
+- 4:27:38 Slicing &amp; Reversing NumPy Arrays
+- 4:36:46 Element-Wise Arithmetic Operations
+- 4:41:12 Mathematical &amp; Statistical Array Functions
+- 4:47:40 String Operations in NumPy
+- 4:53:30 Trigonometric Functions &amp; Angle Conversions
+- 4:58:45 Matrix Operations: Multiplication, Transpose, Inverse, &amp; Reshape
+- 5:03:44 Solving Mechanical Engineering Problems with NumPy
+- 5:12:40 Troubleshooting NumPy Code with ChatGPT
+- 5:17:06 Introduction to Pandas &amp; Installation
+- 5:20:16 Working with Pandas Series
+- 5:27:56 Creating &amp; Managing Pandas DataFrames
+- 5:35:50 Default, Custom, &amp; Range Indexing
+- 5:40:38 Exploring Data: `head()`, `tail()`, &amp; `info()`
+- 5:45:07 Modifying DataFrames: Adding, Dropping, &amp; Renaming
+- 5:52:11 Advanced Selection &amp; Slicing: `.loc` vs. `.iloc`
+- 5:00:38 Filtering Rows, Boolean Indexing, &amp; The `query()` Method
+- 6:05:50 Multi-Indexing &amp; Removing Duplicates
+- 6:15:52 Reading &amp; Writing Excel and CSV Files
+- 6:25:58 Pivoting &amp; Creating Pivot Tables
+- 6:34:50 Real-World Case Study: Aircraft Material Data Analysis
+- 6:44:15 Using ChatGPT for Pandas Data Cleaning &amp; Analysis
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="2342" average="5.00" min="1" max="5"/>
+    <media:statistics views="68651"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:7l6bXLAKyEI</id>
+  <yt:videoId>7l6bXLAKyEI</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>Claude Code Full Course – Autonomous Goals, MCP, and VS Code Setup</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=7l6bXLAKyEI"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-08-05T11:00:27+00:00</published>
+  <updated>2026-08-05T13:14:37+00:00</updated>
+  <media:group>
+   <media:title>Claude Code Full Course – Autonomous Goals, MCP, and VS Code Setup</media:title>
+   <media:content url="https://www.youtube.com/v/7l6bXLAKyEI?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i4.ytimg.com/vi/7l6bXLAKyEI/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Learn Claude Code with this comprehensive crash course taught by a former senior software engineer. You will learn everything from setting up your local environment in VS Code to executing autonomous tasks with goals and seamlessly deploying your applications. By mastering file structures, custom skills, and the Model Context Protocol, you will have the exact toolkit needed to automate your development and ship modern software.
+
+✏️ Course developed by @EricWTech 
+
+🔗 Join Eric's Skool community: https://www.skool.com/erictech/about
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+⭐️ Contents ⭐️
+- 0:00:00 Introduction &amp; Course Overview
+- 0:02:33 Installing Claude Code on Your Local Machine
+- 0:03:24 Choosing an IDE &amp; Installing VS Code
+- 0:06:51 Customizing VS Code Themes
+- 0:07:39 Starting and Managing a Claude Code Session
+- 0:11:51 Understanding Permission Modes (Plan, Accept Edits, Auto, Bypass)
+- 0:15:03 Using Plan Mode &amp; Autonomous Goals (/goal)
+- 0:24:24 Installing and Triggering Claude Skills
+- 0:34:48 Exploring File Structures and Directories
+- 0:44:36 Managing Your Context Window and Token Usage
+- 0:50:00 Essential Built-In Slash Commands
+- 0:53:18 Managing Version Control with GitHub
+- 1:02:44 Connecting Tools &amp; Deploying Apps via MCP and CLI
+- 1:11:57 Frequently Asked Questions (FAQ)
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="5368" average="5.00" min="1" max="5"/>
+    <media:statistics views="178719"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:wDWKUvTKCaw</id>
+  <yt:videoId>wDWKUvTKCaw</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>Low-Level Graphics in C – Pixel Manipulation and Frame Buffers</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=wDWKUvTKCaw"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-08-03T11:36:12+00:00</published>
+  <updated>2026-08-12T22:59:12+00:00</updated>
+  <media:group>
+   <media:title>Low-Level Graphics in C – Pixel Manipulation and Frame Buffers</media:title>
+   <media:content url="https://www.youtube.com/v/wDWKUvTKCaw?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i4.ytimg.com/vi/wDWKUvTKCaw/hqdefault.jpg" width="480" height="360"/>
+   <media:description>This C programming course teaches you about direct pixel manipulation and graphics. By leveraging the cross-platform power of the SDL3 library, you will learn how to safely navigate modern operating system restrictions to build a low-level software renderer from scratch. This hands-on approach will demystify how computers handle memory and CPU instructions, ultimately culminating in rendering the classic Doom fire effect directly to a frame buffer.
+
+Code: https://github.com/gustavopezzi/sdl3-framebuffer
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+⭐️ Chapters ⭐️
+- 00:00:00 Introduction to the Course and Low-Level Pixel Manipulation
+- 00:05:28 Understanding Monitor Resolutions and the Frame Buffer
+- 00:09:13 Modern Operating System Restrictions vs. MS-DOS
+- 00:13:36 Using SDL3 for Cross-Platform Hardware Access
+- 00:17:47 Overview of SDL Initialization, Windows, Renderers, and Textures
+- 00:24:47 Installing SDL3 on Mac OS, Linux, and Windows
+- 00:28:12 Setting up `main.c`, Compiling, and Creating a Makefile
+- 00:34:41 Defining the Frame Buffer Resolution and Array
+- 00:37:38 Creating the SDL Window, Renderer, and Texture
+- 00:46:13 Polling System Events and Creating the Main Game Loop
+- 00:51:14 Binding the Frame Buffer Array to the SDL Texture
+- 01:00:27 Implementing Error Checking for SDL Functions
+- 01:04:48 The `put_pixel` Function: Mapping 2D Coordinates to a 1D Array
+- 01:12:42 Controlling Timing and Capping the Frame Rate at 60 FPS
+- 01:18:22 Implementing `clear_framebuffer` and Array Boundary Protections
+- 01:24:19 Software (CPU) vs. Hardware (GPU) Rendering Explained
+- 01:27:30 Bonus: Rendering the Classic Doom Fire Effect
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="6722" average="5.00" min="1" max="5"/>
+    <media:statistics views="162165"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:hAsz5GAbBQE</id>
+  <yt:videoId>hAsz5GAbBQE</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>Kubernetes Operator Best Practices – Kubebuilder Deep Dive</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=hAsz5GAbBQE"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-07-31T15:59:06+00:00</published>
+  <updated>2026-08-02T04:34:18+00:00</updated>
+  <media:group>
+   <media:title>Kubernetes Operator Best Practices – Kubebuilder Deep Dive</media:title>
+   <media:content url="https://www.youtube.com/v/hAsz5GAbBQE?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i1.ytimg.com/vi/hAsz5GAbBQE/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Learn the best practices for building robust and scalable Kubernetes operators using Kubebuilder. This course covers critical techniques, including managing multiple controllers for parallelism, implementing efficient retry logic, and resolving custom resource update conflicts. You will also discover how to leverage predicate filters to prevent infinite reconciliation loops and optimize your cluster's resource usage.
+
+Course from @kubesimplify 
+
+⭐️ Contents ⭐️
+– 00:00:00 Understanding Resource Versions and Generations
+– 00:03:48 System Architecture and Conflict Scenarios
+– 00:26:57 Handling Conflict Errors and Retry Strategies
+– 01:11:48 Implementing Parallel Processing with Concurrent Workers
+– 01:41:59 Preventing Infinite Reconciliation Loops with Predicate Filters
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="441" average="5.00" min="1" max="5"/>
+    <media:statistics views="88755"/>
+   </media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:Zy7EXDONlTY</id>
+  <yt:videoId>Zy7EXDONlTY</yt:videoId>
+  <yt:channelId>UC8butISFwT-Wl7EV0hUK0BQ</yt:channelId>
+  <title>Agentic AI – Complete Course for Beginners</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=Zy7EXDONlTY"/>
+  <author>
+   <name>freeCodeCamp.org</name>
+   <uri>https://www.youtube.com/channel/UC8butISFwT-Wl7EV0hUK0BQ</uri>
+  </author>
+  <published>2026-07-30T14:04:08+00:00</published>
+  <updated>2026-08-02T14:21:14+00:00</updated>
+  <media:group>
+   <media:title>Agentic AI – Complete Course for Beginners</media:title>
+   <media:content url="https://www.youtube.com/v/Zy7EXDONlTY?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+   <media:thumbnail url="https://i3.ytimg.com/vi/Zy7EXDONlTY/hqdefault.jpg" width="480" height="360"/>
+   <media:description>Learn how to build production-ready multi-agent systems and automate workflows using LangChain and LangGraph. You'll master everything from core agentic fundamentals and Pydantic validation to advanced sequential, parallel, and conditional LangGraph workflows. Along the way, you'll implement chat memory, RAG, and human-in-the-loop controls, and finish by deploying your applications to AWS and Render through real-world projects like a custom ChatGPT, trip planner, and auto content agent. 
+
+Code: https://github.com/entbappy/Complete-Agentic-AI-Course
+
+Bappy's YouTube Channel: https://www.youtube.com/@dswithbappy
+Bappy's LinkedIn profile: https://www.linkedin.com/in/boktiarahmed73/
+Bappy's Udemy: https://www.udemy.com/user/boktiar-ahmed-bappy/
+
+❤️ Support for this channel comes from our friends at Scrimba – the coding platform that's reinvented interactive learning: https://scrimba.com/freecodecamp
+
+⭐️ Chapters ⭐️
+- 00:00:00 Introduction &amp; Planning
+- 00:08:33 Evolution from LLMs to Agentic AI
+- 00:41:26 Agentic AI: Core Characteristics &amp; Components
+- 01:33:18 Asynchronous Programming for AI Agents
+- 02:06:23 Pydantic for AI Agents - Pydantic Data Validation
+- 03:27:08 Building End-to-End Single AI Agent System using LangChain
+- 04:49:37 Building End-to-End Multi-Agent AI System with LangChain
+- 06:30:27 What is LangGraph &amp; Why It’s Required? | LangChain vs LangGraph
+- 07:44:43 Understanding LangGraph Core Components
+- 08:29:07 Build Sequential Workflows in LangGraph
+- 09:19:04 Implement Parallel Workflows in LangGraph
+- 10:15:27 Master Conditional Workflows in LangGraph
+- 11:06:05 LangGraph Iterative Workflows Explained
+- 11:35:51 Build Your First Agentic Chatbot with LangGraph
+- 12:43:49 Why Persistence is Required in LangGraph
+- 13:51:00 Streaming Responses in Agentic Chatbot with LangGraph
+- 14:10:02 How to Add Chat Threading in Agentic Chatbot using LangGraph
+- 14:42:02 Build Permanent Chat Persistence Memory with LangGraph and Database
+- 15:16:31 Monitor Your Agentic Chatbot with LangSmith &amp; LangGraph
+- 15:40:24 How to Integrate Tools in Agentic Chatbot with LangGraph
+- 16:54:17 Implement RAG in Agentic Chatbot with LangGraph
+- 17:50:27 Implement Human-in-the-Loop (HITL) in Agentic Chatbot using LangGraph
+- 18:48:09 Agentic Chatbot CI/CD Deployment on AWS with Docker &amp; GitHub Actions
+- 19:52:05 Deploy Agentic AI Chatbot on Render for FREE with Docker
+- 20:06:27 Project: Build Your Own ChatGPT Agent with LLMs, LangGraph, FastAPI, LangSmith, ChromaDB, SQLAlchemy &amp; AWS
+- 22:21:17 Project: Build TripMate AI End-to-End: Multi-Agent Travel Planner with Groq, LangGraph, PostgreSQL &amp; FastAPI
+
+🎉 Thanks to our Champion and Sponsor supporters:
+👾 @omerhattapoglu1158
+👾 @goddardtan
+👾 @akihayashi6629
+👾 @kikilogsin
+👾 @anthonycampbell2148
+👾 @tobymiller7790
+👾 @rajibdassharma497
+👾 @CloudVirtualizationEnthusiast
+👾 @adilsoncarlosvianacarlos
+👾 @martinmacchia1564
+👾 @ulisesmoralez4160
+👾 @_Oscar_
+👾 @jedi-or-sith2728
+👾 @justinhual1290
+
+--
+
+Learn to code for free and get a developer job: https://www.freecodecamp.org
+
+Read hundreds of articles on programming: https://freecodecamp.org/news</media:description>
+   <media:community>
+    <media:starRating count="7322" average="5.00" min="1" max="5"/>
+    <media:statistics views="287581"/>
+   </media:community>
+  </media:group>
+ </entry>
+</feed>
