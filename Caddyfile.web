@@ -2,6 +2,41 @@
 :{$PORT:8080} {
 	root * /srv
 	encode gzip zstd
+
+	header {
+		# The site is never meant to be framed. Without this, an attacker can overlay
+		# an invisible copy of the pricing page and harvest clicks on "Get Pro".
+		X-Frame-Options DENY
+
+		# Stops a browser second-guessing a Content-Type — the sniffing that turns an
+		# uploaded text file into executable script.
+		X-Content-Type-Options nosniff
+
+		# Referrer leaks the full URL to every third party a page touches. Origin-only
+		# on cross-origin requests keeps /account and any future token-bearing path private.
+		Referrer-Policy strict-origin-when-cross-origin
+
+		# HTTPS only, for a year, including subdomains. Railway already redirects; this
+		# stops the very first request being plaintext.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+		# Nothing here uses a camera, microphone or location. Saying so explicitly means
+		# an injected script cannot silently ask for them either.
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(self)"
+
+		# The allowances are each load-bearing, not boilerplate:
+		#   script  — Razorpay's checkout is a third-party script by design.
+		#   'unsafe-inline' for style — Vite inlines a small critical block, and React
+		#             sets style attributes; this is style only, never script.
+		#   connect — our own API, and Razorpay's during a payment.
+		#   frame   — Razorpay's payment sheet renders in an iframe.
+		#   object 'none' and base-uri 'self' close the two classic injection escapes.
+		Content-Security-Policy "default-src 'self'; script-src 'self' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.focusspace.xyz https://focusspace-api-production.up.railway.app https://api.razorpay.com https://lumberjack.razorpay.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; object-src 'none'; base-uri 'self'; form-action 'self'"
+
+		# Server software and version are free reconnaissance.
+		-Server
+	}
+
 	# The site uses real paths (/pricing, /signin, /account), so anything that is
 	# not a file on disk must return index.html rather than a 404 — otherwise a
 	# shared link or a refresh on /pricing breaks.

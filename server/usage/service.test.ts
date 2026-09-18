@@ -47,7 +47,32 @@ describe('usageStatus — free entitlement resolution', () => {
     const free = usageStatus(usageDb, makeUser());
     const pro = usageStatus(usageDb, userId);
     expect(pro.plan).toBe('pro');
-    expect(pro.limit).toBeGreaterThan(free.limit);
+    // Both plans are finite here; unlimited (null) is covered by its own test below.
+    expect(pro.limit!).toBeGreaterThan(free.limit!);
+  });
+});
+
+describe('unlimited plans', () => {
+  it('report a null limit, not zero — an unlimited plan showed "0 of 0" on the account page', () => {
+    const userId = makeUser();
+    usageDb.setPlan(userId, 'max', Date.now());
+    const status = usageStatus(usageDb, userId);
+    expect(status.plan).toBe('max');
+    // Infinity survives JSON as null, so the wire type says null and means unlimited.
+    expect(status.limit).toBeNull();
+    expect(JSON.parse(JSON.stringify(status)).limit).toBeNull();
+  });
+
+  it('never run out, however much is spent', () => {
+    const now = Date.now();
+    const userId = makeUser();
+    usageDb.setPlan(userId, 'unlimited', now);
+    for (let i = 0; i < 50; i++) {
+      const r = reserveUsage(usageDb, userId, 'mindmap', null, now);
+      expect(r.kind).toBe('ok');
+      if (r.kind === 'ok') commitUsage(usageDb, r.id, { model: null, promptTokens: null, completionTokens: null }, now);
+    }
+    expect(usageStatus(usageDb, userId, now).used).toBe(150);
   });
 });
 
@@ -106,7 +131,7 @@ describe('quota enforcement', () => {
 
     // Drain the free allowance exactly (each committed "what" costs 1 unit).
     const status = usageStatus(usageDb, userId, now);
-    for (let i = 0; i < status.limit; i++) {
+    for (let i = 0; i < status.limit!; i++) {
       const r = reserveUsage(usageDb, userId, 'what', null, now);
       if (r.kind === 'ok') commitUsage(usageDb, r.id, { model: null, promptTokens: null, completionTokens: null }, now);
     }
@@ -130,7 +155,7 @@ describe('quota enforcement', () => {
     const now = Date.now();
     const status = usageStatus(usageDb, userId, now);
     // Leave exactly 1 unit of headroom, then try a 3-unit action ("notes").
-    for (let i = 0; i < status.limit - 1; i++) {
+    for (let i = 0; i < status.limit! - 1; i++) {
       const r = reserveUsage(usageDb, userId, 'what', null, now);
       if (r.kind === 'ok') commitUsage(usageDb, r.id, { model: null, promptTokens: null, completionTokens: null }, now);
     }
@@ -143,7 +168,7 @@ describe('concurrency — two simultaneous requests must not both bypass quota',
     const userId = makeUser();
     const now = Date.now();
     const status = usageStatus(usageDb, userId, now);
-    for (let i = 0; i < status.limit - 1; i++) {
+    for (let i = 0; i < status.limit! - 1; i++) {
       const r = reserveUsage(usageDb, userId, 'what', null, now);
       if (r.kind === 'ok') commitUsage(usageDb, r.id, { model: null, promptTokens: null, completionTokens: null }, now);
     }

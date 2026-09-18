@@ -23,14 +23,26 @@ export interface UsageStatusView {
   plan: string;
   period: string;
   used: number;
-  limit: number;
+  /**
+   * `null` means unlimited, and says so deliberately.
+   *
+   * Internally an unlimited plan's allowance is `Infinity`, which is exactly
+   * right for the comparison that enforces it — and which `JSON.stringify`
+   * turns into `null`. That accident used to reach the account page as
+   * `limit: null`, where `?? 0` rendered it as "0 of 0": a paying Max customer
+   * being told they had no credits at all. Making the null explicit in the
+   * type is what stops a reader treating it as a number that happens to be
+   * missing.
+   */
+  limit: number | null;
 }
 
 export function usageStatus(db: UsageDb, userId: string, now = Date.now()): UsageStatusView {
   const plan = resolvePlan(db.getEntitlement(userId));
   const period = currentPeriod(now);
   const used = db.sumUnitsForPeriod(userId, period, now - RESERVATION_STALE_MS);
-  return { plan, period, used, limit: limitsFor(plan).aiUnitsPerPeriod };
+  const limit = limitsFor(plan).aiUnitsPerPeriod;
+  return { plan, period, used, limit: Number.isFinite(limit) ? limit : null };
 }
 
 export type Reservation =

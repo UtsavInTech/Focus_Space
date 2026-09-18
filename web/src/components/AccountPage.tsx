@@ -155,6 +155,8 @@ function PlanRow({ status, error }: { status: UsageStatus | null; error: string 
   const [cancelError, setCancelError] = useState<string | null>(null);
   const plan = PLANS.find((p) => p.id === status?.plan) ?? PLANS[0];
   const used = status?.used ?? 0;
+  // `null` is unlimited. Defaulting it to 0 is what made a paid Max account read "0 of 0".
+  const unlimited = status !== null && status.limit === null;
   const limit = status?.limit ?? 0;
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
 
@@ -213,12 +215,16 @@ function PlanRow({ status, error }: { status: UsageStatus | null; error: string 
         ) : status ? (
           <>
             <p className="fsw-account-big">
-              {used} <span>of {limit}</span>
+              {unlimited ? 'Unlimited' : used} {unlimited ? <span>{used} used this month</span> : <span>of {limit}</span>}
             </p>
-            <div className="fsw-meter" role="img" aria-label={`${used} of ${limit} credits used`}>
-              <span style={{ width: `${pct}%` }} />
-            </div>
-            <p className="fsw-account-note">Resets at the start of each month · {status.period}</p>
+            {!unlimited && (
+              <div className="fsw-meter" role="img" aria-label={`${used} of ${limit} credits used`}>
+                <span style={{ width: `${pct}%` }} />
+              </div>
+            )}
+            <p className="fsw-account-note">
+              {unlimited ? `Your plan has no monthly cap · ${status.period}` : `Resets at the start of each month · ${status.period}`}
+            </p>
           </>
         ) : (
           <p className="fsw-account-note">Loading…</p>

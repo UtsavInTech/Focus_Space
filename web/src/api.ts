@@ -36,7 +36,8 @@ export interface UsageStatus {
   plan: string;
   period: string;
   used: number;
-  limit: number;
+  /** `null` means unlimited — never "unknown", and never to be defaulted to 0. */
+  limit: number | null;
 }
 
 /**

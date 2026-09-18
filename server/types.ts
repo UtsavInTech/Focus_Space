@@ -96,6 +96,7 @@ export interface UsageStatusSuccess {
   plan: string;
   period: string;
   used: number;
-  limit: number;
+  /** `null` is unlimited, not "unknown" — see UsageStatusView in usage/service.ts. */
+  limit: number | null;
 }
 export type UsageStatusApiResponse = UsageStatusSuccess | ApiErrorResponse;

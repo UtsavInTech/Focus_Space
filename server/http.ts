@@ -33,10 +33,23 @@ export class ApiError extends Error {
 }
 
 /** Local-dev CORS: permissive by necessity (unpacked extension ids vary per install) — see docs for the production note. */
+/**
+ * `*` is correct here and not laziness: this API authenticates with a Bearer
+ * token, never a cookie, so there is no ambient authority for another origin
+ * to abuse. A wildcard with credentials would be the dangerous combination,
+ * and it is one the browser refuses outright.
+ *
+ * The rest are defence in depth for the few cases where a browser renders an
+ * API response directly — an error page, a mistyped URL.
+ */
 export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'no-referrer',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
 };
 
 export function sendJson(res: ServerResponse, status: number, body: unknown): void {
