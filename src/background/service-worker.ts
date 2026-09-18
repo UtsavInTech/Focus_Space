@@ -15,6 +15,7 @@ import * as auth from './auth';
 import * as usage from './usage';
 import * as spaces from './spaces';
 import { SITE_URL, siteUrl } from '@/config';
+import { registerExternalMessaging } from './external';
 
 const TICK_ALARM = 'fs-tick';
 const SYNC_ALARM = 'fs-library-sync';
@@ -90,6 +91,7 @@ chrome.commands.onCommand.addListener(async (command) => {
   if (command === 'toggle-focus') await toggleFocus();
 });
 
+registerExternalMessaging();
 subscribe(['session', 'settings'], () => void refreshSessionState());
 registerSessionNotificationHandlers();
 startRelevanceWarmer();

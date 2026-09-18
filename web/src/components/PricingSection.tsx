@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { onLinkClick } from '../router';
+import { navigate, onLinkClick } from '../router';
+import { useAuth } from '../auth';
+import { CheckoutCancelled, startCheckout } from '../checkout';
 import { formatAmount, looksIndian } from '../currency';
 import { ANNUAL_DISCOUNT_LABEL, CREDIT_COSTS, PLANS, annualSavingPercent, perMonth } from '../content/plans';
 import type { BillingPeriod, CurrencyCode, Plan } from '../content/plans';
@@ -13,7 +15,41 @@ interface Props {
 }
 
 export function PricingSection({ currency, onCurrency, compact, showCredits }: Props) {
+  const auth = useAuth();
   const [period, setPeriod] = useState<BillingPeriod>('annual');
+  const [busy, setBusy] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  /**
+   * Buying requires an account, because a payment has to attach to one. Rather
+   * than refusing, send them to sign in — they come back to this page.
+   */
+  async function buy(plan: Plan) {
+    if (plan.id === 'free') {
+      navigate('/#install');
+      return;
+    }
+    if (!auth.user) {
+      navigate('/signin');
+      return;
+    }
+    setBusy(plan.id);
+    setMessage(null);
+    try {
+      const token = await auth.token();
+      if (!token) {
+        navigate('/signin');
+        return;
+      }
+      const result = await startCheckout({ planId: plan.id, period, currency, token, email: auth.user.email });
+      setMessage(`You're on ${plan.name}. It runs until ${new Date(result.expiresAt).toLocaleDateString()}.`);
+    } catch (err) {
+      // Closing the payment sheet is a decision, not an error worth shouting about.
+      if (!(err instanceof CheckoutCancelled)) setMessage(err instanceof Error ? err.message : 'Could not start the payment.');
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <section className="fsw-section fsw-pricing" id="pricing">
@@ -55,9 +91,11 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
 
       <div className={`fsw-plans${compact ? ' is-compact' : ''}`}>
         {PLANS.map((plan) => (
-          <PlanCard key={plan.id} plan={plan} period={period} currency={currency} compact={compact} />
+          <PlanCard key={plan.id} plan={plan} period={period} currency={currency} compact={compact} busy={busy === plan.id} onBuy={() => void buy(plan)} />
         ))}
       </div>
+
+      {message && <p className="fsw-pricing-note" style={{ marginTop: 20 }}>{message}</p>}
 
       {compact && (
         <p className="fsw-pricing-more">
@@ -90,10 +128,10 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
   );
 }
 
-function PlanCard({ plan, period, currency, compact }: { plan: Plan; period: BillingPeriod; currency: CurrencyCode; compact?: boolean }) {
+function PlanCard({ plan, period, currency, compact, busy, onBuy }: { plan: Plan; period: BillingPeriod; currency: CurrencyCode; compact?: boolean; busy?: boolean; onBuy: () => void }) {
   const isFree = plan.id === 'free';
   const monthly = perMonth(plan, period);
-  const saving = annualSavingPercent(plan);
+  const saving = annualSavingPercent(plan, currency);
 
   return (
     <article className={`fsw-plan${plan.featured ? ' is-featured' : ''}`}>
@@ -116,9 +154,9 @@ function PlanCard({ plan, period, currency, compact }: { plan: Plan; period: Bil
             : `${formatAmount(plan.price.monthly, currency)} billed every month`}
       </p>
 
-      <a className={`fsw-btn ${plan.featured ? 'fsw-btn-primary' : 'fsw-btn-outline'} fsw-btn-block`} href="/#install" onClick={onLinkClick('/#install')}>
-        {plan.cta}
-      </a>
+      <button type="button" className={`fsw-btn ${plan.featured ? 'fsw-btn-primary' : 'fsw-btn-outline'} fsw-btn-block`} disabled={busy} onClick={onBuy}>
+        {busy ? 'Opening payment…' : plan.cta}
+      </button>
 
       <ul className="fsw-plan-features">
         {(compact ? plan.features.slice(0, 4) : plan.features).map((f) => (

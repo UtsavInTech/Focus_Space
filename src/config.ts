@@ -10,7 +10,7 @@
  * Overridable at build time so a staging build can point somewhere else
  * without a code change:
  *
- *   VITE_SITE_URL=https://staging.focusspace.app npm run build
+ *   VITE_SITE_URL=https://staging.focusspace.xyz npm run build
  */
 
 const fromEnv = (key: string): string | undefined => {
@@ -19,7 +19,7 @@ const fromEnv = (key: string): string | undefined => {
 };
 
 /** The public website — the home, pricing and FAQ pages. */
-export const SITE_URL = fromEnv('VITE_SITE_URL') ?? 'https://focusspace.app';
+export const SITE_URL = fromEnv('VITE_SITE_URL') ?? 'https://focusspace.xyz';
 
 /** The deployed API. Empty means "not deployed yet"; the extension then falls back to whatever the learner configured in Settings. */
 export const API_URL = fromEnv('VITE_API_URL') ?? '';

@@ -19,7 +19,7 @@
 // and still works — it's the simpler, zero-orchestration option for anyone
 // who just wants a raw OpenRouter relay for local dev.
 import { createServer } from 'node:http';
-import { ApiError, CORS_HEADERS, readJsonBody, sendJson, type ApiErrorResponse } from './http';
+import { ApiError, CORS_HEADERS, readJsonBody, readTextBody, sendJson, type ApiErrorResponse } from './http';
 import { loadOpenRouterConfig } from './openrouter';
 import { orchestrate } from './orchestrator';
 import { validateAiApiRequest } from './validate';
@@ -45,6 +45,8 @@ import { loadSenders } from './notify/sender';
 import { getUsageDb } from './usage/db';
 import { anonymousKey, assertAnonymousQuota, commitUsage, recordAnonymousUsage, releaseUsage, reserveUsage, usageStatus } from './usage/service';
 import { registerSpace, spaceAllowance, unregisterSpace } from './usage/spaces';
+import { loadRazorpayConfig, verifyWebhookSignature } from './billing/razorpay';
+import { applyWebhook, confirmPayment, startCheckout } from './billing/service';
 
 const PORT = Number(process.env.PORT ?? 8788);
 const HOST = process.env.HOST ?? '127.0.0.1';
@@ -63,12 +65,17 @@ const ME_USAGE_ROUTE = '/v1/me/usage';
 const ME_SPACES_ROUTE = '/v1/me/spaces';
 // Verified sign-up (email → code → password) and phone OTP sign-in. Same /v1/auth/* group, same
 // AuthConfig, same session issuing as register/login — see server/auth/service.ts.
+const BILLING_CHECKOUT_ROUTE = '/v1/billing/checkout';
+const BILLING_CONFIRM_ROUTE = '/v1/billing/confirm';
+const BILLING_WEBHOOK_ROUTE = '/v1/billing/webhook';
+const ME_PAYMENTS_ROUTE = '/v1/me/payments';
+
 const SIGNUP_START_ROUTE = '/v1/auth/signup/start';
 const SIGNUP_VERIFY_ROUTE = '/v1/auth/signup/verify';
 const SIGNUP_COMPLETE_ROUTE = '/v1/auth/signup/complete';
 const PHONE_START_ROUTE = '/v1/auth/phone/start';
 const PHONE_VERIFY_ROUTE = '/v1/auth/phone/verify';
-const AUTH_ROUTES = new Set([AUTH_REGISTER_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
+const AUTH_ROUTES = new Set([BILLING_CHECKOUT_ROUTE, BILLING_CONFIRM_ROUTE, ME_PAYMENTS_ROUTE, AUTH_REGISTER_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
 
 // Layer 2C — a burst/abuse safety net for the anonymous half of /v1/ai/complete, structurally separate
 // from the persisted, user_id-keyed usage/entitlement system below (see docs/LAYER_2C_USAGE_ENTITLEMENTS.md,
@@ -80,6 +87,17 @@ const anonymousAiLimiter = new RateLimiter(30, 10 * 60_000);
 // the development sender, and only returned to the caller when AUTH_DEV_CODES=1 — never in production.
 // See server/notify/sender.ts.
 const senders = loadSenders();
+
+// Payments are optional infrastructure: the API must serve AI, accounts and usage
+// perfectly well on a deployment where Razorpay is not configured yet — which is
+// every deployment until the account's website is approved.
+const razorpay = loadRazorpayConfig();
+if (!razorpay) console.warn('[FocusSpace API] Razorpay is not configured — checkout is unavailable, everything else is unaffected.');
+
+function requireRazorpay() {
+  if (!razorpay) throw new ApiError(503, 'billing_unavailable', 'Payments are not available yet. Nothing was charged.');
+  return razorpay;
+}
 
 let config;
 try {
@@ -110,6 +128,31 @@ const server = createServer(async (req, res) => {
     // for fast local diagnosis. Never reveals whether the OpenRouter key or auth secret is actually valid.
     if (req.method === 'GET' && req.url === HEALTH_ROUTE) {
       sendJson(res, 200, { ok: true, status: 'ok', model: config.model, auth: authConfig ? 'enabled' : 'disabled' });
+      return;
+    }
+
+    // Razorpay's webhook, not a browser: no Authorization header, no CORS, and the
+    // signature over the raw bytes is the only thing that makes it trustworthy. It is
+    // handled before the auth routes so nothing tries to authenticate it.
+    if (req.method === 'POST' && req.url === BILLING_WEBHOOK_ROUTE) {
+      const config = requireRazorpay();
+      const raw = await readTextBody(req, AUTH_MAX_BODY_BYTES);
+      const signature = String(req.headers['x-razorpay-signature'] ?? '');
+      if (!verifyWebhookSignature(config, raw, signature)) {
+        sendJson(res, 400, { ok: false, code: 'invalid_signature', error: 'Signature mismatch.' });
+        return;
+      }
+      let event: unknown;
+      try {
+        event = JSON.parse(raw);
+      } catch {
+        sendJson(res, 400, { ok: false, code: 'invalid_request', error: 'Malformed JSON body.' });
+        return;
+      }
+      // Always 200 once the signature checks out: an event we do not act on is not a
+      // failure, and Razorpay retries anything else for days.
+      const grant = applyWebhook(getUsageDb(), event);
+      sendJson(res, 200, { ok: true, applied: !!grant?.granted });
       return;
     }
 
@@ -218,6 +261,38 @@ const server = createServer(async (req, res) => {
       if (req.method === 'GET' && path === ME_USAGE_ROUTE) {
         const { user } = authenticate(db, authConfig, req.headers.authorization);
         sendJson(res, 200, { ok: true, ...usageStatus(getUsageDb(), user.id) });
+        return;
+      }
+
+      if (req.method === 'GET' && path === ME_PAYMENTS_ROUTE) {
+        const { user } = authenticate(db, authConfig, req.headers.authorization);
+        sendJson(res, 200, { ok: true, payments: getUsageDb().listPayments(user.id) });
+        return;
+      }
+
+      // ── Billing (Razorpay) ──
+      // The amount is never taken from the request: the client names a plan and a
+      // period, and the server prices it from src/billing/plans.ts.
+      if (req.method === 'POST' && path === BILLING_CHECKOUT_ROUTE) {
+        const { user } = authenticate(db, authConfig, req.headers.authorization);
+        const body = (await readJsonBody(req, AUTH_MAX_BODY_BYTES)) as { planId?: string; period?: string; currency?: string };
+        const session = await startCheckout(requireRazorpay(), user.id, { planId: String(body.planId ?? ''), period: String(body.period ?? ''), currency: String(body.currency ?? '') });
+        sendJson(res, 200, { ok: true, ...session });
+        return;
+      }
+
+      if (req.method === 'POST' && path === BILLING_CONFIRM_ROUTE) {
+        const { user } = authenticate(db, authConfig, req.headers.authorization);
+        const body = (await readJsonBody(req, AUTH_MAX_BODY_BYTES)) as Record<string, string>;
+        const grant = confirmPayment(requireRazorpay(), getUsageDb(), user.id, {
+          orderId: String(body.orderId ?? ''),
+          paymentId: String(body.paymentId ?? ''),
+          signature: String(body.signature ?? ''),
+          planId: String(body.planId ?? ''),
+          period: String(body.period ?? ''),
+          currency: String(body.currency ?? ''),
+        });
+        sendJson(res, 200, { ok: true, ...grant });
         return;
       }
 

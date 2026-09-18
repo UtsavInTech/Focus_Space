@@ -10,7 +10,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
  * shape and one `ApiError` class, not a duplicate per domain.
  */
 
-export type ErrorCode = 'invalid_request' | 'unauthorized' | 'forbidden' | 'conflict' | 'rate_limited' | 'quota_exceeded' | 'space_limit' | 'upstream_error' | 'internal_error';
+export type ErrorCode = 'invalid_request' | 'unauthorized' | 'forbidden' | 'conflict' | 'rate_limited' | 'quota_exceeded' | 'space_limit' | 'invalid_signature' | 'billing_unavailable' | 'upstream_error' | 'internal_error';
 
 export interface ApiErrorResponse {
   ok: false;
@@ -44,8 +44,15 @@ export function sendJson(res: ServerResponse, status: number, body: unknown): vo
   res.end(JSON.stringify(body));
 }
 
-/** Reads the request body as JSON, rejecting once it exceeds `maxBytes` — never buffers an unbounded body. */
-export async function readJsonBody(req: IncomingMessage, maxBytes: number): Promise<unknown> {
+/**
+ * Reads the body as text, rejecting once it exceeds `maxBytes` — never buffers
+ * an unbounded body.
+ *
+ * Exposed separately from `readJsonBody` because a signed webhook must be
+ * verified against the *exact bytes received*: re-serialising parsed JSON
+ * changes whitespace and key order, and the HMAC stops matching.
+ */
+export async function readTextBody(req: IncomingMessage, maxBytes: number): Promise<string> {
   let size = 0;
   const chunks: Buffer[] = [];
   for await (const chunk of req as AsyncIterable<Buffer>) {
@@ -53,7 +60,12 @@ export async function readJsonBody(req: IncomingMessage, maxBytes: number): Prom
     if (size > maxBytes) throw new ApiError(413, 'invalid_request', 'Request body too large.');
     chunks.push(chunk);
   }
-  const text = Buffer.concat(chunks).toString('utf8');
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+/** Reads the request body as JSON, rejecting once it exceeds `maxBytes`. */
+export async function readJsonBody(req: IncomingMessage, maxBytes: number): Promise<unknown> {
+  const text = await readTextBody(req, maxBytes);
   try {
     return JSON.parse(text);
   } catch {

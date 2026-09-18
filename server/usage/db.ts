@@ -23,6 +23,23 @@ export interface EntitlementRow {
   user_id: string;
   plan: string;
   updated_at: number;
+  /** When the paid plan lapses back to free. Null for a plan with no expiry. */
+  expires_at: number | null;
+  /** The Razorpay payment that granted this, for support and reconciliation. */
+  payment_id: string | null;
+}
+
+/** One successful payment. Exists to make granting idempotent: a webhook and the client can both report the same payment. */
+export interface PaymentRow {
+  id: string;
+  user_id: string;
+  order_id: string;
+  plan: string;
+  period: string;
+  currency: string;
+  amount_minor: number;
+  status: string;
+  created_at: number;
 }
 
 export interface SpaceRow {
@@ -51,8 +68,24 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS entitlements (
   user_id    TEXT PRIMARY KEY REFERENCES users(id),
   plan       TEXT NOT NULL DEFAULT 'free',
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL,
+  expires_at INTEGER,
+  payment_id TEXT
 );
+
+CREATE TABLE IF NOT EXISTS payments (
+  id           TEXT PRIMARY KEY,
+  user_id      TEXT NOT NULL REFERENCES users(id),
+  order_id     TEXT NOT NULL,
+  plan         TEXT NOT NULL,
+  period       TEXT NOT NULL,
+  currency     TEXT NOT NULL,
+  amount_minor INTEGER NOT NULL,
+  status       TEXT NOT NULL,
+  created_at   INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS payments_user ON payments(user_id, created_at);
 
 CREATE TABLE IF NOT EXISTS usage_events (
   id                TEXT PRIMARY KEY,
@@ -101,6 +134,19 @@ export class UsageDb {
     this.db.exec('PRAGMA journal_mode = WAL;');
     this.db.exec('PRAGMA foreign_keys = ON;');
     this.db.exec(SCHEMA);
+    this.migrate();
+  }
+
+  /**
+   * `CREATE TABLE IF NOT EXISTS` does nothing to a table that already exists,
+   * so columns added after the first deploy need this. Same approach as
+   * server/auth/db.ts's own migrate(); adding a nullable column is the one
+   * SQLite ALTER that is always safe.
+   */
+  private migrate(): void {
+    const columns = new Set((this.db.prepare('PRAGMA table_info(entitlements)').all() as { name: string }[]).map((c) => c.name));
+    if (!columns.has('expires_at')) this.db.exec('ALTER TABLE entitlements ADD COLUMN expires_at INTEGER');
+    if (!columns.has('payment_id')) this.db.exec('ALTER TABLE entitlements ADD COLUMN payment_id TEXT');
   }
 
   close(): void {
@@ -113,11 +159,31 @@ export class UsageDb {
     return this.db.prepare('SELECT * FROM entitlements WHERE user_id = ?').get(userId) as EntitlementRow | undefined;
   }
 
-  /** Not called anywhere yet (no billing exists to call it) — the write path a future billing layer needs. */
-  setPlan(userId: string, plan: string, at: number): void {
+  setPlan(userId: string, plan: string, at: number, expiresAt: number | null = null, paymentId: string | null = null): void {
     this.db
-      .prepare('INSERT INTO entitlements (user_id, plan, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET plan = excluded.plan, updated_at = excluded.updated_at')
-      .run(userId, plan, at);
+      .prepare(
+        `INSERT INTO entitlements (user_id, plan, updated_at, expires_at, payment_id) VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET plan = excluded.plan, updated_at = excluded.updated_at, expires_at = excluded.expires_at, payment_id = excluded.payment_id`,
+      )
+      .run(userId, plan, at, expiresAt, paymentId);
+  }
+
+  // ── payments ───────────────────────────────────────────────────────────
+
+  getPayment(paymentId: string): PaymentRow | undefined {
+    return this.db.prepare('SELECT * FROM payments WHERE id = ?').get(paymentId) as PaymentRow | undefined;
+  }
+
+  /** Insert-or-ignore, so the webhook and the client callback racing on the same payment grant it once. */
+  recordPayment(row: PaymentRow): boolean {
+    const result = this.db
+      .prepare('INSERT OR IGNORE INTO payments (id, user_id, order_id, plan, period, currency, amount_minor, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(row.id, row.user_id, row.order_id, row.plan, row.period, row.currency, row.amount_minor, row.status, row.created_at);
+    return Number(result.changes) > 0;
+  }
+
+  listPayments(userId: string, limit = 20): PaymentRow[] {
+    return this.db.prepare('SELECT * FROM payments WHERE user_id = ? ORDER BY created_at DESC LIMIT ?').all(userId, limit) as unknown as PaymentRow[];
   }
 
   // ── spaces ─────────────────────────────────────────────────────────────

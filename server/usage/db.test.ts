@@ -61,9 +61,22 @@ describe('UsageDb — entitlements', () => {
 
   it('setPlan upserts: first insert, then update in place', () => {
     usageDb.setPlan(userId, 'pro', 100);
-    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'pro', updated_at: 100 });
+    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'pro', updated_at: 100, expires_at: null, payment_id: null });
     usageDb.setPlan(userId, 'free', 200);
-    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'free', updated_at: 200 });
+    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'free', updated_at: 200, expires_at: null, payment_id: null });
+  });
+
+  it('setPlan records the expiry and the payment that bought it', () => {
+    usageDb.setPlan(userId, 'unlimited', 100, 5_000, 'pay_abc');
+    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'unlimited', updated_at: 100, expires_at: 5_000, payment_id: 'pay_abc' });
+  });
+
+  it('recordPayment is idempotent — the same payment id is only ever applied once', () => {
+    const payment = { id: 'pay_1', user_id: userId, order_id: 'order_1', plan: 'pro', period: 'monthly', currency: 'INR', amount_minor: 29900, status: 'captured', created_at: 1 };
+    expect(usageDb.recordPayment(payment)).toBe(true);
+    // The webhook and the browser callback both report the same payment; only one may count.
+    expect(usageDb.recordPayment(payment)).toBe(false);
+    expect(usageDb.listPayments(userId)).toHaveLength(1);
   });
 });
 

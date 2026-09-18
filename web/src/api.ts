@@ -96,4 +96,33 @@ export const logout = (refreshToken: string) => post<{ ok: true }>('/v1/auth/log
 
 export const me = (token: string) => request<{ ok: true; user: User }>('/v1/me', { headers: { Authorization: `Bearer ${token}` } });
 
+/** Billing. The server prices the plan — the client never sends an amount. */
+export interface CheckoutSession {
+  orderId: string;
+  amountMinor: number;
+  currency: 'INR' | 'USD';
+  keyId: string;
+  test: boolean;
+  planId: string;
+  period: string;
+  description: string;
+}
+
+export const startCheckout = (token: string, body: { planId: string; period: string; currency: string }) =>
+  post<{ ok: true } & CheckoutSession>('/v1/billing/checkout', body, token);
+
+export const confirmPayment = (token: string, body: { orderId: string; paymentId: string; signature: string; planId: string; period: string; currency: string }) =>
+  post<{ ok: true; plan: 'free' | 'pro' | 'unlimited' | 'max'; expiresAt: number; granted: boolean }>('/v1/billing/confirm', body, token);
+
+export interface Payment {
+  id: string;
+  plan: string;
+  period: string;
+  currency: string;
+  amount_minor: number;
+  created_at: number;
+}
+
+export const payments = (token: string) => request<{ ok: true; payments: Payment[] }>('/v1/me/payments', { headers: { Authorization: `Bearer ${token}` } });
+
 export const usage = (token: string) => request<{ ok: true } & UsageStatus>('/v1/me/usage', { headers: { Authorization: `Bearer ${token}` } });

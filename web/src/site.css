@@ -1430,3 +1430,243 @@ button {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ── Account: panels ─────────────────────────────────────────────────── */
+
+.fsw-account-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fsw-account-wide {
+  margin-top: 16px;
+  width: 100%;
+}
+
+.fsw-panel-head {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.fsw-panel-head .fsw-account-note {
+  margin-top: 0;
+}
+
+/* Spaces */
+
+.fsw-space-list {
+  width: 100%;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--fs-border);
+}
+
+.fsw-space-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--fs-border);
+}
+
+.fsw-space-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 0;
+  padding: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fsw-space-name strong {
+  font-size: 15px;
+}
+
+.fsw-space-name span {
+  font-size: 12.5px;
+  color: var(--fs-text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fsw-space-list li.is-active .fsw-space-name strong {
+  color: var(--fs-accent-text);
+}
+
+.fsw-space-badge {
+  flex: none;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--fs-accent-soft);
+  color: var(--fs-accent-text);
+}
+
+.fsw-space-delete {
+  flex: none;
+  border: 0;
+  padding: 6px 10px;
+  border-radius: var(--fs-r-sm);
+  background: transparent;
+  color: var(--fs-text-3);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.fsw-space-delete:hover {
+  background: var(--fs-danger-soft);
+  color: var(--fs-danger);
+}
+
+.fsw-space-new {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.fsw-space-new input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--fs-border-strong);
+  border-radius: var(--fs-r-md);
+  background: var(--fs-bg);
+  color: var(--fs-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+/* Settings rows */
+
+.fsw-setting {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 0;
+  border-top: 1px solid var(--fs-border);
+}
+
+.fsw-setting:first-of-type {
+  margin-top: 8px;
+}
+
+.fsw-setting > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fsw-setting strong {
+  font-size: 14.5px;
+}
+
+.fsw-setting span {
+  font-size: 13px;
+  color: var(--fs-text-3);
+}
+
+.fsw-toggle {
+  flex: none;
+  width: 44px;
+  height: 26px;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--fs-surface-3);
+  cursor: pointer;
+  transition: background 160ms var(--fs-ease);
+}
+
+.fsw-toggle span {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--fs-text-3);
+  transition: transform 160ms var(--fs-ease), background 160ms var(--fs-ease);
+}
+
+.fsw-toggle.is-on {
+  background: var(--fs-accent);
+}
+
+.fsw-toggle.is-on span {
+  background: #fff;
+  transform: translateX(18px);
+}
+
+.fsw-seg {
+  flex: none;
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--fs-border);
+  border-radius: 999px;
+  background: var(--fs-surface-2);
+}
+
+.fsw-seg button {
+  padding: 6px 13px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--fs-text-2);
+  cursor: pointer;
+}
+
+.fsw-seg button.is-active {
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  font-weight: 560;
+  box-shadow: var(--fs-shadow-sm);
+}
+
+/* Channels */
+
+.fsw-chip-list {
+  width: 100%;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fsw-chip-list li {
+  padding: 6px 12px;
+  border: 1px solid var(--fs-border);
+  border-radius: 999px;
+  background: var(--fs-surface-2);
+  font-size: 13px;
+  color: var(--fs-text-2);
+}
+
+.fsw-chip-list em {
+  font-style: normal;
+  color: var(--fs-text-3);
+}
+
+@media (max-width: 880px) {
+  .fsw-account-grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fsw-setting {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -56,6 +56,19 @@
       ],
       "run_at": "document_start",
       "all_frames": false
+    },
+    {
+      "matches": [
+        "https://focusspace.xyz/*",
+        "https://*.focusspace.xyz/*",
+        "https://focusspace-web-production.up.railway.app/*",
+        "http://localhost:5174/*"
+      ],
+      "js": [
+        "site.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
     }
   ],
   "commands": {
@@ -66,5 +79,13 @@
       "description": "Turn Focus Mode on or off"
     }
   },
-  "minimum_chrome_version": "111"
+  "minimum_chrome_version": "111",
+  "externally_connectable": {
+    "matches": [
+      "https://focusspace.xyz/*",
+      "https://*.focusspace.xyz/*",
+      "https://focusspace-web-production.up.railway.app/*",
+      "http://localhost:5174/*"
+    ]
+  }
 }
