@@ -48,7 +48,7 @@ import { anonymousKey, assertAnonymousQuota, commitUsage, recordAnonymousUsage, 
 import { registerSpace, spaceAllowance, unregisterSpace } from './usage/spaces';
 import { resolvePlan } from './usage/entitlements';
 import { loadRazorpayConfig, verifyWebhookSignature } from './billing/razorpay';
-import { applyWebhook, confirmPayment, startCheckout } from './billing/service';
+import { applyWebhook, cancelPlan, confirmPayment, confirmSubscription, startCheckout, startSubscription } from './billing/service';
 
 const PORT = Number(process.env.PORT ?? 8788);
 const HOST = process.env.HOST ?? '127.0.0.1';
@@ -69,6 +69,9 @@ const ME_SPACES_ROUTE = '/v1/me/spaces';
 // Verified sign-up (email → code → password) and phone OTP sign-in. Same /v1/auth/* group, same
 // AuthConfig, same session issuing as register/login — see server/auth/service.ts.
 const BILLING_CHECKOUT_ROUTE = '/v1/billing/checkout';
+const BILLING_SUBSCRIBE_ROUTE = '/v1/billing/subscribe';
+const BILLING_SUBSCRIBE_CONFIRM_ROUTE = '/v1/billing/subscribe/confirm';
+const BILLING_CANCEL_ROUTE = '/v1/billing/cancel';
 const BILLING_CONFIRM_ROUTE = '/v1/billing/confirm';
 const BILLING_WEBHOOK_ROUTE = '/v1/billing/webhook';
 const ME_PAYMENTS_ROUTE = '/v1/me/payments';
@@ -78,7 +81,7 @@ const SIGNUP_VERIFY_ROUTE = '/v1/auth/signup/verify';
 const SIGNUP_COMPLETE_ROUTE = '/v1/auth/signup/complete';
 const PHONE_START_ROUTE = '/v1/auth/phone/start';
 const PHONE_VERIFY_ROUTE = '/v1/auth/phone/verify';
-const AUTH_ROUTES = new Set([ME_PROFILE_ROUTE, BILLING_CHECKOUT_ROUTE, BILLING_CONFIRM_ROUTE, ME_PAYMENTS_ROUTE, AUTH_REGISTER_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
+const AUTH_ROUTES = new Set([ME_PROFILE_ROUTE, BILLING_SUBSCRIBE_ROUTE, BILLING_SUBSCRIBE_CONFIRM_ROUTE, BILLING_CANCEL_ROUTE, BILLING_CHECKOUT_ROUTE, BILLING_CONFIRM_ROUTE, ME_PAYMENTS_ROUTE, AUTH_REGISTER_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
 
 // Layer 2C — a burst/abuse safety net for the anonymous half of /v1/ai/complete, structurally separate
 // from the persisted, user_id-keyed usage/entitlement system below (see docs/LAYER_2C_USAGE_ENTITLEMENTS.md,
@@ -259,7 +262,7 @@ const server = createServer(async (req, res) => {
         // The plan rides along so the pricing page can stop offering something the
         // learner already owns — one request instead of two on every page load.
         const entitlement = getUsageDb().getEntitlement(user.id);
-        sendJson(res, 200, { ok: true, user, plan: resolvePlan(entitlement), planExpiresAt: entitlement?.expires_at ?? null });
+        sendJson(res, 200, { ok: true, user, plan: resolvePlan(entitlement), planExpiresAt: entitlement?.expires_at ?? null, autoRenew: entitlement?.auto_renew === 1 });
         return;
       }
       // Layer 2C — unlike /v1/ai/complete's fail-open policy, this route has nothing meaningful to answer
@@ -292,6 +295,43 @@ const server = createServer(async (req, res) => {
         const body = (await readJsonBody(req, AUTH_MAX_BODY_BYTES)) as { planId?: string; period?: string; currency?: string };
         const session = await startCheckout(requireRazorpay(), user.id, { planId: String(body.planId ?? ''), period: String(body.period ?? ''), currency: String(body.currency ?? '') });
         sendJson(res, 200, { ok: true, ...session });
+        return;
+      }
+
+      // Auto-renewing purchase. Same price book, same grant path as a one-off order.
+      if (req.method === 'POST' && path === BILLING_SUBSCRIBE_ROUTE) {
+        const { user } = authenticate(db, authConfig, req.headers.authorization);
+        const body = (await readJsonBody(req, AUTH_MAX_BODY_BYTES)) as { planId?: string; period?: string; currency?: string };
+        const session = await startSubscription(
+          requireRazorpay(),
+          getUsageDb(),
+          user.id,
+          { planId: String(body.planId ?? ''), period: String(body.period ?? ''), currency: String(body.currency ?? '') },
+          user.email,
+        );
+        sendJson(res, 200, { ok: true, ...session });
+        return;
+      }
+
+      if (req.method === 'POST' && path === BILLING_SUBSCRIBE_CONFIRM_ROUTE) {
+        const { user } = authenticate(db, authConfig, req.headers.authorization);
+        const body = (await readJsonBody(req, AUTH_MAX_BODY_BYTES)) as Record<string, string>;
+        const grant = confirmSubscription(requireRazorpay(), getUsageDb(), user.id, {
+          subscriptionId: String(body.subscriptionId ?? ''),
+          paymentId: String(body.paymentId ?? ''),
+          signature: String(body.signature ?? ''),
+          planId: String(body.planId ?? ''),
+          period: String(body.period ?? ''),
+          currency: String(body.currency ?? ''),
+        });
+        sendJson(res, 200, { ok: true, ...grant });
+        return;
+      }
+
+      // Stops the renewal, never the plan: the period already paid for is kept.
+      if (req.method === 'POST' && path === BILLING_CANCEL_ROUTE) {
+        const { user } = authenticate(db, authConfig, req.headers.authorization);
+        sendJson(res, 200, { ok: true, ...(await cancelPlan(requireRazorpay(), getUsageDb(), user.id)) });
         return;
       }
 

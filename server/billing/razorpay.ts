@@ -77,6 +77,87 @@ export async function createOrder(config: RazorpayConfig, input: { amountMinor: 
   return (await res.json()) as RazorpayOrder;
 }
 
+export interface RazorpayPlan {
+  id: string;
+}
+
+/**
+ * Creates a Razorpay Plan — the recurring price object a Subscription points
+ * at. `period`/`interval` are Razorpay's own vocabulary: monthly/1 and
+ * yearly/1.
+ */
+export async function createPlan(
+  config: RazorpayConfig,
+  input: { amountMinor: number; currency: string; period: 'monthly' | 'yearly'; name: string; notes: Record<string, string> },
+): Promise<RazorpayPlan> {
+  const res = await fetch(`${API}/plans`, {
+    method: 'POST',
+    headers: { Authorization: authHeader(config), 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      period: input.period,
+      interval: 1,
+      item: { name: input.name, amount: input.amountMinor, currency: input.currency },
+      notes: input.notes,
+    }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new ApiError(502, 'upstream_error', `Razorpay could not create the plan. ${detail.slice(0, 200)}`);
+  }
+  return (await res.json()) as RazorpayPlan;
+}
+
+export interface RazorpaySubscription {
+  id: string;
+  status: string;
+  short_url?: string;
+}
+
+/**
+ * Creates a Subscription against a Plan. `total_count` is how many cycles it
+ * may charge before ending — Razorpay requires a finite number, so this is a
+ * long horizon rather than "forever": ten years of months, or ten years.
+ */
+export async function createSubscription(
+  config: RazorpayConfig,
+  input: { planId: string; totalCount: number; notes: Record<string, string>; email?: string | null },
+): Promise<RazorpaySubscription> {
+  const res = await fetch(`${API}/subscriptions`, {
+    method: 'POST',
+    headers: { Authorization: authHeader(config), 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      plan_id: input.planId,
+      total_count: input.totalCount,
+      // Razorpay's own emails would duplicate ours and say things we have not written.
+      customer_notify: 0,
+      notes: input.notes,
+      ...(input.email ? { notify_info: { notify_email: input.email } } : {}),
+    }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new ApiError(502, 'upstream_error', `Razorpay could not start the subscription. ${detail.slice(0, 200)}`);
+  }
+  return (await res.json()) as RazorpaySubscription;
+}
+
+/**
+ * Cancels a subscription at the end of the paid cycle, never immediately:
+ * someone who cancels on day 2 of a month they already paid for keeps the
+ * other 28 days.
+ */
+export async function cancelSubscription(config: RazorpayConfig, subscriptionId: string): Promise<void> {
+  const res = await fetch(`${API}/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, {
+    method: 'POST',
+    headers: { Authorization: authHeader(config), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cancel_at_cycle_end: 1 }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new ApiError(502, 'upstream_error', `Razorpay could not cancel the subscription. ${detail.slice(0, 200)}`);
+  }
+}
+
 /** Constant-time compare, so a signature check cannot be probed byte by byte. */
 function safeEqual(a: string, b: string): boolean {
   const left = Buffer.from(a, 'utf8');
@@ -93,6 +174,17 @@ function safeEqual(a: string, b: string): boolean {
  */
 export function verifyPaymentSignature(config: RazorpayConfig, orderId: string, paymentId: string, signature: string): boolean {
   const expected = createHmac('sha256', config.keySecret).update(`${orderId}|${paymentId}`).digest('hex');
+  return safeEqual(expected, signature);
+}
+
+/**
+ * Subscriptions sign the other way round: HMAC of "payment_id|subscription_id",
+ * where a one-off order signs "order_id|payment_id". Getting the order of
+ * these two backwards is the classic Razorpay integration bug — it fails only
+ * at the moment real money has already moved.
+ */
+export function verifySubscriptionSignature(config: RazorpayConfig, subscriptionId: string, paymentId: string, signature: string): boolean {
+  const expected = createHmac('sha256', config.keySecret).update(`${paymentId}|${subscriptionId}`).digest('hex');
   return safeEqual(expected, signature);
 }
 

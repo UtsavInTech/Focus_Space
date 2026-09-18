@@ -20,18 +20,21 @@ import type { BillingPeriod, CurrencyCode, PlanId } from './content/plans';
 const SDK_URL = 'https://checkout.razorpay.com/v1/checkout.js';
 
 interface RazorpayResponse {
-  razorpay_order_id: string;
+  razorpay_order_id?: string;
+  razorpay_subscription_id?: string;
   razorpay_payment_id: string;
   razorpay_signature: string;
 }
 
 interface RazorpayOptions {
   key: string;
-  amount: number;
-  currency: string;
+  amount?: number;
+  currency?: string;
   name: string;
   description: string;
-  order_id: string;
+  /** One of these: an order for a single charge, a subscription for a renewing one. */
+  order_id?: string;
+  subscription_id?: string;
   prefill?: { email?: string };
   theme?: { color?: string };
   handler: (response: RazorpayResponse) => void;
@@ -70,6 +73,7 @@ function loadSdk(): Promise<RazorpayCtor> {
 export interface CheckoutResult {
   plan: PlanId;
   expiresAt: number;
+  autoRenew: boolean;
 }
 
 export interface CheckoutInput {
@@ -78,6 +82,8 @@ export interface CheckoutInput {
   currency: CurrencyCode;
   token: string;
   email?: string | null;
+  /** True for an auto-renewing subscription, false for a single period. */
+  renewing: boolean;
 }
 
 export class CheckoutCancelled extends Error {
@@ -88,7 +94,8 @@ export class CheckoutCancelled extends Error {
 }
 
 export async function startCheckout(input: CheckoutInput): Promise<CheckoutResult> {
-  const session = await api.startCheckout(input.token, { planId: input.planId, period: input.period, currency: input.currency });
+  const body = { planId: input.planId, period: input.period, currency: input.currency };
+  const session = input.renewing ? await api.startSubscription(input.token, body) : await api.startCheckout(input.token, body);
   const Razorpay = await loadSdk();
 
   return new Promise<CheckoutResult>((resolve, reject) => {
@@ -96,25 +103,36 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutResul
 
     const checkout = new Razorpay({
       key: session.keyId,
-      amount: session.amountMinor,
-      currency: session.currency,
       name: 'FocusSpace',
       description: session.description,
-      order_id: session.orderId,
+      // A subscription carries its own amount from the plan; passing one here
+      // would be ignored at best and contradictory at worst.
+      ...('subscriptionId' in session
+        ? { subscription_id: session.subscriptionId }
+        : { order_id: session.orderId, amount: session.amountMinor, currency: session.currency }),
       prefill: input.email ? { email: input.email } : undefined,
       theme: { color: '#6d5dfc' },
       handler: (response) => {
         settled = true;
-        api
-          .confirmPayment(input.token, {
-            orderId: response.razorpay_order_id,
-            paymentId: response.razorpay_payment_id,
-            signature: response.razorpay_signature,
-            planId: input.planId,
-            period: input.period,
-            currency: input.currency,
-          })
-          .then((grant) => resolve({ plan: grant.plan, expiresAt: grant.expiresAt }))
+        const confirm = response.razorpay_subscription_id
+          ? api.confirmSubscription(input.token, {
+              subscriptionId: response.razorpay_subscription_id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature,
+              planId: input.planId,
+              period: input.period,
+              currency: input.currency,
+            })
+          : api.confirmPayment(input.token, {
+              orderId: response.razorpay_order_id ?? '',
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature,
+              planId: input.planId,
+              period: input.period,
+              currency: input.currency,
+            });
+        confirm
+          .then((grant) => resolve({ plan: grant.plan, expiresAt: grant.expiresAt, autoRenew: 'autoRenew' in grant ? grant.autoRenew === true : false }))
           // The money is taken by this point, and the webhook will still grant the
           // plan — so this says "we will sort it out", never "payment failed".
           .catch(() => reject(new Error('Payment went through, but confirming it here failed. Refresh in a moment — it will appear.')));

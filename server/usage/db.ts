@@ -27,6 +27,21 @@ export interface EntitlementRow {
   expires_at: number | null;
   /** The Razorpay payment that granted this, for support and reconciliation. */
   payment_id: string | null;
+  /** The Razorpay subscription renewing this, when there is one. */
+  subscription_id: string | null;
+  /** 1 while that subscription is live. Cleared on cancellation, which leaves the paid period intact. */
+  auto_renew: number;
+}
+
+/**
+ * The Razorpay plan objects we have created, one per (plan, period, currency)
+ * and per key mode. Cached because creating a plan is idempotent only if we
+ * remember the id — Razorpay would happily make a second identical plan.
+ */
+export interface RemotePlanRow {
+  key: string;
+  razorpay_plan_id: string;
+  created_at: number;
 }
 
 /** One successful payment. Exists to make granting idempotent: a webhook and the client can both report the same payment. */
@@ -70,7 +85,15 @@ CREATE TABLE IF NOT EXISTS entitlements (
   plan       TEXT NOT NULL DEFAULT 'free',
   updated_at INTEGER NOT NULL,
   expires_at INTEGER,
-  payment_id TEXT
+  payment_id TEXT,
+  subscription_id TEXT,
+  auto_renew INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS remote_plans (
+  key              TEXT PRIMARY KEY,
+  razorpay_plan_id TEXT NOT NULL,
+  created_at       INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS payments (
@@ -147,6 +170,8 @@ export class UsageDb {
     const columns = new Set((this.db.prepare('PRAGMA table_info(entitlements)').all() as { name: string }[]).map((c) => c.name));
     if (!columns.has('expires_at')) this.db.exec('ALTER TABLE entitlements ADD COLUMN expires_at INTEGER');
     if (!columns.has('payment_id')) this.db.exec('ALTER TABLE entitlements ADD COLUMN payment_id TEXT');
+    if (!columns.has('subscription_id')) this.db.exec('ALTER TABLE entitlements ADD COLUMN subscription_id TEXT');
+    if (!columns.has('auto_renew')) this.db.exec('ALTER TABLE entitlements ADD COLUMN auto_renew INTEGER NOT NULL DEFAULT 0');
   }
 
   close(): void {
@@ -159,13 +184,42 @@ export class UsageDb {
     return this.db.prepare('SELECT * FROM entitlements WHERE user_id = ?').get(userId) as EntitlementRow | undefined;
   }
 
-  setPlan(userId: string, plan: string, at: number, expiresAt: number | null = null, paymentId: string | null = null): void {
+  setPlan(
+    userId: string,
+    plan: string,
+    at: number,
+    expiresAt: number | null = null,
+    paymentId: string | null = null,
+    subscriptionId: string | null = null,
+    autoRenew = false,
+  ): void {
     this.db
       .prepare(
-        `INSERT INTO entitlements (user_id, plan, updated_at, expires_at, payment_id) VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT(user_id) DO UPDATE SET plan = excluded.plan, updated_at = excluded.updated_at, expires_at = excluded.expires_at, payment_id = excluded.payment_id`,
+        `INSERT INTO entitlements (user_id, plan, updated_at, expires_at, payment_id, subscription_id, auto_renew) VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET plan = excluded.plan, updated_at = excluded.updated_at, expires_at = excluded.expires_at,
+           payment_id = excluded.payment_id, subscription_id = excluded.subscription_id, auto_renew = excluded.auto_renew`,
       )
-      .run(userId, plan, at, expiresAt, paymentId);
+      .run(userId, plan, at, expiresAt, paymentId, subscriptionId, autoRenew ? 1 : 0);
+  }
+
+  /** Stops renewal without touching the paid-for period — cancelling is not a refund. */
+  clearAutoRenew(userId: string, at: number): void {
+    this.db.prepare('UPDATE entitlements SET auto_renew = 0, updated_at = ? WHERE user_id = ?').run(at, userId);
+  }
+
+  findBySubscription(subscriptionId: string): EntitlementRow | undefined {
+    return this.db.prepare('SELECT * FROM entitlements WHERE subscription_id = ?').get(subscriptionId) as EntitlementRow | undefined;
+  }
+
+  // ── Razorpay plan cache ────────────────────────────────────────────────
+
+  getRemotePlan(key: string): string | undefined {
+    const row = this.db.prepare('SELECT razorpay_plan_id FROM remote_plans WHERE key = ?').get(key) as { razorpay_plan_id: string } | undefined;
+    return row?.razorpay_plan_id;
+  }
+
+  putRemotePlan(key: string, razorpayPlanId: string, at: number): void {
+    this.db.prepare('INSERT OR REPLACE INTO remote_plans (key, razorpay_plan_id, created_at) VALUES (?, ?, ?)').run(key, razorpayPlanId, at);
   }
 
   // ── payments ───────────────────────────────────────────────────────────

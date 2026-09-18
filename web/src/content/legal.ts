@@ -112,7 +112,9 @@ export const TERMS: LegalDoc = {
     {
       heading: 'Plans and payment',
       body: [
-        'Paid plans grant access for the period you buy — one month or twelve months — starting when the payment succeeds. Access does not renew automatically; when the period ends, the account returns to the Free plan and nothing is deleted.',
+        'Paid plans grant access for the period you buy — one month or twelve months — starting when the payment succeeds.',
+        'You choose at checkout whether the plan renews automatically. If it does, we charge the same amount each period until you stop it, and you can stop it at any time from your account page. If it does not, the plan simply ends and the account returns to the Free plan.',
+        'When a plan ends, for either reason, nothing is deleted.',
         'Prices are shown in US dollars and, for customers in India, charged in Indian rupees through Razorpay. The rupee amount shown at checkout is what you are charged.',
         'We may change prices, but never for a period you have already paid for.',
         'AI allowances are counted in credits and reset each calendar month. Unused credits do not carry over.',
@@ -146,7 +148,8 @@ export const REFUNDS: LegalDoc = {
     {
       heading: 'Cancelling',
       body: [
-        'There is nothing to cancel. Plans do not renew automatically: a paid plan runs for the period you bought and then stops. You will not be charged again unless you choose to buy again.',
+        'If your plan renews automatically, stop it from your account page — one click, no explanation needed, no email to write. You keep access for every day of the period you already paid for, and are not charged again.',
+        'If you bought a single period instead, there is nothing to cancel: it ends by itself.',
         'Your spaces, notes and mind maps are not deleted when a plan ends. They are in your browser, where they always were.',
       ],
     },

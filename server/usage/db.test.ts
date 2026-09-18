@@ -61,14 +61,35 @@ describe('UsageDb — entitlements', () => {
 
   it('setPlan upserts: first insert, then update in place', () => {
     usageDb.setPlan(userId, 'pro', 100);
-    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'pro', updated_at: 100, expires_at: null, payment_id: null });
+    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'pro', updated_at: 100, expires_at: null, payment_id: null, subscription_id: null, auto_renew: 0 });
     usageDb.setPlan(userId, 'free', 200);
-    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'free', updated_at: 200, expires_at: null, payment_id: null });
+    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'free', updated_at: 200, expires_at: null, payment_id: null, subscription_id: null, auto_renew: 0 });
   });
 
   it('setPlan records the expiry and the payment that bought it', () => {
     usageDb.setPlan(userId, 'unlimited', 100, 5_000, 'pay_abc');
-    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'unlimited', updated_at: 100, expires_at: 5_000, payment_id: 'pay_abc' });
+    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'unlimited', updated_at: 100, expires_at: 5_000, payment_id: 'pay_abc', subscription_id: null, auto_renew: 0 });
+  });
+
+  it('cancelling stops renewal but keeps the period already paid for', () => {
+    usageDb.setPlan(userId, 'pro', 100, 5_000, 'pay_abc', 'sub_1', true);
+    expect(usageDb.getEntitlement(userId)).toMatchObject({ auto_renew: 1, subscription_id: 'sub_1' });
+
+    usageDb.clearAutoRenew(userId, 200);
+    // The expiry is untouched — cancelling is not a refund.
+    expect(usageDb.getEntitlement(userId)).toMatchObject({ auto_renew: 0, expires_at: 5_000, plan: 'pro' });
+  });
+
+  it('an entitlement can be found by its subscription, which is how a renewal webhook locates it', () => {
+    usageDb.setPlan(userId, 'pro', 100, 5_000, 'pay_abc', 'sub_lookup', true);
+    expect(usageDb.findBySubscription('sub_lookup')?.user_id).toBe(userId);
+    expect(usageDb.findBySubscription('sub_missing')).toBeUndefined();
+  });
+
+  it('remembers the Razorpay plan created for a price, so a second one is never made', () => {
+    expect(usageDb.getRemotePlan('k')).toBeUndefined();
+    usageDb.putRemotePlan('k', 'plan_xyz', 1);
+    expect(usageDb.getRemotePlan('k')).toBe('plan_xyz');
   });
 
   it('recordPayment is idempotent — the same payment id is only ever applied once', () => {

@@ -1845,3 +1845,31 @@ button {
   line-height: 1.65;
   color: var(--fs-text-2);
 }
+
+/* Renew-automatically choice on the pricing controls */
+
+.fsw-renew-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--fs-border);
+  border-radius: 999px;
+  background: var(--fs-surface-2);
+  font-size: 13.5px;
+  color: var(--fs-text-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.fsw-renew-toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--fs-accent);
+  cursor: pointer;
+}
+
+.fsw-renew-toggle:has(input:checked) {
+  border-color: var(--fs-accent);
+  color: var(--fs-text);
+}

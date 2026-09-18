@@ -150,6 +150,9 @@ function ProfilePanel() {
 }
 
 function PlanRow({ status, error }: { status: UsageStatus | null; error: string | null }) {
+  const auth = useAuth();
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const plan = PLANS.find((p) => p.id === status?.plan) ?? PLANS[0];
   const used = status?.used ?? 0;
   const limit = status?.limit ?? 0;
@@ -161,9 +164,46 @@ function PlanRow({ status, error }: { status: UsageStatus | null; error: string 
         <h2>Plan</h2>
         <p className="fsw-account-big">{plan.name}</p>
         <p className="fsw-account-note">{plan.tagline}</p>
+        {auth.planExpiresAt && (
+          <p className="fsw-account-note">
+            {auth.autoRenew
+              ? `Renews automatically on ${new Date(auth.planExpiresAt).toLocaleDateString()}.`
+              : `Runs until ${new Date(auth.planExpiresAt).toLocaleDateString()}, then returns to Free. Nothing is deleted.`}
+          </p>
+        )}
+
         <a className="fsw-btn fsw-btn-primary" href="/pricing" onClick={onLinkClick('/pricing')} style={{ marginTop: 14 }}>
           {plan.id === 'free' ? 'See plans' : 'Change plan'}
         </a>
+
+        {/* Cancelling stops the renewal and keeps the days already paid for — the
+            button says so, because "cancel" otherwise reads as "lose access now". */}
+        {auth.autoRenew && (
+          <button
+            type="button"
+            className="fsw-link"
+            style={{ marginTop: 12 }}
+            disabled={cancelling}
+            onClick={() => {
+              setCancelling(true);
+              setCancelError(null);
+              void (async () => {
+                try {
+                  const token = await auth.token();
+                  if (token) await api.cancelPlan(token);
+                  await auth.reload();
+                } catch (err) {
+                  setCancelError(err instanceof api.ApiError ? err.message : 'Could not cancel. Try again.');
+                } finally {
+                  setCancelling(false);
+                }
+              })();
+            }}
+          >
+            {cancelling ? 'Cancelling…' : 'Stop renewing — keep access until it ends'}
+          </button>
+        )}
+        {cancelError && <p className="fsw-account-note fsw-profile-error">{cancelError}</p>}
       </article>
 
       <article className="fsw-account-card">

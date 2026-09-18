@@ -19,6 +19,11 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
   const [period, setPeriod] = useState<BillingPeriod>('annual');
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  /**
+   * Renewing by default, because a plan that lapses silently is worse for
+   * everyone — but it is a visible choice, not something done to people.
+   */
+  const [renewing, setRenewing] = useState(true);
 
   /**
    * Buying requires an account, because a payment has to attach to one. Rather
@@ -41,10 +46,14 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
         navigate('/signin');
         return;
       }
-      const result = await startCheckout({ planId: plan.id, period, currency, token, email: auth.user.email });
+      const result = await startCheckout({ planId: plan.id, period, currency, token, email: auth.user.email, renewing });
       // Re-read from the server rather than trusting what checkout just told us.
       await auth.reload();
-      setMessage(`You're on ${plan.name}. It runs until ${new Date(result.expiresAt).toLocaleDateString()}.`);
+      setMessage(
+        result.autoRenew
+          ? `You're on ${plan.name}. It renews automatically on ${new Date(result.expiresAt).toLocaleDateString()} — cancel any time.`
+          : `You're on ${plan.name}. It runs until ${new Date(result.expiresAt).toLocaleDateString()}, and will not renew by itself.`,
+      );
     } catch (err) {
       // Closing the payment sheet is a decision, not an error worth shouting about.
       if (!(err instanceof CheckoutCancelled)) setMessage(err instanceof Error ? err.message : 'Could not start the payment.');
@@ -72,6 +81,11 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
           ))}
         </div>
 
+        <label className="fsw-renew-toggle">
+          <input type="checkbox" checked={renewing} onChange={(e) => setRenewing(e.target.checked)} />
+          <span>Renew automatically</span>
+        </label>
+
         <div className="fsw-switch fsw-switch-sm" role="group" aria-label="Currency">
           {(['USD', 'INR'] as CurrencyCode[]).map((c) => (
             <button key={c} type="button" className={currency === c ? 'is-active' : ''} aria-pressed={currency === c} onClick={() => onCurrency(c)}>
@@ -93,7 +107,7 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
 
       <div className={`fsw-plans${compact ? ' is-compact' : ''}`}>
         {PLANS.map((plan) => (
-          <PlanCard key={plan.id} plan={plan} period={period} currency={currency} compact={compact} busy={busy === plan.id} current={auth.plan} expiresAt={auth.planExpiresAt} onBuy={() => void buy(plan)} />
+          <PlanCard key={plan.id} plan={plan} period={period} currency={currency} compact={compact} busy={busy === plan.id} current={auth.plan} expiresAt={auth.planExpiresAt} autoRenew={auth.autoRenew} onBuy={() => void buy(plan)} />
         ))}
       </div>
 
@@ -141,6 +155,7 @@ function PlanCard({
   busy,
   current,
   expiresAt,
+  autoRenew,
   onBuy,
 }: {
   plan: Plan;
@@ -150,6 +165,7 @@ function PlanCard({
   busy?: boolean;
   current: string;
   expiresAt: number | null;
+  autoRenew: boolean;
   onBuy: () => void;
 }) {
   const isFree = plan.id === 'free';
@@ -174,7 +190,7 @@ function PlanCard({
           anywhere is the pattern that gets pricing pages accused of hiding the number. */}
       <p className="fsw-plan-sub">
         {isCurrent && expiresAt
-          ? `Runs until ${new Date(expiresAt).toLocaleDateString()}`
+          ? `${autoRenew ? 'Renews' : 'Runs until'} ${new Date(expiresAt).toLocaleDateString()}`
           : isFree
             ? 'No card, no expiry'
             : period === 'annual'
@@ -191,7 +207,7 @@ function PlanCard({
         {busy ? 'Opening payment…' : label}
       </button>
       {/* Buying the same plan again is a renewal, not a mistake — but it should be a deliberate choice. */}
-      {isCurrent && !isFree && (
+      {isCurrent && !isFree && !autoRenew && (
         <button type="button" className="fsw-link fsw-plan-renew" onClick={onBuy}>
           Extend by another {period === 'annual' ? 'year' : 'month'}
         </button>

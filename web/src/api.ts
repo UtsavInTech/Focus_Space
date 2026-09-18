@@ -100,7 +100,7 @@ export const logout = (refreshToken: string) => post<{ ok: true }>('/v1/auth/log
 
 /** The plan rides along so a page never has to make a second call just to know what to offer. */
 export const me = (token: string) =>
-  request<{ ok: true; user: User; plan: PlanId; planExpiresAt: number | null }>('/v1/me', { headers: { Authorization: `Bearer ${token}` } });
+  request<{ ok: true; user: User; plan: PlanId; planExpiresAt: number | null; autoRenew: boolean }>('/v1/me', { headers: { Authorization: `Bearer ${token}` } });
 
 export const updateProfile = (token: string, patch: { name?: string | null; city?: string | null }) => post<{ ok: true; user: User }>('/v1/me/profile', patch, token);
 
@@ -121,6 +121,25 @@ export const startCheckout = (token: string, body: { planId: string; period: str
 
 export const confirmPayment = (token: string, body: { orderId: string; paymentId: string; signature: string; planId: string; period: string; currency: string }) =>
   post<{ ok: true; plan: PlanId; expiresAt: number; granted: boolean }>('/v1/billing/confirm', body, token);
+
+export interface SubscriptionSession {
+  subscriptionId: string;
+  keyId: string;
+  test: boolean;
+  planId: string;
+  period: string;
+  currency: 'INR' | 'USD';
+  amountMinor: number;
+  description: string;
+}
+
+export const startSubscription = (token: string, body: { planId: string; period: string; currency: string }) =>
+  post<{ ok: true } & SubscriptionSession>('/v1/billing/subscribe', body, token);
+
+export const confirmSubscription = (token: string, body: { subscriptionId: string; paymentId: string; signature: string; planId: string; period: string; currency: string }) =>
+  post<{ ok: true; plan: PlanId; expiresAt: number; granted: boolean; autoRenew: boolean }>('/v1/billing/subscribe/confirm', body, token);
+
+export const cancelPlan = (token: string) => post<{ ok: true; expiresAt: number | null }>('/v1/billing/cancel', {}, token);
 
 export interface Payment {
   id: string;

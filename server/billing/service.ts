@@ -2,18 +2,20 @@ import { randomUUID } from 'node:crypto';
 import { PLANS, type BillingPeriod, type CurrencyCode, type PlanId } from '@/billing/plans';
 import { ApiError } from '../http';
 import type { UsageDb } from '../usage/db';
-import { createOrder, verifyPaymentSignature, type RazorpayConfig } from './razorpay';
+import { cancelSubscription, createOrder, createPlan, createSubscription, verifyPaymentSignature, verifySubscriptionSignature, type RazorpayConfig } from './razorpay';
 
 /**
  * What a payment buys.
  *
- * Razorpay *Orders*, not Subscriptions, for this first version: an order is a
- * single charge that grants access for the period bought, and it works the day
- * the account is approved. Auto-renewing subscriptions in India need e-mandate
- * or UPI Autopay registration, which is a larger piece of work and a worse
- * thing to debug on launch day. The cost of that choice is honest and visible:
- * access expires and has to be bought again, and the UI says so rather than
- * implying a renewal that will not happen.
+ * Two routes to the same place. A **subscription** renews by itself until
+ * cancelled, which is what people expect and what stops a plan lapsing because
+ * someone forgot. A one-off **order** stays as the fallback: mandate
+ * registration can be declined or unavailable, and a learner who just wants
+ * one month should still be able to buy one.
+ *
+ * Both end at `grantPlan`, which is the single place an entitlement is ever
+ * written. That is what makes the first charge, every renewal, and the webhook
+ * that reports either of them idempotent with respect to each other.
  *
  * The server never accepts an amount from the client. It takes a plan and a
  * period and looks the money up in the shared price book, because the client
@@ -88,6 +90,78 @@ export async function startCheckout(config: RazorpayConfig, userId: string, requ
   };
 }
 
+/* ─── Subscriptions ──────────────────────────────────────────────────────── */
+
+/** Razorpay needs a finite cycle count; ten years is "until cancelled" in practice. */
+const TOTAL_CYCLES: Record<BillingPeriod, number> = { monthly: 120, annual: 10 };
+const RAZORPAY_PERIOD: Record<BillingPeriod, 'monthly' | 'yearly'> = { monthly: 'monthly', annual: 'yearly' };
+
+/**
+ * The Razorpay Plan for a (plan, period, currency), created once and
+ * remembered. The key includes the Razorpay key id because test-mode and
+ * live-mode plans are different objects living in different worlds — caching
+ * them under one key would hand a live subscription a test plan id.
+ */
+async function ensureRemotePlan(config: RazorpayConfig, db: UsageDb, plan: (typeof PLANS)[number], period: BillingPeriod, currency: CurrencyCode, now: number): Promise<string> {
+  const key = `${config.keyId}:${plan.id}:${period}:${currency}`;
+  const cached = db.getRemotePlan(key);
+  if (cached) return cached;
+
+  const price = plan.price[period];
+  const created = await createPlan(config, {
+    amountMinor: minorUnits(currency === 'INR' ? price.inr : price.usd),
+    currency,
+    period: RAZORPAY_PERIOD[period],
+    name: `FocusSpace ${plan.name} (${period === 'annual' ? 'yearly' : 'monthly'})`,
+    notes: { planId: plan.id, period },
+  });
+  db.putRemotePlan(key, created.id, now);
+  return created.id;
+}
+
+export interface SubscriptionSession {
+  subscriptionId: string;
+  keyId: string;
+  test: boolean;
+  planId: PlanId;
+  period: BillingPeriod;
+  currency: CurrencyCode;
+  amountMinor: number;
+  description: string;
+}
+
+export async function startSubscription(
+  config: RazorpayConfig,
+  db: UsageDb,
+  userId: string,
+  request: CheckoutRequest,
+  email?: string | null,
+  now = Date.now(),
+): Promise<SubscriptionSession> {
+  const { plan, period, currency } = parse(request);
+  const remotePlanId = await ensureRemotePlan(config, db, plan, period, currency, now);
+  const subscription = await createSubscription(config, {
+    planId: remotePlanId,
+    totalCount: TOTAL_CYCLES[period],
+    // The same notes an order carries, for the same reason: a renewal arrives
+    // months later with no browser attached, and this is how it knows whose it is.
+    notes: { userId, planId: plan.id, period },
+    email,
+  });
+
+  const price = plan.price[period];
+  return {
+    subscriptionId: subscription.id,
+    keyId: config.keyId,
+    test: config.test,
+    planId: plan.id,
+    period,
+    currency,
+    amountMinor: minorUnits(currency === 'INR' ? price.inr : price.usd),
+    description: `FocusSpace ${plan.name} · renews ${period === 'annual' ? 'yearly' : 'monthly'}`,
+  };
+}
+
 export interface GrantInput {
   userId: string;
   planId: PlanId;
@@ -96,6 +170,8 @@ export interface GrantInput {
   amountMinor: number;
   orderId: string;
   paymentId: string;
+  /** Set when a subscription is paying for this, so renewals and cancellation can find it. */
+  subscriptionId?: string | null;
 }
 
 export interface Grant {
@@ -103,6 +179,8 @@ export interface Grant {
   expiresAt: number;
   /** False when this payment had already been applied — the caller should still report success. */
   granted: boolean;
+  /** True while a subscription will renew this by itself. */
+  autoRenew: boolean;
 }
 
 /**
@@ -131,12 +209,16 @@ export function grantPlan(db: UsageDb, input: GrantInput, now = Date.now()): Gra
 
   if (!fresh) {
     // Already applied. Report the entitlement as it stands rather than adding to it.
-    return { plan: (current?.plan as PlanId) ?? input.planId, expiresAt: current?.expires_at ?? activeUntil, granted: false };
+    return { plan: (current?.plan as PlanId) ?? input.planId, expiresAt: current?.expires_at ?? activeUntil, granted: false, autoRenew: current?.auto_renew === 1 };
   }
 
   const expiresAt = activeUntil + PERIOD_DAYS[input.period] * DAY_MS;
-  db.setPlan(input.userId, input.planId, now, expiresAt, input.paymentId);
-  return { plan: input.planId, expiresAt, granted: true };
+  // A one-off purchase on top of a subscription must not silently cancel it, so an
+  // absent subscriptionId keeps whatever was already there.
+  const subscriptionId = input.subscriptionId ?? current?.subscription_id ?? null;
+  const autoRenew = input.subscriptionId ? true : current?.auto_renew === 1;
+  db.setPlan(input.userId, input.planId, now, expiresAt, input.paymentId, subscriptionId, autoRenew);
+  return { plan: input.planId, expiresAt, granted: true, autoRenew };
 }
 
 /**
@@ -171,21 +253,89 @@ export function confirmPayment(
 }
 
 /**
+ * Confirms the first charge of a subscription, reported by the browser.
+ * Note the signature order — `payment|subscription`, the reverse of an order.
+ */
+export function confirmSubscription(
+  config: RazorpayConfig,
+  db: UsageDb,
+  userId: string,
+  body: { subscriptionId: string; paymentId: string; signature: string; planId: string; period: string; currency: string },
+  now = Date.now(),
+): Grant {
+  if (!verifySubscriptionSignature(config, body.subscriptionId, body.paymentId, body.signature)) {
+    throw new ApiError(400, 'invalid_signature', 'That payment could not be verified. If money left your account, contact support and nothing will be lost.');
+  }
+  const { plan, period, currency } = parse(body);
+  const price = plan.price[period];
+  return grantPlan(
+    db,
+    {
+      userId,
+      planId: plan.id,
+      period,
+      currency,
+      amountMinor: minorUnits(currency === 'INR' ? price.inr : price.usd),
+      orderId: '',
+      paymentId: body.paymentId,
+      subscriptionId: body.subscriptionId,
+    },
+    now,
+  );
+}
+
+/**
+ * Stops a subscription renewing, at the end of the cycle already paid for.
+ * Cancelling is not a refund: the entitlement keeps its expiry and only
+ * `auto_renew` is cleared, so the learner keeps every day they bought.
+ */
+export async function cancelPlan(config: RazorpayConfig, db: UsageDb, userId: string, now = Date.now()): Promise<{ expiresAt: number | null }> {
+  const current = db.getEntitlement(userId);
+  if (!current?.subscription_id || current.auto_renew !== 1) {
+    throw new ApiError(400, 'invalid_request', 'There is no renewing subscription on this account.');
+  }
+  await cancelSubscription(config, current.subscription_id);
+  db.clearAutoRenew(userId, now);
+  return { expiresAt: current.expires_at };
+}
+
+/**
  * Applies a `payment.captured` webhook. The notes carried on the order are the
  * only link back to who paid for what, which is why `startCheckout` sets them.
  */
 export function applyWebhook(db: UsageDb, event: unknown, now = Date.now()): Grant | null {
-  const payload = event as { event?: string; payload?: { payment?: { entity?: Record<string, unknown> } } };
-  if (payload?.event !== 'payment.captured') return null;
+  const payload = event as {
+    event?: string;
+    payload?: { payment?: { entity?: Record<string, unknown> }; subscription?: { entity?: Record<string, unknown> } };
+  };
+  const kind = payload?.event;
 
-  const payment = payload.payload?.payment?.entity;
+  // A subscription that ends — cancelled, or halted after repeated failed charges —
+  // stops renewing but keeps the period already paid for. Only `auto_renew` changes.
+  if (kind === 'subscription.cancelled' || kind === 'subscription.halted' || kind === 'subscription.completed') {
+    const subscriptionId = String(payload.payload?.subscription?.entity?.id ?? '');
+    const row = subscriptionId ? db.findBySubscription(subscriptionId) : undefined;
+    if (row) db.clearAutoRenew(row.user_id, now);
+    return null;
+  }
+
+  // Every charge, first or recurring, arrives as payment.captured. A renewal also
+  // arrives as subscription.charged carrying the same payment, and the payment id
+  // makes the two idempotent — whichever lands first grants, the other is a no-op.
+  const payment = kind === 'payment.captured' ? payload.payload?.payment?.entity : kind === 'subscription.charged' ? payload.payload?.payment?.entity : null;
   if (!payment) return null;
 
   const notes = (payment.notes ?? {}) as Record<string, string>;
-  const userId = notes.userId;
-  const planId = notes.planId as PlanId | undefined;
-  const period = notes.period as BillingPeriod | undefined;
+  const subscriptionEntity = payload.payload?.subscription?.entity;
+  const subscriptionNotes = (subscriptionEntity?.notes ?? {}) as Record<string, string>;
+
+  // A renewal's payment carries no notes of its own; the subscription's do.
+  const userId = notes.userId ?? subscriptionNotes.userId;
+  const planId = (notes.planId ?? subscriptionNotes.planId) as PlanId | undefined;
+  const period = (notes.period ?? subscriptionNotes.period) as BillingPeriod | undefined;
   if (!userId || !planId || !period || !PURCHASABLE.includes(planId)) return null;
+
+  const subscriptionId = String(payment.subscription_id ?? subscriptionEntity?.id ?? '') || null;
 
   return grantPlan(
     db,
@@ -197,6 +347,7 @@ export function applyWebhook(db: UsageDb, event: unknown, now = Date.now()): Gra
       amountMinor: Number(payment.amount) || 0,
       orderId: String(payment.order_id ?? ''),
       paymentId: String(payment.id ?? randomUUID()),
+      subscriptionId,
     },
     now,
   );

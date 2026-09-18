@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { IdentityDb } from '../auth/db';
 import { UsageDb } from '../usage/db';
-import { effectivePlan, grantPlan } from './service';
+import { applyWebhook, effectivePlan, grantPlan } from './service';
 import { resolvePlan, limitsFor } from '../usage/entitlements';
-import { verifyPaymentSignature, verifyWebhookSignature, type RazorpayConfig } from './razorpay';
+import { verifyPaymentSignature, verifySubscriptionSignature, verifyWebhookSignature, type RazorpayConfig } from './razorpay';
 
 /** The two things that must not be wrong: money maps to the right entitlement, and only real payments count. */
 
@@ -108,5 +108,84 @@ describe('signatures', () => {
   it('refuses every webhook when no webhook secret is configured', () => {
     // Otherwise an unconfigured deployment would accept forged upgrade events.
     expect(verifyWebhookSignature({ ...config, webhookSecret: '' }, '{}', 'anything')).toBe(false);
+  });
+});
+
+describe('subscriptions', () => {
+  const payment = (overrides: Record<string, unknown> = {}) => ({
+    id: 'pay_r1',
+    amount: 29900,
+    currency: 'INR',
+    order_id: 'order_r1',
+    subscription_id: 'sub_1',
+    notes: {},
+    ...overrides,
+  });
+
+  it('a renewal reads who it belongs to from the subscription, since the payment carries no notes', () => {
+    const now = 1_000_000;
+    const grant = applyWebhook(
+      usageDb,
+      {
+        event: 'subscription.charged',
+        payload: {
+          payment: { entity: payment() },
+          subscription: { entity: { id: 'sub_1', notes: { userId, planId: 'pro', period: 'monthly' } } },
+        },
+      },
+      now,
+    );
+    expect(grant).toMatchObject({ plan: 'pro', granted: true, autoRenew: true });
+    expect(usageDb.getEntitlement(userId)).toMatchObject({ subscription_id: 'sub_1', auto_renew: 1 });
+  });
+
+  it('the same renewal reported twice only ever extends the plan once', () => {
+    const now = 1_000_000;
+    const event = {
+      event: 'subscription.charged',
+      payload: { payment: { entity: payment() }, subscription: { entity: { id: 'sub_1', notes: { userId, planId: 'pro', period: 'monthly' } } } },
+    };
+    const first = applyWebhook(usageDb, event, now);
+    // Razorpay also sends payment.captured for the same payment; both must not count.
+    const second = applyWebhook(usageDb, { event: 'payment.captured', payload: { payment: { entity: payment({ notes: { userId, planId: 'pro', period: 'monthly' } }) } } }, now + 1000);
+    expect(second?.granted).toBe(false);
+    expect(second?.expiresAt).toBe(first?.expiresAt);
+  });
+
+  it('cancelling stops renewal without shortening the plan', () => {
+    const now = 1_000_000;
+    grantPlan(usageDb, { ...input({ paymentId: 'pay_sub' }), subscriptionId: 'sub_1' }, now);
+    const before = usageDb.getEntitlement(userId);
+
+    applyWebhook(usageDb, { event: 'subscription.cancelled', payload: { subscription: { entity: { id: 'sub_1' } } } }, now + 5000);
+
+    const after = usageDb.getEntitlement(userId);
+    expect(after?.auto_renew).toBe(0);
+    expect(after?.expires_at).toBe(before?.expires_at);
+    expect(effectivePlan(after, now)).toBe('pro');
+  });
+
+  it('a halted subscription — repeated failed charges — also stops renewing', () => {
+    const now = 1_000_000;
+    grantPlan(usageDb, { ...input({ paymentId: 'pay_sub2' }), subscriptionId: 'sub_2' }, now);
+    applyWebhook(usageDb, { event: 'subscription.halted', payload: { subscription: { entity: { id: 'sub_2' } } } }, now);
+    expect(usageDb.getEntitlement(userId)?.auto_renew).toBe(0);
+  });
+
+  it('a one-off purchase on top of a subscription does not silently cancel it', () => {
+    const now = 1_000_000;
+    grantPlan(usageDb, { ...input({ paymentId: 'pay_a' }), subscriptionId: 'sub_keep' }, now);
+    grantPlan(usageDb, input({ paymentId: 'pay_b' }), now + 1000);
+    expect(usageDb.getEntitlement(userId)).toMatchObject({ subscription_id: 'sub_keep', auto_renew: 1 });
+  });
+
+  it('signs subscriptions payment|subscription, the reverse of an order — getting this backwards fails only after money moves', () => {
+    const config: RazorpayConfig = { keyId: 'rzp_test_x', keySecret: 'secret', webhookSecret: 'h', test: true };
+    const { createHmac } = require('node:crypto') as typeof import('node:crypto');
+    const good = createHmac('sha256', 'secret').update('pay_1|sub_1').digest('hex');
+    expect(verifySubscriptionSignature(config, 'sub_1', 'pay_1', good)).toBe(true);
+    // The order-style signature must not validate a subscription.
+    const orderStyle = createHmac('sha256', 'secret').update('sub_1|pay_1').digest('hex');
+    expect(verifySubscriptionSignature(config, 'sub_1', 'pay_1', orderStyle)).toBe(false);
   });
 });
