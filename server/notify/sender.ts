@@ -32,6 +32,39 @@ export interface Senders {
   exposeCodes: boolean;
 }
 
+/**
+ * Email through Resend — one HTTP call, no SDK, no dependency added to a
+ * server that currently has none. Chosen because it needs exactly one secret
+ * and nothing else to work.
+ *
+ * A send that fails throws, and the route turns that into an honest error:
+ * telling someone to check their inbox for a mail that was never sent is the
+ * one outcome worse than showing them a failure.
+ */
+function resendSender(apiKey: string, from: string): Sender {
+  return {
+    id: 'resend',
+    async send(target, code) {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from,
+          to: target,
+          subject: `${code} is your FocusSpace code`,
+          // Plain text, deliberately: a verification mail has one job, and a plain-text
+          // one is far less likely to be filtered on the way to a new account's inbox.
+          text: [`Your FocusSpace verification code is ${code}.`, '', 'It expires shortly. If you did not ask for it, you can ignore this email.'].join('\n'),
+        }),
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        throw new Error(`Resend rejected the verification email (HTTP ${res.status}). ${detail.slice(0, 200)}`);
+      }
+    },
+  };
+}
+
 /** Logs the code locally. The learner sees "check your email"; the developer reads it here. */
 function consoleSender(channel: Channel): Sender {
   return {
@@ -42,14 +75,27 @@ function consoleSender(channel: Channel): Sender {
   };
 }
 
+/** Resend's shared sandbox sender. It only delivers to the account owner's own address — fine for a first deploy, useless for real sign-ups. */
+const RESEND_FALLBACK_FROM = 'FocusSpace <onboarding@resend.dev>';
+
 export function loadSenders(env: NodeJS.ProcessEnv = process.env): Senders {
-  // Real providers plug in here, e.g.:
-  //   const email = env.RESEND_API_KEY ? resendSender(env.RESEND_API_KEY) : consoleSender('email');
+  const email = env.RESEND_API_KEY ? resendSender(env.RESEND_API_KEY, env.MAIL_FROM || RESEND_FALLBACK_FROM) : consoleSender('email');
+  if (!env.RESEND_API_KEY && env.NODE_ENV === 'production') {
+    // Loud, because a production server with no mail provider cannot complete a single sign-up:
+    // the code is written to a log the learner will never read.
+    console.error('[FocusSpace API] No RESEND_API_KEY in production — email verification codes cannot be delivered and sign-up will not work.');
+  }
+  if (env.RESEND_API_KEY && !env.MAIL_FROM) {
+    console.warn(`[FocusSpace API] MAIL_FROM is unset — sending as ${RESEND_FALLBACK_FROM}, which Resend only delivers to your own address. Set MAIL_FROM to an address on a domain you have verified.`);
+  }
+
   const exposeCodes = env.AUTH_DEV_CODES === '1' && env.NODE_ENV !== 'production';
   if (env.AUTH_DEV_CODES === '1' && env.NODE_ENV === 'production') {
     console.warn('[FocusSpace API] AUTH_DEV_CODES is ignored in production — verification codes are never returned to callers there.');
   }
-  return { email: consoleSender('email'), phone: consoleSender('phone'), exposeCodes };
+  // SMS stays on the console sender: no provider is configured, and phone sign-in is
+  // the secondary path — see docs/LAYER_2B_IDENTITY.md.
+  return { email, phone: consoleSender('phone'), exposeCodes };
 }
 
 /** What the API tells the client about how a code was delivered — never the code itself unless `exposeCodes`. */

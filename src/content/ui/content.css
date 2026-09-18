@@ -432,9 +432,11 @@ a.fs-path-name:hover { color: var(--fs-text); }
    overlay shadow root so no YouTube layout change can clip or reorder it. */
 .fs-ai-bubble {
   position: fixed;
+  /* right/bottom are set inline — both floating controls remember where they were dragged to. */
   right: 20px;
   bottom: 20px;
   height: 46px;
+  touch-action: none;
   padding: 0 18px 0 15px;
   display: inline-flex;
   align-items: center;
@@ -450,6 +452,7 @@ a.fs-path-name:hover { color: var(--fs-text); }
 }
 .fs-ai-bubble-label { font-size: 13px; font-weight: 560; color: var(--fs-text); white-space: nowrap; }
 .fs-ai-bubble:hover { transform: translateY(-2px); border-color: var(--fs-accent); }
+.fs-ai-bubble.is-dragging { cursor: grabbing; transform: none; border-color: var(--fs-accent); }
 .fs-ai-bubble:active { transform: scale(0.96); }
 .fs-ai-bubble.is-open { color: var(--fs-text-2); }
 
@@ -561,6 +564,8 @@ a.fs-path-name:hover { color: var(--fs-text); }
   position: fixed;
   left: 20px;
   bottom: 20px;
+  cursor: grab;
+  touch-action: none;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -589,7 +594,31 @@ a.fs-path-name:hover { color: var(--fs-text); }
 }
 .fs-off-pill-on:hover { background: var(--fs-accent-hover); }
 .fs-off-pill-x { display: grid; place-items: center; width: 26px; height: 26px; border: none; border-radius: 50%; background: transparent; color: var(--fs-text-3); cursor: pointer; }
+.fs-off-pill.is-dragging { cursor: grabbing; border-color: var(--fs-accent); }
+.fs-off-pill-x { font-size: 18px; line-height: 1; }
 .fs-off-pill-x:hover { background: var(--fs-surface-2); color: var(--fs-text); }
+
+/* Collapsed: still on the page, still draggable — never a dead end. */
+.fs-off-mini {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--fs-border);
+  border-radius: 50%;
+  background: var(--fs-elevated);
+  box-shadow: var(--fs-shadow-pop);
+  cursor: grab;
+  touch-action: none;
+  opacity: 0.75;
+  z-index: 2147483000;
+  transition: opacity 140ms var(--fs-ease), border-color 140ms var(--fs-ease);
+}
+.fs-off-mini:hover { opacity: 1; border-color: var(--fs-accent); }
+.fs-off-mini.is-dragging { cursor: grabbing; opacity: 1; }
 
 @media (max-width: 600px) {
   .fs-off-pill { left: 12px; bottom: 12px; }
