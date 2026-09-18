@@ -1670,3 +1670,178 @@ button {
     align-items: flex-start;
   }
 }
+
+/* ── Account: profile ────────────────────────────────────────────────── */
+
+.fsw-profile {
+  width: 100%;
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.fsw-profile label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fsw-profile label span {
+  font-size: 13px;
+  font-weight: 560;
+  color: var(--fs-text-2);
+}
+
+.fsw-profile input {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--fs-border-strong);
+  border-radius: var(--fs-r-md);
+  background: var(--fs-bg);
+  color: var(--fs-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.fsw-profile input:focus-visible {
+  border-color: var(--fs-accent);
+  outline: none;
+  box-shadow: var(--fs-ring);
+}
+
+/* Read-only identity fields: visibly not editable, not just inert. */
+.fsw-profile input:disabled {
+  background: var(--fs-surface-2);
+  color: var(--fs-text-3);
+  cursor: not-allowed;
+}
+
+.fsw-profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.fsw-profile-actions .fsw-account-note {
+  margin-top: 0;
+}
+
+.fsw-profile-error {
+  color: var(--fs-danger);
+}
+
+/* The plan you are already on */
+
+.fsw-plan.is-current {
+  border-color: var(--fs-success);
+  box-shadow: 0 0 0 1px var(--fs-success);
+}
+
+.fsw-plan-flag.is-current {
+  background: var(--fs-success);
+  color: #fff;
+}
+
+.fsw-plan-renew {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  text-align: center;
+  font-size: 13px;
+}
+
+@media (max-width: 620px) {
+  .fsw-profile {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Account: payments ───────────────────────────────────────────────── */
+
+.fsw-payments {
+  width: 100%;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--fs-border);
+}
+
+.fsw-payments li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--fs-border);
+}
+
+.fsw-payments li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.fsw-payments strong {
+  font-size: 14.5px;
+}
+
+/* The payment id belongs here for support, but it should never crowd out the amount. */
+.fsw-payments span {
+  font-size: 12px;
+  color: var(--fs-text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fsw-payments em {
+  flex: none;
+  font-style: normal;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ── Legal pages ─────────────────────────────────────────────────────── */
+
+.fsw-legal {
+  /* Narrower than the rest of the site: these are read, not scanned. */
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 64px var(--fsw-gutter) 0;
+}
+
+.fsw-legal h1 {
+  font-size: clamp(28px, 4.5vw, 38px);
+}
+
+.fsw-legal-intro {
+  margin-top: 14px;
+  font-size: 17px;
+  color: var(--fs-text-2);
+}
+
+.fsw-legal-updated {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--fs-text-3);
+}
+
+.fsw-legal section {
+  margin-top: 40px;
+  padding-top: 28px;
+  border-top: 1px solid var(--fs-border);
+}
+
+.fsw-legal h2 {
+  font-size: 19px;
+}
+
+.fsw-legal section p {
+  margin-top: 14px;
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--fs-text-2);
+}

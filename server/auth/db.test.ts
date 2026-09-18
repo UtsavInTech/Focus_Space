@@ -11,6 +11,8 @@ const makeUser = (overrides: Partial<UserRow> = {}): UserRow => ({
   password_hash: 'salt:hash',
   email_verified: 1,
   status: 'active',
+  name: null,
+  city: null,
   created_at: Date.now(),
   updated_at: Date.now(),
   ...overrides,

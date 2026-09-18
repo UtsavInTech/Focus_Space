@@ -11,6 +11,8 @@ import { Footer } from './components/Footer';
 import { ChatLauncher } from './components/ChatLauncher';
 import { AuthPage } from './components/AuthPage';
 import { AccountPage } from './components/AccountPage';
+import { LegalPage } from './components/LegalPage';
+import { LEGAL_DOCS } from './content/legal';
 import { AuthProvider } from './auth';
 
 /**
@@ -36,18 +38,23 @@ export function App() {
           ? 'Sign in — FocusSpace'
           : path === '/account'
             ? 'Your account — FocusSpace'
-            : 'FocusSpace — YouTube, organised around what you came for';
+            : LEGAL_DOCS[path]
+              ? `${LEGAL_DOCS[path].title} — FocusSpace`
+              : 'FocusSpace — YouTube, organised around what you came for';
   }, [path]);
 
   const isPricing = path === '/pricing';
   const isAuth = path === '/signin' || path === '/signup';
   const isAccount = path === '/account';
+  const legal = LEGAL_DOCS[path] ?? null;
 
   return (
     <AuthProvider>
       <SiteNav />
       <main id="main">
-        {isAuth ? (
+        {legal ? (
+          <LegalPage doc={legal} />
+        ) : isAuth ? (
           <AuthPage mode={path === '/signup' ? 'signup' : 'signin'} />
         ) : isAccount ? (
           <AccountPage />

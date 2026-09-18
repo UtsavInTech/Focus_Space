@@ -126,7 +126,6 @@ Then set Settings → Account → FocusSpace server to `http://127.0.0.1:8788`. 
 | --- | --- |
 | `storage`, `unlimitedStorage` | Spaces, settings, watch progress, playlists, channel library and cached relevance/discovery results — locally. |
 | `alarms` | Periodic library refresh. |
-| `notifications` | Reserved for the dormant session feature. |
 | `https://www.youtube.com/*` | Content script + bridge on YouTube, public channel data. |
 
 ## Privacy

@@ -23,7 +23,7 @@ beforeEach(() => {
   identityDb = new IdentityDb(path);
   usageDb = new UsageDb(path);
   userId = randomUUID();
-  identityDb.insertUser({ id: userId, email: `${randomUUID()}@example.com`, phone: null, password_hash: 'x', email_verified: 1, status: 'active', created_at: Date.now(), updated_at: Date.now() });
+  identityDb.insertUser({ id: userId, email: `${randomUUID()}@example.com`, phone: null, password_hash: 'x', email_verified: 1, status: 'active', name: null, city: null, created_at: Date.now(), updated_at: Date.now() });
 });
 
 afterEach(() => {

@@ -25,6 +25,7 @@ export function Footer() {
           <a href="/privacy" onClick={onLinkClick('/privacy')}>Privacy</a>
           <a href="/terms" onClick={onLinkClick('/terms')}>Terms</a>
           <a href="/refunds" onClick={onLinkClick('/refunds')}>Refunds</a>
+          <a href="/contact" onClick={onLinkClick('/contact')}>Contact</a>
         </nav>
       </div>
       <p className="fsw-footer-legal">

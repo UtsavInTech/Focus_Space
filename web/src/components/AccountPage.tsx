@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { navigate, onLinkClick } from '../router';
 import { useAuth } from '../auth';
 import * as api from '../api';
-import type { UsageStatus } from '../api';
+import type { Payment, UsageStatus } from '../api';
 import { PLANS } from '../content/plans';
 import { useExtension, type ExtensionLink } from '../extension';
 
@@ -20,6 +20,7 @@ export function AccountPage() {
   const ext = useExtension();
   const [status, setStatus] = useState<UsageStatus | null>(null);
   const [usageError, setUsageError] = useState<string | null>(null);
+  const [payments, setPayments] = useState<Payment[] | null>(null);
 
   useEffect(() => {
     if (!auth.ready) return;
@@ -37,6 +38,14 @@ export function AccountPage() {
       } catch (err) {
         if (alive) setUsageError(err instanceof api.ApiError ? err.message : 'Could not load your usage.');
       }
+      // Separate from usage on purpose: a failure to list payments must not
+      // blank out the credits panel, and vice versa.
+      try {
+        const result = await api.payments(token);
+        if (alive) setPayments(result.payments);
+      } catch {
+        if (alive) setPayments([]);
+      }
     })();
     return () => {
       alive = false;
@@ -50,7 +59,7 @@ export function AccountPage() {
     <section className="fsw-account">
       <header className="fsw-account-head">
         <div>
-          <h1>Your account</h1>
+          <h1>{auth.user.name ? `Hello, ${auth.user.name}` : 'Your account'}</h1>
           <p>{auth.user.email ?? auth.user.phone}</p>
         </div>
         <button type="button" className="fsw-btn fsw-btn-outline" onClick={() => void auth.signOut().then(() => navigate('/'))}>
@@ -58,7 +67,11 @@ export function AccountPage() {
         </button>
       </header>
 
+      <ProfilePanel />
+
       <PlanRow status={status} error={usageError} />
+
+      <PaymentsPanel payments={payments} />
 
       {ext.status === 'connected' && ext.state ? (
         <>
@@ -70,6 +83,69 @@ export function AccountPage() {
         <NotInstalled checking={ext.status === 'checking'} />
       )}
     </section>
+  );
+}
+
+/**
+ * Name and city. Neither is required — the account works without them — so the
+ * form says what each is actually for rather than demanding them.
+ *
+ * Email and phone are shown but not editable here: changing either is an
+ * identity change that needs its own verified flow, and a form that quietly
+ * let you swap the email on an account would be the account-takeover path.
+ */
+function ProfilePanel() {
+  const auth = useAuth();
+  const [name, setName] = useState(auth.user?.name ?? '');
+  const [city, setCity] = useState(auth.user?.city ?? '');
+  const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [error, setError] = useState<string | null>(null);
+
+  const dirty = (auth.user?.name ?? '') !== name || (auth.user?.city ?? '') !== city;
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setState('saving');
+    setError(null);
+    try {
+      await auth.setProfile({ name, city });
+      setState('saved');
+    } catch (err) {
+      setState('error');
+      setError(err instanceof api.ApiError ? err.message : 'Could not save.');
+    }
+  }
+
+  return (
+    <article className="fsw-account-card fsw-account-wide">
+      <h2>Profile</h2>
+      <form className="fsw-profile" onSubmit={save}>
+        <label>
+          <span>Name</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="What should we call you?" maxLength={80} />
+        </label>
+        <label>
+          <span>City</span>
+          <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Where you are" maxLength={80} />
+        </label>
+        <label>
+          <span>Email</span>
+          <input value={auth.user?.email ?? ''} readOnly disabled />
+        </label>
+        <label>
+          <span>Phone</span>
+          <input value={auth.user?.phone ?? 'Not added'} readOnly disabled />
+        </label>
+      </form>
+      <p className="fsw-account-note">Email and phone are how you sign in, so they change through their own verified flow — not here.</p>
+      <div className="fsw-profile-actions">
+        <button type="button" className="fsw-btn fsw-btn-outline" disabled={!dirty || state === 'saving'} onClick={(e) => void save(e)}>
+          {state === 'saving' ? 'Saving…' : 'Save'}
+        </button>
+        {state === 'saved' && !dirty && <span className="fsw-account-note">Saved.</span>}
+        {error && <span className="fsw-account-note fsw-profile-error">{error}</span>}
+      </div>
+    </article>
   );
 }
 
@@ -109,6 +185,46 @@ function PlanRow({ status, error }: { status: UsageStatus | null; error: string 
         )}
       </article>
     </div>
+  );
+}
+
+/** Receipts. Anyone who pays will eventually want to see what they were charged and when. */
+function PaymentsPanel({ payments }: { payments: Payment[] | null }) {
+  if (payments === null) return null;
+
+  const money = (amountMinor: number, currency: string) => {
+    const value = amountMinor / 100;
+    // Both currencies use a 100:1 minor unit; INR is written with Indian grouping.
+    return currency === 'INR' ? `₹${value.toLocaleString('en-IN')}` : `$${value.toFixed(2)}`;
+  };
+
+  return (
+    <article className="fsw-account-card fsw-account-wide">
+      <div className="fsw-panel-head">
+        <h2>Payments</h2>
+        {!!payments.length && <span className="fsw-account-note">{payments.length} so far</span>}
+      </div>
+
+      {payments.length ? (
+        <ul className="fsw-payments">
+          {payments.map((payment) => (
+            <li key={payment.id}>
+              <div>
+                <strong>
+                  {payment.plan[0].toUpperCase() + payment.plan.slice(1)} · {payment.period === 'annual' ? '12 months' : '1 month'}
+                </strong>
+                <span>
+                  {new Date(payment.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} · {payment.id}
+                </span>
+              </div>
+              <em>{money(payment.amount_minor, payment.currency)}</em>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="fsw-account-note">No payments yet. The free plan needs no card.</p>
+      )}
+    </article>
   );
 }
 

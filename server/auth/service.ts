@@ -41,11 +41,14 @@ export interface PublicUser {
   email: string | null;
   phone: string | null;
   emailVerified: boolean;
+  /** Profile. Both null until the learner fills them in; neither is ever required. */
+  name: string | null;
+  city: string | null;
   createdAt: number;
 }
 
 function toPublicUser(row: UserRow): PublicUser {
-  return { id: row.id, email: row.email, phone: row.phone, emailVerified: row.email_verified === 1, createdAt: row.created_at };
+  return { id: row.id, email: row.email, phone: row.phone, emailVerified: row.email_verified === 1, name: row.name ?? null, city: row.city ?? null, createdAt: row.created_at };
 }
 
 export interface SessionTokens {
@@ -97,6 +100,8 @@ export function register(db: IdentityDb, config: AuthConfig, email: string, pass
     // product flow is startEmailSignup → verifyEmailSignup → completeEmailSignup, which sets this.
     email_verified: 0,
     status: 'active',
+    name: null,
+    city: null,
     created_at: now,
     updated_at: now,
   };
@@ -269,10 +274,32 @@ export function completeEmailSignup(db: IdentityDb, config: AuthConfig, ticket: 
   const email = payload.sub.slice('signup:'.length);
   if (db.findUserByEmail(email)?.password_hash) throw new ApiError(409, 'conflict', 'An account with that email already exists. Sign in instead.');
 
-  const user: UserRow = { id: randomUUID(), email, phone: null, password_hash: hashPassword(password), email_verified: 1, status: 'active', created_at: now, updated_at: now };
+  const user: UserRow = { id: randomUUID(), email, phone: null, password_hash: hashPassword(password), email_verified: 1, status: 'active', name: null, city: null, created_at: now, updated_at: now };
   db.insertUser(user);
   return { ...issueSession(db, config, user.id, userAgent, now), user: toPublicUser(user) };
 }
+
+/** Trimmed, length-capped, and an empty string means "clear it" rather than storing blank. */
+function cleanField(value: unknown, max: number): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== 'string') throw new ApiError(400, 'invalid_request', 'Profile fields must be text.');
+  const trimmed = value.trim().slice(0, max);
+  return trimmed || null;
+}
+
+/**
+ * Updates the profile — name and city only. Identity (email, phone, password)
+ * is deliberately untouchable here: each has its own verified flow, and a
+ * general-purpose "update user" is how an account takeover becomes possible.
+ */
+export function updateProfile(db: IdentityDb, userId: string, patch: { name?: unknown; city?: unknown }, now = Date.now()): PublicUser {
+  db.updateProfile(userId, { name: cleanField(patch.name, 80), city: cleanField(patch.city, 80) }, now);
+  const row = db.findUserById(userId);
+  if (!row) throw new ApiError(401, 'unauthorized', 'Account not found.');
+  return toPublicUser(row);
+}
+
 
 export async function startPhoneSignIn(db: IdentityDb, config: AuthConfig, senders: Senders, phone: string): Promise<CodeSent> {
   const existing = db.findUserByPhone(phone);
@@ -290,7 +317,7 @@ export function verifyPhoneSignIn(db: IdentityDb, config: AuthConfig, phone: str
   let user = db.findUserByPhone(phone);
   const created = !user;
   if (!user) {
-    user = { id: randomUUID(), email: null, phone, password_hash: null, email_verified: 0, status: 'active', created_at: now, updated_at: now };
+    user = { id: randomUUID(), email: null, phone, password_hash: null, email_verified: 0, status: 'active', name: null, city: null, created_at: now, updated_at: now };
     db.insertUser(user);
   }
   if (user.status !== 'active') throw new ApiError(403, 'forbidden', 'This account is disabled.');

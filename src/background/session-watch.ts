@@ -38,7 +38,10 @@ export async function refreshSessionState(): Promise<void> {
   }
 
   await setBadge('✓', COLORS.done);
-  if (!session.limitReachedAt && (await markLimitReached(session.id)) && settings.notifyOnSessionEnd) {
+  // `notifications` is not in the manifest: the session feature that would use it is
+  // dormant (nothing creates a session), so the permission was dropped rather than
+  // asked for at install. Restore it there before re-enabling this branch.
+  if (chrome.notifications && !session.limitReachedAt && (await markLimitReached(session.id)) && settings.notifyOnSessionEnd) {
     const mode = findMode(modes, session.modeId);
     const topic = mode?.topics.find((t) => t.id === session.topicId)?.name ?? session.goal;
     await chrome.notifications.create(NOTIFICATION_ID, {
@@ -53,6 +56,10 @@ export async function refreshSessionState(): Promise<void> {
 }
 
 export function registerSessionNotificationHandlers() {
+  // Guarded, not removed: without the manifest permission `chrome.notifications` is
+  // undefined, and reaching for it here would throw during service-worker startup and
+  // take the whole extension down with it.
+  if (!chrome.notifications) return;
   chrome.notifications.onButtonClicked.addListener(async (id, index) => {
     if (id !== NOTIFICATION_ID) return;
     if (index === 0) await extendSession(15);

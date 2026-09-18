@@ -42,6 +42,8 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
         return;
       }
       const result = await startCheckout({ planId: plan.id, period, currency, token, email: auth.user.email });
+      // Re-read from the server rather than trusting what checkout just told us.
+      await auth.reload();
       setMessage(`You're on ${plan.name}. It runs until ${new Date(result.expiresAt).toLocaleDateString()}.`);
     } catch (err) {
       // Closing the payment sheet is a decision, not an error worth shouting about.
@@ -91,7 +93,7 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
 
       <div className={`fsw-plans${compact ? ' is-compact' : ''}`}>
         {PLANS.map((plan) => (
-          <PlanCard key={plan.id} plan={plan} period={period} currency={currency} compact={compact} busy={busy === plan.id} onBuy={() => void buy(plan)} />
+          <PlanCard key={plan.id} plan={plan} period={period} currency={currency} compact={compact} busy={busy === plan.id} current={auth.plan} expiresAt={auth.planExpiresAt} onBuy={() => void buy(plan)} />
         ))}
       </div>
 
@@ -128,14 +130,38 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
   );
 }
 
-function PlanCard({ plan, period, currency, compact, busy, onBuy }: { plan: Plan; period: BillingPeriod; currency: CurrencyCode; compact?: boolean; busy?: boolean; onBuy: () => void }) {
+/** Where each plan sits relative to the others, so a card can say "upgrade" or "downgrade" honestly. */
+const RANK: Record<string, number> = { free: 0, pro: 1, unlimited: 2, max: 3 };
+
+function PlanCard({
+  plan,
+  period,
+  currency,
+  compact,
+  busy,
+  current,
+  expiresAt,
+  onBuy,
+}: {
+  plan: Plan;
+  period: BillingPeriod;
+  currency: CurrencyCode;
+  compact?: boolean;
+  busy?: boolean;
+  current: string;
+  expiresAt: number | null;
+  onBuy: () => void;
+}) {
   const isFree = plan.id === 'free';
+  const isCurrent = current === plan.id;
+  // Offering "Get Pro" to someone already on Pro is the bug this replaces.
+  const label = isCurrent ? 'Your plan' : RANK[plan.id] < RANK[current] ? `Switch to ${plan.name}` : plan.cta;
   const monthly = perMonth(plan, period);
   const saving = annualSavingPercent(plan, currency);
 
   return (
-    <article className={`fsw-plan${plan.featured ? ' is-featured' : ''}`}>
-      {plan.featured && <span className="fsw-plan-flag">Most popular</span>}
+    <article className={`fsw-plan${plan.featured ? ' is-featured' : ''}${isCurrent ? ' is-current' : ''}`}>
+      {isCurrent ? <span className="fsw-plan-flag is-current">Current plan</span> : plan.featured && <span className="fsw-plan-flag">Most popular</span>}
       <h3>{plan.name}</h3>
       <p className="fsw-plan-tagline">{plan.tagline}</p>
 
@@ -147,16 +173,29 @@ function PlanCard({ plan, period, currency, compact, busy, onBuy }: { plan: Plan
       {/* The annual charge is stated in full. "$2.42/month" with no yearly figure
           anywhere is the pattern that gets pricing pages accused of hiding the number. */}
       <p className="fsw-plan-sub">
-        {isFree
-          ? 'No card, no expiry'
-          : period === 'annual'
-            ? `${formatAmount(plan.price.annual, currency)} billed once a year · save ${saving}%`
-            : `${formatAmount(plan.price.monthly, currency)} billed every month`}
+        {isCurrent && expiresAt
+          ? `Runs until ${new Date(expiresAt).toLocaleDateString()}`
+          : isFree
+            ? 'No card, no expiry'
+            : period === 'annual'
+              ? `${formatAmount(plan.price.annual, currency)} billed once a year · save ${saving}%`
+              : `${formatAmount(plan.price.monthly, currency)} billed every month`}
       </p>
 
-      <button type="button" className={`fsw-btn ${plan.featured ? 'fsw-btn-primary' : 'fsw-btn-outline'} fsw-btn-block`} disabled={busy} onClick={onBuy}>
-        {busy ? 'Opening payment…' : plan.cta}
+      <button
+        type="button"
+        className={`fsw-btn ${plan.featured && !isCurrent ? 'fsw-btn-primary' : 'fsw-btn-outline'} fsw-btn-block`}
+        disabled={busy || isCurrent}
+        onClick={onBuy}
+      >
+        {busy ? 'Opening payment…' : label}
       </button>
+      {/* Buying the same plan again is a renewal, not a mistake — but it should be a deliberate choice. */}
+      {isCurrent && !isFree && (
+        <button type="button" className="fsw-link fsw-plan-renew" onClick={onBuy}>
+          Extend by another {period === 'annual' ? 'year' : 'month'}
+        </button>
+      )}
 
       <ul className="fsw-plan-features">
         {(compact ? plan.features.slice(0, 4) : plan.features).map((f) => (

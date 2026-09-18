@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as api from './api';
-import type { Session, User } from './api';
+import type { PlanId, Session, User } from './api';
 
 /**
  * Who is signed in, for the whole site.
@@ -20,11 +20,17 @@ const REFRESH_MARGIN_MS = 60_000;
 
 interface AuthState {
   user: User | null;
+  /** What they are entitled to right now. 'free' until the server says otherwise. */
+  plan: PlanId;
+  planExpiresAt: number | null;
   /** False until the stored session has been checked, so the nav does not flash "Sign in" at someone who is. */
   ready: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   completeSignup: (ticket: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Re-reads the account from the server — after a purchase, or a profile edit. */
+  reload: () => Promise<void>;
+  setProfile: (patch: { name?: string | null; city?: string | null }) => Promise<void>;
   /** A valid access token, refreshed if needed. Null when signed out. */
   token: () => Promise<string | null>;
 }
@@ -52,6 +58,8 @@ function writeSession(session: Session | null): void {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
+  const [plan, setPlan] = useState<PlanId>('free');
+  const [planExpiresAt, setPlanExpiresAt] = useState<number | null>(null);
 
   useEffect(() => {
     const stored = readSession();
@@ -103,11 +111,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     const current = readSession();
+    setPlan('free');
+    setPlanExpiresAt(null);
     apply(null); // locally first: signing out must never depend on the network
     if (current) await api.logout(current.refreshToken).catch(() => undefined);
   }, [apply]);
 
-  const value = useMemo<AuthState>(() => ({ user: session?.user ?? null, ready, signIn, completeSignup, signOut, token }), [session, ready, signIn, completeSignup, signOut, token]);
+  /**
+   * Pulls the account fresh. Called once a session exists and again after a
+   * purchase, so the plan the UI shows is the server's answer rather than
+   * something the client inferred from a checkout it just ran.
+   */
+  const reload = useCallback(async () => {
+    const current = await token();
+    if (!current) return;
+    try {
+      const result = await api.me(current);
+      setPlan(result.plan);
+      setPlanExpiresAt(result.planExpiresAt);
+      setSession((prev) => (prev ? { ...prev, user: result.user } : prev));
+    } catch {
+      // A failed refresh of the profile must never disturb the session itself.
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (session) void reload();
+    // Only when the identity changes — not on every token rotation.
+  }, [session?.user.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setProfile = useCallback(
+    async (patch: { name?: string | null; city?: string | null }) => {
+      const current = await token();
+      if (!current) throw new api.ApiError('You are signed out.', 'unauthorized', 401);
+      const result = await api.updateProfile(current, patch);
+      setSession((prev) => (prev ? { ...prev, user: result.user } : prev));
+    },
+    [token],
+  );
+
+  const value = useMemo<AuthState>(
+    () => ({ user: session?.user ?? null, plan, planExpiresAt, ready, signIn, completeSignup, signOut, token, reload, setProfile }),
+    [session, plan, planExpiresAt, ready, signIn, completeSignup, signOut, token, reload, setProfile],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

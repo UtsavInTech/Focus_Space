@@ -21,7 +21,7 @@ beforeEach(() => {
   identityDb = new IdentityDb(path);
   usageDb = new UsageDb(path);
   userId = randomUUID();
-  identityDb.insertUser({ id: userId, email: `${randomUUID()}@example.com`, phone: null, password_hash: 'x', email_verified: 1, status: 'active', created_at: Date.now(), updated_at: Date.now() });
+  identityDb.insertUser({ id: userId, email: `${randomUUID()}@example.com`, phone: null, password_hash: 'x', email_verified: 1, status: 'active', name: null, city: null, created_at: Date.now(), updated_at: Date.now() });
 });
 
 afterEach(() => {
@@ -57,7 +57,7 @@ describe('Space allowance is an entitlement, enforced server-side', () => {
 
   it('counts each account separately', () => {
     const otherId = randomUUID();
-    identityDb.insertUser({ id: otherId, email: `${randomUUID()}@example.com`, phone: null, password_hash: 'x', email_verified: 1, status: 'active', created_at: Date.now(), updated_at: Date.now() });
+    identityDb.insertUser({ id: otherId, email: `${randomUUID()}@example.com`, phone: null, password_hash: 'x', email_verified: 1, status: 'active', name: null, city: null, created_at: Date.now(), updated_at: Date.now() });
     for (let i = 0; i < FREE_SPACES; i++) registerSpace(usageDb, userId, `space-${i}`, null);
     expect(registerSpace(usageDb, otherId, 'their-first', null)).toEqual({ plan: 'free', used: 1, limit: FREE_SPACES });
   });

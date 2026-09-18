@@ -17,7 +17,8 @@
     "e2e": "node scripts/e2e/run.mjs",
     "ai-endpoint": "node scripts/ai-endpoint/server.mjs",
     "build:server": "vite build --config vite.server.config.ts",
-    "ai-api": "npm run build:server && node --env-file-if-exists=.env dist-server/index.mjs"
+    "ai-api": "npm run build:server && node --env-file-if-exists=.env dist-server/index.mjs",
+    "package": "node scripts/package.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

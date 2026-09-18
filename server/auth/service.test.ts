@@ -119,7 +119,9 @@ describe('authenticate', () => {
   it('never returns the password hash on the resolved user', () => {
     const { accessToken } = register(db, config, uniqueEmail(), 'password one', null);
     const { user } = authenticate(db, config, `Bearer ${accessToken}`);
-    expect(Object.keys(user).sort()).toEqual(['createdAt', 'email', 'emailVerified', 'id', 'phone']);
+    // An exact key set, not a subset: this is what catches password_hash (or any other
+    // internal column) being handed out by a future change to toPublicUser.
+    expect(Object.keys(user).sort()).toEqual(['city', 'createdAt', 'email', 'emailVerified', 'id', 'name', 'phone']);
   });
 });
 

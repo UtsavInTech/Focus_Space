@@ -34,6 +34,10 @@ export interface UserRow {
   password_hash: string | null;
   email_verified: number;
   status: 'active' | 'disabled';
+  /** What they want to be called. Null until they say. */
+  name: string | null;
+  /** Free text, for regional pricing and support context. Never validated against a list. */
+  city: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -75,6 +79,8 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash  TEXT,
   email_verified INTEGER NOT NULL DEFAULT 0,
   status         TEXT NOT NULL DEFAULT 'active',
+  name           TEXT,
+  city           TEXT,
   created_at     INTEGER NOT NULL,
   updated_at     INTEGER NOT NULL
 );
@@ -132,7 +138,14 @@ export class IdentityDb {
    */
   private migrate(): void {
     const columns = this.db.prepare('PRAGMA table_info(users)').all() as { name: string; notnull: number }[];
-    if (!columns.length || columns.some((c) => c.name === 'phone')) return;
+
+    // Profile fields, added after accounts already existed. Nullable columns are the
+    // one ALTER SQLite always accepts, so these need none of the table rebuild below.
+    const names = new Set(columns.map((c) => c.name));
+    if (columns.length && !names.has('name')) this.db.exec('ALTER TABLE users ADD COLUMN name TEXT');
+    if (columns.length && !names.has('city')) this.db.exec('ALTER TABLE users ADD COLUMN city TEXT');
+
+    if (!columns.length || names.has('phone')) return;
     this.db.exec(`
       PRAGMA foreign_keys = OFF;
       BEGIN;
@@ -177,6 +190,29 @@ export class IdentityDb {
 
   findUserById(id: string): UserRow | undefined {
     return this.db.prepare('SELECT * FROM users WHERE id = ?').get(id) as UserRow | undefined;
+  }
+
+  /**
+   * Profile fields only. Deliberately cannot touch email, phone, password or
+   * status: those are identity, they each have their own verified flow, and a
+   * general-purpose "update user" is how an account takeover becomes possible.
+   * `undefined` leaves a field alone; `null` clears it.
+   */
+  updateProfile(id: string, patch: { name?: string | null; city?: string | null }, at: number): void {
+    const sets: string[] = [];
+    const values: (string | null | number)[] = [];
+    if (patch.name !== undefined) {
+      sets.push('name = ?');
+      values.push(patch.name);
+    }
+    if (patch.city !== undefined) {
+      sets.push('city = ?');
+      values.push(patch.city);
+    }
+    if (!sets.length) return;
+    sets.push('updated_at = ?');
+    values.push(at, id);
+    this.db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).run(...values);
   }
 
   // ── verification codes ─────────────────────────────────────────────────

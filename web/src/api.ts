@@ -18,8 +18,12 @@ export interface User {
   email: string | null;
   phone: string | null;
   emailVerified: boolean;
+  name: string | null;
+  city: string | null;
   createdAt: number;
 }
+
+export type PlanId = 'free' | 'pro' | 'unlimited' | 'max';
 
 export interface Session {
   user: User;
@@ -94,7 +98,11 @@ export const refresh = (refreshToken: string) => post<{ ok: true; accessToken: s
 
 export const logout = (refreshToken: string) => post<{ ok: true }>('/v1/auth/logout', { refreshToken });
 
-export const me = (token: string) => request<{ ok: true; user: User }>('/v1/me', { headers: { Authorization: `Bearer ${token}` } });
+/** The plan rides along so a page never has to make a second call just to know what to offer. */
+export const me = (token: string) =>
+  request<{ ok: true; user: User; plan: PlanId; planExpiresAt: number | null }>('/v1/me', { headers: { Authorization: `Bearer ${token}` } });
+
+export const updateProfile = (token: string, patch: { name?: string | null; city?: string | null }) => post<{ ok: true; user: User }>('/v1/me/profile', patch, token);
 
 /** Billing. The server prices the plan — the client never sends an amount. */
 export interface CheckoutSession {
@@ -112,7 +120,7 @@ export const startCheckout = (token: string, body: { planId: string; period: str
   post<{ ok: true } & CheckoutSession>('/v1/billing/checkout', body, token);
 
 export const confirmPayment = (token: string, body: { orderId: string; paymentId: string; signature: string; planId: string; period: string; currency: string }) =>
-  post<{ ok: true; plan: 'free' | 'pro' | 'unlimited' | 'max'; expiresAt: number; granted: boolean }>('/v1/billing/confirm', body, token);
+  post<{ ok: true; plan: PlanId; expiresAt: number; granted: boolean }>('/v1/billing/confirm', body, token);
 
 export interface Payment {
   id: string;

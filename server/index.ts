@@ -36,6 +36,7 @@ import {
   startPhoneSignIn,
   tryAuthenticate,
   verifyEmailSignup,
+  updateProfile,
   verifyPhoneSignIn,
   type AuthConfig,
 } from './auth/service';
@@ -45,6 +46,7 @@ import { loadSenders } from './notify/sender';
 import { getUsageDb } from './usage/db';
 import { anonymousKey, assertAnonymousQuota, commitUsage, recordAnonymousUsage, releaseUsage, reserveUsage, usageStatus } from './usage/service';
 import { registerSpace, spaceAllowance, unregisterSpace } from './usage/spaces';
+import { resolvePlan } from './usage/entitlements';
 import { loadRazorpayConfig, verifyWebhookSignature } from './billing/razorpay';
 import { applyWebhook, confirmPayment, startCheckout } from './billing/service';
 
@@ -62,6 +64,7 @@ const AUTH_REFRESH_ROUTE = '/v1/auth/refresh';
 const AUTH_LOGOUT_ROUTE = '/v1/auth/logout';
 const ME_ROUTE = '/v1/me';
 const ME_USAGE_ROUTE = '/v1/me/usage';
+const ME_PROFILE_ROUTE = '/v1/me/profile';
 const ME_SPACES_ROUTE = '/v1/me/spaces';
 // Verified sign-up (email → code → password) and phone OTP sign-in. Same /v1/auth/* group, same
 // AuthConfig, same session issuing as register/login — see server/auth/service.ts.
@@ -75,7 +78,7 @@ const SIGNUP_VERIFY_ROUTE = '/v1/auth/signup/verify';
 const SIGNUP_COMPLETE_ROUTE = '/v1/auth/signup/complete';
 const PHONE_START_ROUTE = '/v1/auth/phone/start';
 const PHONE_VERIFY_ROUTE = '/v1/auth/phone/verify';
-const AUTH_ROUTES = new Set([BILLING_CHECKOUT_ROUTE, BILLING_CONFIRM_ROUTE, ME_PAYMENTS_ROUTE, AUTH_REGISTER_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
+const AUTH_ROUTES = new Set([ME_PROFILE_ROUTE, BILLING_CHECKOUT_ROUTE, BILLING_CONFIRM_ROUTE, ME_PAYMENTS_ROUTE, AUTH_REGISTER_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
 
 // Layer 2C — a burst/abuse safety net for the anonymous half of /v1/ai/complete, structurally separate
 // from the persisted, user_id-keyed usage/entitlement system below (see docs/LAYER_2C_USAGE_ENTITLEMENTS.md,
@@ -253,7 +256,10 @@ const server = createServer(async (req, res) => {
       }
       if (req.method === 'GET' && path === ME_ROUTE) {
         const { user } = authenticate(db, authConfig, req.headers.authorization);
-        sendJson(res, 200, { ok: true, user });
+        // The plan rides along so the pricing page can stop offering something the
+        // learner already owns — one request instead of two on every page load.
+        const entitlement = getUsageDb().getEntitlement(user.id);
+        sendJson(res, 200, { ok: true, user, plan: resolvePlan(entitlement), planExpiresAt: entitlement?.expires_at ?? null });
         return;
       }
       // Layer 2C — unlike /v1/ai/complete's fail-open policy, this route has nothing meaningful to answer
@@ -261,6 +267,14 @@ const server = createServer(async (req, res) => {
       if (req.method === 'GET' && path === ME_USAGE_ROUTE) {
         const { user } = authenticate(db, authConfig, req.headers.authorization);
         sendJson(res, 200, { ok: true, ...usageStatus(getUsageDb(), user.id) });
+        return;
+      }
+
+      // Name and city only — identity fields each have their own verified flow.
+      if (req.method === 'POST' && path === ME_PROFILE_ROUTE) {
+        const { user } = authenticate(db, authConfig, req.headers.authorization);
+        const body = (await readJsonBody(req, AUTH_MAX_BODY_BYTES)) as { name?: unknown; city?: unknown };
+        sendJson(res, 200, { ok: true, user: updateProfile(db, user.id, body) });
         return;
       }
 
