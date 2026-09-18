@@ -92,6 +92,11 @@ export const signupVerify = (email: string, code: string) => post<{ ok: true; ti
 /** Step 3: the password creates the account, and the response is a real session. */
 export const signupComplete = (ticket: string, password: string) => post<{ ok: true } & Session>('/v1/auth/signup/complete', { ticket, password });
 
+/** Reset: the same three steps as sign-up, ending in a new password and a fresh session. */
+export const resetStart = (email: string) => post<{ ok: true; delivery: string; devCode?: string; expiresAt: number }>('/v1/auth/reset/start', { email });
+export const resetVerify = (email: string, code: string) => post<{ ok: true; ticket: string; expiresAt: number }>('/v1/auth/reset/verify', { email, code });
+export const resetComplete = (ticket: string, password: string) => post<{ ok: true } & Session>('/v1/auth/reset/complete', { ticket, password });
+
 export const login = (email: string, password: string) => post<{ ok: true } & Session>('/v1/auth/login', { email, password });
 
 export const refresh = (refreshToken: string) => post<{ ok: true; accessToken: string; accessTokenExpiresAt: number; refreshToken: string }>('/v1/auth/refresh', { refreshToken });

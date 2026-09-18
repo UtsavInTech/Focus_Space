@@ -34,7 +34,7 @@ export function App() {
     document.title =
       path === '/pricing'
         ? 'Pricing — FocusSpace'
-        : path === '/signin' || path === '/signup'
+        : path === '/signin' || path === '/signup' || path === '/reset'
           ? 'Sign in — FocusSpace'
           : path === '/account'
             ? 'Your account — FocusSpace'
@@ -44,7 +44,7 @@ export function App() {
   }, [path]);
 
   const isPricing = path === '/pricing';
-  const isAuth = path === '/signin' || path === '/signup';
+  const isAuth = path === '/signin' || path === '/signup' || path === '/reset';
   const isAccount = path === '/account';
   const legal = LEGAL_DOCS[path] ?? null;
 
@@ -55,7 +55,7 @@ export function App() {
         {legal ? (
           <LegalPage doc={legal} />
         ) : isAuth ? (
-          <AuthPage mode={path === '/signup' ? 'signup' : 'signin'} />
+          <AuthPage mode={path === '/signup' ? 'signup' : path === '/reset' ? 'reset' : 'signin'} />
         ) : isAccount ? (
           <AccountPage />
         ) : isPricing ? (

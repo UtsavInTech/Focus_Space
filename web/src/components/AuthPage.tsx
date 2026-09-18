@@ -5,15 +5,20 @@ import * as api from '../api';
 import { Logo } from './Logo';
 
 /**
- * Sign in and sign up, on one page.
+ * Sign in, sign up and password reset, on one page.
  *
- * Sign-up is the server's three steps — address → code → password — shown as
- * three screens, because the account only exists after the third. That means
- * an abandoned sign-up leaves nothing behind, and it is why the password field
- * comes last rather than first.
+ * Sign-up and reset are the same three server steps — address → code →
+ * password — shown as three screens. For sign-up, the account only exists
+ * after the third, so an abandoned attempt leaves nothing behind; that is why
+ * the password field comes last rather than first. Reset reuses the shape
+ * because it is the same proof of control over the same mailbox.
+ *
+ * The code screen deliberately says "if there is an account for this address",
+ * never "we sent you a code" — the server gives an identical answer either
+ * way, and the wording must not undo that.
  */
 
-type Mode = 'signin' | 'signup';
+type Mode = 'signin' | 'signup' | 'reset';
 type Step = 'email' | 'code' | 'password';
 
 export function AuthPage({ mode: initialMode }: { mode: Mode }) {
@@ -55,6 +60,29 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
     e.preventDefault();
     if (busy) return;
 
+    // Reset mirrors sign-up exactly — address, code, password — because it is the
+    // same proof of control over the same mailbox, ending somewhere different.
+    if (mode === 'reset') {
+      if (step === 'email') {
+        return void run(async () => {
+          const result = await api.resetStart(email.trim());
+          setDevCode(result.devCode ?? null);
+          setStep('code');
+        });
+      }
+      if (step === 'code') {
+        return void run(async () => {
+          const result = await api.resetVerify(email.trim(), code.trim());
+          setTicket(result.ticket);
+          setStep('password');
+        });
+      }
+      return void run(async () => {
+        await auth.completeReset(ticket, password);
+        navigate('/account');
+      });
+    }
+
     if (mode === 'signin') {
       return void run(async () => {
         await auth.signIn(email.trim(), password);
@@ -94,15 +122,31 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
           <span>FocusSpace</span>
         </a>
 
-        <h1>{mode === 'signin' ? 'Sign in' : step === 'password' ? 'Choose a password' : step === 'code' ? 'Check your email' : 'Create your account'}</h1>
+        <h1>
+          {mode === 'signin'
+            ? 'Sign in'
+            : step === 'password'
+              ? mode === 'reset'
+                ? 'Choose a new password'
+                : 'Choose a password'
+              : step === 'code'
+                ? 'Check your email'
+                : mode === 'reset'
+                  ? 'Reset your password'
+                  : 'Create your account'}
+        </h1>
         <p className="fsw-auth-sub">
           {mode === 'signin'
             ? 'Your spaces, notes and monthly allowance, on every device.'
             : step === 'password'
-              ? 'Last step. Your account is created when you set this.'
+              ? mode === 'reset'
+                ? 'This also signs you out everywhere else, which is the point of resetting.'
+                : 'Last step. Your account is created when you set this.'
               : step === 'code'
-                ? `We sent a 6-digit code to ${email}.`
-                : 'Free: 5 modes and a monthly AI allowance. No card needed.'}
+                ? `If there is an account for ${email}, a 6-digit code is on its way.`
+                : mode === 'reset'
+                  ? 'Tell us your email and we will send a code to set a new password.'
+                  : 'Free: 5 modes and a monthly AI allowance. No card needed.'}
         </p>
 
         {!api.apiConfigured && (
@@ -119,7 +163,7 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
             </label>
           )}
 
-          {mode === 'signup' && step === 'code' && (
+          {mode !== 'signin' && step === 'code' && (
             <label>
               <span>6-digit code</span>
               <input
@@ -142,9 +186,9 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={mode === 'signup' ? 10 : undefined}
+                minLength={mode === 'signin' ? undefined : 10}
                 autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                placeholder={mode === 'signup' ? 'At least 10 characters' : ''}
+                placeholder={mode === 'signin' ? '' : 'At least 10 characters'}
                 disabled={busy}
               />
             </label>
@@ -159,13 +203,27 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
           {error && <p className="fsw-auth-error">{error}</p>}
 
           <button type="submit" className="fsw-btn fsw-btn-primary fsw-btn-block fsw-btn-lg" disabled={busy || !api.apiConfigured}>
-            {busy ? 'Working…' : mode === 'signin' ? 'Sign in' : step === 'email' ? 'Send me a code' : step === 'code' ? 'Verify' : 'Create account'}
+            {busy
+              ? 'Working…'
+              : mode === 'signin'
+                ? 'Sign in'
+                : step === 'email'
+                  ? 'Send me a code'
+                  : step === 'code'
+                    ? 'Verify'
+                    : mode === 'reset'
+                      ? 'Set new password'
+                      : 'Create account'}
           </button>
         </form>
 
         <p className="fsw-auth-switch">
           {mode === 'signin' ? (
             <>
+              <button type="button" className="fsw-link" onClick={() => switchMode('reset')}>
+                Forgot your password?
+              </button>
+              <br />
               No account yet?{' '}
               <button type="button" className="fsw-link" onClick={() => switchMode('signup')}>
                 Create one, free
@@ -173,7 +231,7 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
             </>
           ) : (
             <>
-              Already have an account?{' '}
+              {mode === 'reset' ? 'Remembered it?' : 'Already have an account?'}{' '}
               <button type="button" className="fsw-link" onClick={() => switchMode('signin')}>
                 Sign in
               </button>

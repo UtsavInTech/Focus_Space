@@ -42,7 +42,7 @@ export interface UserRow {
   updated_at: number;
 }
 
-export type VerificationKind = 'email_signup' | 'phone_login';
+export type VerificationKind = 'email_signup' | 'phone_login' | 'password_reset';
 
 /** A pending one-time code. Only the HMAC of the code is stored — see auth/codes.ts. */
 export interface VerificationRow {
@@ -283,7 +283,12 @@ export class IdentityDb {
     this.db.prepare('UPDATE sessions SET revoked_at = ? WHERE id = ?').run(at, id);
   }
 
-  /** "Log out everywhere" — not exposed via any route yet, but the schema already supports it (see docs §L). */
+  /** Used by a password reset: a new password must invalidate every session the old one opened. */
+  setPassword(userId: string, passwordHash: string, at: number): void {
+    this.db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?').run(passwordHash, at, userId);
+  }
+
+  /** "Log out everywhere" — used by a password reset, which must not leave a thief signed in. */
   revokeAllSessionsForUser(userId: string, at: number): void {
     this.db.prepare('UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL').run(at, userId);
   }

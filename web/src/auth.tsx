@@ -28,6 +28,7 @@ interface AuthState {
   ready: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   completeSignup: (ticket: string, password: string) => Promise<void>;
+  completeReset: (ticket: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   /** Re-reads the account from the server — after a purchase, or a profile edit. */
   reload: () => Promise<void>;
@@ -111,6 +112,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [apply],
   );
 
+  /** A reset ends signed in, on a session the old password can no longer reach. */
+  const completeReset = useCallback(
+    async (ticket: string, password: string) => {
+      const result = await api.resetComplete(ticket, password);
+      apply({ user: result.user, accessToken: result.accessToken, accessTokenExpiresAt: result.accessTokenExpiresAt, refreshToken: result.refreshToken });
+    },
+    [apply],
+  );
+
   const signOut = useCallback(async () => {
     const current = readSession();
     setPlan('free');
@@ -155,8 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthState>(
-    () => ({ user: session?.user ?? null, plan, planExpiresAt, autoRenew, ready, signIn, completeSignup, signOut, token, reload, setProfile }),
-    [session, plan, planExpiresAt, autoRenew, ready, signIn, completeSignup, signOut, token, reload, setProfile],
+    () => ({ user: session?.user ?? null, plan, planExpiresAt, autoRenew, ready, signIn, completeSignup, completeReset, signOut, token, reload, setProfile }),
+    [session, plan, planExpiresAt, autoRenew, ready, signIn, completeSignup, completeReset, signOut, token, reload, setProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

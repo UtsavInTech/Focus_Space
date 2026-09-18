@@ -27,15 +27,18 @@ import { getDb } from './auth/db';
 import {
   authenticate,
   completeEmailSignup,
+  completePasswordReset,
   loadAuthConfig,
   login,
   logout,
   refresh,
   register,
   startEmailSignup,
+  startPasswordReset,
   startPhoneSignIn,
   tryAuthenticate,
   verifyEmailSignup,
+  verifyPasswordReset,
   updateProfile,
   verifyPhoneSignIn,
   type AuthConfig,
@@ -79,9 +82,12 @@ const ME_PAYMENTS_ROUTE = '/v1/me/payments';
 const SIGNUP_START_ROUTE = '/v1/auth/signup/start';
 const SIGNUP_VERIFY_ROUTE = '/v1/auth/signup/verify';
 const SIGNUP_COMPLETE_ROUTE = '/v1/auth/signup/complete';
+const RESET_START_ROUTE = '/v1/auth/reset/start';
+const RESET_VERIFY_ROUTE = '/v1/auth/reset/verify';
+const RESET_COMPLETE_ROUTE = '/v1/auth/reset/complete';
 const PHONE_START_ROUTE = '/v1/auth/phone/start';
 const PHONE_VERIFY_ROUTE = '/v1/auth/phone/verify';
-const AUTH_ROUTES = new Set([ME_PROFILE_ROUTE, BILLING_SUBSCRIBE_ROUTE, BILLING_SUBSCRIBE_CONFIRM_ROUTE, BILLING_CANCEL_ROUTE, BILLING_CHECKOUT_ROUTE, BILLING_CONFIRM_ROUTE, ME_PAYMENTS_ROUTE, AUTH_REGISTER_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
+const AUTH_ROUTES = new Set([ME_PROFILE_ROUTE, BILLING_SUBSCRIBE_ROUTE, BILLING_SUBSCRIBE_CONFIRM_ROUTE, BILLING_CANCEL_ROUTE, BILLING_CHECKOUT_ROUTE, BILLING_CONFIRM_ROUTE, ME_PAYMENTS_ROUTE, AUTH_REGISTER_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, RESET_START_ROUTE, RESET_VERIFY_ROUTE, RESET_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
 
 // Layer 2C — a burst/abuse safety net for the anonymous half of /v1/ai/complete, structurally separate
 // from the persisted, user_id-keyed usage/entitlement system below (see docs/LAYER_2C_USAGE_ENTITLEMENTS.md,
@@ -231,6 +237,25 @@ const server = createServer(async (req, res) => {
       if (req.method === 'POST' && path === SIGNUP_COMPLETE_ROUTE) {
         const { ticket, password } = validateSignupCompletion(await readJsonBody(req, AUTH_MAX_BODY_BYTES));
         sendJson(res, 201, { ok: true, ...completeEmailSignup(db, authConfig, ticket, password, userAgent) });
+        return;
+      }
+
+      // ── Password reset ──
+      // Same three steps as sign-up, ending somewhere different: a new password and
+      // every old session revoked.
+      if (req.method === 'POST' && path === RESET_START_ROUTE) {
+        const { email } = validateEmailOnly(await readJsonBody(req, AUTH_MAX_BODY_BYTES));
+        sendJson(res, 200, { ok: true, ...(await startPasswordReset(db, authConfig, senders, email)) });
+        return;
+      }
+      if (req.method === 'POST' && path === RESET_VERIFY_ROUTE) {
+        const { email, code } = validateEmailCode(await readJsonBody(req, AUTH_MAX_BODY_BYTES));
+        sendJson(res, 200, { ok: true, ...verifyPasswordReset(db, authConfig, email, code) });
+        return;
+      }
+      if (req.method === 'POST' && path === RESET_COMPLETE_ROUTE) {
+        const { ticket, password } = validateSignupCompletion(await readJsonBody(req, AUTH_MAX_BODY_BYTES));
+        sendJson(res, 200, { ok: true, ...completePasswordReset(db, authConfig, ticket, password, userAgent) });
         return;
       }
 

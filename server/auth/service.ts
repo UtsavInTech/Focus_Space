@@ -279,6 +279,66 @@ export function completeEmailSignup(db: IdentityDb, config: AuthConfig, ticket: 
   return { ...issueSession(db, config, user.id, userAgent, now), user: toPublicUser(user) };
 }
 
+/* ─── Password reset ─────────────────────────────────────────────────────── */
+
+/** Marks a token that proves a reset code was verified — never a session. */
+const RESET_TICKET_SID = 'password-reset';
+
+/**
+ * Step 1: send a code, and say the same thing either way.
+ *
+ * A reset form that answers differently for a known and an unknown address is
+ * an account-existence oracle — worse here than at login, because anyone can
+ * probe it without a password. So an address with no account gets the same
+ * response, the same timing-insensitive path, and no email.
+ */
+export async function startPasswordReset(db: IdentityDb, config: AuthConfig, senders: Senders, email: string): Promise<CodeSent> {
+  const user = db.findUserByEmail(email);
+  if (!user || !user.password_hash) {
+    // Still rate-limited on the same key, so this cannot be used to probe faster than a real one.
+    if (!codeRequestLimiter.attempt(`password_reset:${email}`)) throw new ApiError(429, 'rate_limited', 'Too many codes requested for this address. Try again in a few minutes.');
+    // `senders.email.id`, not a literal: the real branch reports whichever sender ran
+    // ('resend' in production, 'console' locally), and hardcoding anything else here
+    // made the response differ between a real address and an unknown one — exactly the
+    // account-existence oracle this branch exists to prevent.
+    //
+    // A development server (AUTH_DEV_CODES=1, refused in production) does echo the code
+    // for a real address. That is a deliberate convenience where it cannot matter.
+    return { delivery: senders.email.id, expiresAt: Date.now() + CODE_TTL_MS };
+  }
+  return issueCode(db, config, senders, 'password_reset', email, 'email');
+}
+
+/** Step 2: the code buys a short-lived ticket, exactly as sign-up does. */
+export function verifyPasswordReset(db: IdentityDb, config: AuthConfig, email: string, code: string, now = Date.now()): { ticket: string; expiresAt: number } {
+  consumeCode(db, config, 'password_reset', email, code, now);
+  const expiresAt = now + SIGNUP_TICKET_TTL_MS;
+  return { ticket: signAccessToken({ sub: `reset:${email}`, sid: RESET_TICKET_SID, exp: expiresAt }, config.tokenSecret), expiresAt };
+}
+
+/**
+ * Step 3: set the new password, and revoke every existing session.
+ *
+ * The revocation is the point. Someone resets their password precisely because
+ * they think someone else has it; leaving the old sessions alive would let the
+ * thief stay signed in through the very act meant to remove them. The person
+ * resetting gets a fresh session back, so they are not logged out of the tab
+ * they are standing in.
+ */
+export function completePasswordReset(db: IdentityDb, config: AuthConfig, ticket: string, password: string, userAgent: string | null, now = Date.now()): AuthResult {
+  const payload = verifyAccessToken(ticket, config.tokenSecret, now);
+  if (!payload || payload.sid !== RESET_TICKET_SID || !payload.sub.startsWith('reset:')) {
+    throw new ApiError(400, 'invalid_request', 'That reset has expired. Start again with your email address.');
+  }
+  const email = payload.sub.slice('reset:'.length);
+  const user = db.findUserByEmail(email);
+  if (!user) throw new ApiError(400, 'invalid_request', 'That reset is no longer valid. Start again.');
+
+  db.setPassword(user.id, hashPassword(password), now);
+  db.revokeAllSessionsForUser(user.id, now);
+  return { ...issueSession(db, config, user.id, userAgent, now), user: toPublicUser(db.findUserById(user.id) ?? user) };
+}
+
 /** Trimmed, length-capped, and an empty string means "clear it" rather than storing blank. */
 function cleanField(value: unknown, max: number): string | null | undefined {
   if (value === undefined) return undefined;
