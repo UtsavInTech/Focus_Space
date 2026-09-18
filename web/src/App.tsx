@@ -9,6 +9,9 @@ import { PricingSection } from './components/PricingSection';
 import { Faq } from './components/Faq';
 import { Footer } from './components/Footer';
 import { ChatLauncher } from './components/ChatLauncher';
+import { AuthPage } from './components/AuthPage';
+import { AccountPage } from './components/AccountPage';
+import { AuthProvider } from './auth';
 
 /**
  * Two pages: the home, and a dedicated pricing page. Both share the nav, the
@@ -26,16 +29,29 @@ export function App() {
   }
 
   useEffect(() => {
-    document.title = path === '/pricing' ? 'Pricing — FocusSpace' : 'FocusSpace — YouTube, organised around what you came for';
+    document.title =
+      path === '/pricing'
+        ? 'Pricing — FocusSpace'
+        : path === '/signin' || path === '/signup'
+          ? 'Sign in — FocusSpace'
+          : path === '/account'
+            ? 'Your account — FocusSpace'
+            : 'FocusSpace — YouTube, organised around what you came for';
   }, [path]);
 
   const isPricing = path === '/pricing';
+  const isAuth = path === '/signin' || path === '/signup';
+  const isAccount = path === '/account';
 
   return (
-    <>
+    <AuthProvider>
       <SiteNav />
       <main id="main">
-        {isPricing ? (
+        {isAuth ? (
+          <AuthPage mode={path === '/signup' ? 'signup' : 'signin'} />
+        ) : isAccount ? (
+          <AccountPage />
+        ) : isPricing ? (
           <>
             <header className="fsw-page-head">
               <h1>Simple plans, honest limits</h1>
@@ -56,8 +72,8 @@ export function App() {
           </>
         )}
       </main>
-      <Footer />
+      {!isAuth && <Footer />}
       <ChatLauncher />
-    </>
+    </AuthProvider>
   );
 }

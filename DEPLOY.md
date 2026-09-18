@@ -15,8 +15,16 @@ railway init            # or: railway link, to attach to an existing project
 railway up              # builds and deploys from this directory
 ```
 
-`.railway/railway.ts` already declares the build command, the start command
-and the `/v1/health` healthcheck.
+`railway.json` sets the build command, the start command and the
+`/v1/health` healthcheck.
+
+> Railway is moving to Infrastructure as Code (`.railway/railway.ts`) and
+> deprecates `railway.json` on 2026-12-01. We deliberately stayed on
+> `railway.json`: the IaC file is the *whole* truth for a service, so adopting
+> it means declaring every variable and volume there too — and a file that
+> declares no secrets will happily delete the secrets you set in the
+> dashboard. Migrate when there is time to move variables and the volume
+> across in one go, not in the middle of a launch.
 
 ## 2. Add a volume — before the first real user
 

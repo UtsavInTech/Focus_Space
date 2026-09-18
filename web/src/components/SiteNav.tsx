@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { onLinkClick } from '../router';
+import { useAuth } from '../auth';
 import { Logo } from './Logo';
 
 const LINKS = [
@@ -9,6 +10,7 @@ const LINKS = [
 ];
 
 export function SiteNav() {
+  const auth = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -36,9 +38,16 @@ export function SiteNav() {
         </nav>
 
         <div className="fsw-nav-actions">
-          <a className="fsw-btn fsw-btn-ghost fsw-hide-sm" href="/#install" onClick={onLinkClick('/#install')}>
-            Sign in
-          </a>
+          {/* `ready` guards against flashing "Sign in" at someone who already is. */}
+          {auth.ready && auth.user ? (
+            <a className="fsw-btn fsw-btn-outline" href="/account" onClick={onLinkClick('/account')}>
+              My account
+            </a>
+          ) : (
+            <a className="fsw-btn fsw-btn-ghost fsw-hide-sm" href="/signin" onClick={onLinkClick('/signin')}>
+              Sign in
+            </a>
+          )}
           <a className="fsw-btn fsw-btn-primary" href="/#install" onClick={onLinkClick('/#install')}>
             Add to Chrome
           </a>

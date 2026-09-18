@@ -1,0 +1,10 @@
+# Railway assigns $PORT; the fallback only matters when running the image locally.
+:{$PORT:8080} {
+	root * /srv
+	encode gzip zstd
+	# The site uses real paths (/pricing, /signin, /account), so anything that is
+	# not a file on disk must return index.html rather than a 404 — otherwise a
+	# shared link or a refresh on /pricing breaks.
+	try_files {path} /index.html
+	file_server
+}

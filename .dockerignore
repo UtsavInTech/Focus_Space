@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-server
+dist-web
+e2e-artifacts
+data
+.git
+.env
+*.log

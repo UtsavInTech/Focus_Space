@@ -1,0 +1,23 @@
+# The FocusSpace website (focusspace.app) — static files behind Caddy.
+#
+# Separate from the API's Dockerfile because they are separate things with
+# separate lifecycles: the site is a CDN-shaped bundle of static assets, the
+# API is a stateful Node process with a volume. Same repo, same package.json,
+# different build target.
+
+FROM node:22-slim AS build
+WORKDIR /app
+# Vite inlines env vars at build time, so the API URL has to be present *here*,
+# not at runtime. Railway passes service variables to the builder as ARGs.
+ARG VITE_API_URL
+ARG VITE_SITE_URL
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_SITE_URL=$VITE_SITE_URL
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build:web
+
+FROM caddy:2-alpine AS runtime
+COPY --from=build /app/dist-web /srv
+COPY Caddyfile.web /etc/caddy/Caddyfile

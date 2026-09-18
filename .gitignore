@@ -1,12 +1,15 @@
 node_modules/
-dist/
-dist-server/
-dist-web/
-e2e-artifacts/
+# Leading slashes matter: an unanchored "dist/" or "data/" matches a directory of
+# that name at ANY depth. "data/" silently excluded all of src/content/data/ —
+# seven real source files — from the repository, so a fresh clone could not build.
+/dist/
+/dist-server/
+/dist-web/
+/e2e-artifacts/
 *.log
 .DS_Store
 # Layer 2B: local SQLite identity DB (server/auth/db.ts, DB_PATH) — dev data, never committed.
-data/
+/data/
 *.sqlite
 *.sqlite-*
 .env

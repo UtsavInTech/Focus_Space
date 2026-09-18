@@ -2,7 +2,7 @@
   "name": "focusspace",
   "private": true,
   "version": "0.4.0",
-  "description": "FocusSpace \u2014 an intent-driven learning layer for YouTube (Chrome extension, Manifest V3).",
+  "description": "FocusSpace — an intent-driven learning layer for YouTube (Chrome extension, Manifest V3).",
   "type": "module",
   "scripts": {
     "dev": "npm run icons && (vite build --mode development --watch & vite build --config vite.content.config.ts --mode development --watch & vite build --config vite.content.config.ts --mode bridge --watch)",
