@@ -195,7 +195,7 @@ function AccountSection({ settings }: { settings: Settings }) {
       {(!API_URL || settings.api.baseUrl) && (
         <SettingRow title="FocusSpace server" description="Where your account lives. Reference server: server/index.ts.">
           <div className="fs-row">
-            <TextInput value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="http://127.0.0.1:8788" style={{ width: 240 }} aria-label="FocusSpace server URL" />
+            <TextInput value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://your-server.example" style={{ width: 240 }} aria-label="FocusSpace server URL" />
             <Button size="sm" variant="secondary" disabled={trimmedBaseUrl === settings.api.baseUrl || (trimmedBaseUrl !== '' && !isHttpUrl(trimmedBaseUrl))} onClick={() => setApi({ baseUrl: trimmedBaseUrl })}>
               Save
             </Button>
@@ -281,7 +281,7 @@ function AiSection({ settings }: { settings: Settings }) {
       {showEndpoint && (settings.ai.provider === 'auto' || settings.ai.provider === 'endpoint') && (
         <SettingRow title="Your endpoint" description="A server you run keeps the API key — the extension never has one. Reference server: server/index.ts.">
           <div className="fs-row">
-            <TextInput value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://127.0.0.1:8788/v1/ai/complete" style={{ width: 240 }} aria-label="AI endpoint URL" />
+            <TextInput value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://your-server.example/v1/ai/complete" style={{ width: 240 }} aria-label="AI endpoint URL" />
             <Button size="sm" variant="secondary" disabled={trimmed === settings.ai.endpointUrl || (trimmed !== '' && !isHttpUrl(trimmed))} onClick={() => setAi({ endpointUrl: trimmed })}>
               Save
             </Button>

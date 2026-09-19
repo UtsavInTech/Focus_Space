@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "FocusSpace \u2014 Intent-Driven Learning for YouTube",
   "short_name": "FocusSpace",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Tell FocusSpace what you're learning. It structures YouTube around that intention and hides the attention traps.",
   "icons": {
     "16": "icons/icon-16.png",
