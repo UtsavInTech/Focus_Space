@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { MindMapNode } from '@/types/notes';
+import { connector, FONT, layoutMindMap, LINE_H, PAD_X, PAD_Y } from './mindmap-layout';
 
 /**
  * A mind map drawn as an actual map: the video's subject at the left, its
@@ -8,7 +9,7 @@ import type { MindMapNode } from '@/types/notes';
  * Inline SVG rather than a diagramming library. This renders inside a shadow
  * root on youtube.com under an extension CSP, where a library that injects
  * stylesheets or evaluates layout against `document` is a liability; the
- * layout here is a few dozen lines of arithmetic and it gives us exact
+ * layout (./mindmap-layout.ts) is a few dozen lines of arithmetic and gives exact
  * control over how it looks in both themes. Colours come from the FocusSpace
  * token set, so the diagram matches everything around it.
  *
@@ -17,138 +18,13 @@ import type { MindMapNode } from '@/types/notes';
  * picture, so the diagram costs nothing beyond the note itself.
  */
 
-const ROW_H = 30;
-const COL_GAP = 46;
-const PAD_X = 11;
-const PAD_Y = 7;
-const FONT = 12;
-const LINE_H = 15;
-const CHAR_W = 6.15; // Inter at 12px, averaged — good enough for box sizing
-const MAX_TEXT_W = 168;
-const MAX_LINES = 2;
-const MARGIN = 12;
-
-/** Branch colours, cycled per top-level branch so each limb of the map reads as one thing. */
-const BRANCH_COLORS = ['#6d5dfc', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
-
-interface Laid {
-  title: string;
-  lines: string[];
-  depth: number;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  color: string;
-  children: Laid[];
-}
-
-/** Greedy word wrap to at most `MAX_LINES`, ellipsising whatever does not fit. */
-function wrap(title: string): string[] {
-  const maxChars = Math.floor(MAX_TEXT_W / CHAR_W);
-  const words = title.split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let line = '';
-  for (const word of words) {
-    const candidate = line ? `${line} ${word}` : word;
-    if (candidate.length <= maxChars) {
-      line = candidate;
-      continue;
-    }
-    if (line) lines.push(line);
-    line = word;
-    if (lines.length === MAX_LINES) break;
-  }
-  if (line && lines.length < MAX_LINES) lines.push(line);
-  if (!lines.length) return [title.slice(0, maxChars)];
-
-  // Anything that did not fit is signalled, never silently dropped.
-  const rendered = lines.join(' ');
-  if (rendered.length < title.replace(/\s+/g, ' ').length) {
-    const last = lines[lines.length - 1];
-    lines[lines.length - 1] = `${last.slice(0, Math.max(0, maxChars - 1))}…`;
-  }
-  return lines;
-}
-
-/** Rows a subtree occupies — a leaf is one row, a parent is the sum of its children. */
-function rowsIn(node: MindMapNode): number {
-  if (!node.children.length) return 1;
-  return node.children.reduce((sum, child) => sum + rowsIn(child), 0);
-}
-
-/**
- * Lays the tree out left-to-right: x by depth, y by the vertical centre of the
- * rows the subtree occupies. A parent always sits level with the middle of its
- * children, which is what makes a mind map readable.
- */
-function layout(node: MindMapNode, depth: number, topRow: number, colX: number[], color: string): Laid {
-  const lines = wrap(node.title);
-  const w = Math.min(MAX_TEXT_W, Math.max(...lines.map((l) => l.length)) * CHAR_W) + PAD_X * 2;
-  const h = lines.length * LINE_H + PAD_Y * 2;
-
-  let row = topRow;
-  const children = node.children.map((child, i) => {
-    const laid = layout(child, depth + 1, row, colX, depth === 0 ? BRANCH_COLORS[i % BRANCH_COLORS.length] : color);
-    row += rowsIn(child);
-    return laid;
-  });
-
-  const rows = rowsIn(node);
-  const centreRow = topRow + rows / 2;
-  return { title: node.title, lines, depth, x: colX[depth] ?? 0, y: centreRow * ROW_H, w, h, color, children };
-}
-
-/** The widest box at each depth, so columns do not overlap on long titles. */
-function columnWidths(node: MindMapNode, depth: number, widths: number[]): void {
-  const lines = wrap(node.title);
-  const w = Math.min(MAX_TEXT_W, Math.max(...lines.map((l) => l.length)) * CHAR_W) + PAD_X * 2;
-  widths[depth] = Math.max(widths[depth] ?? 0, w);
-  for (const child of node.children) columnWidths(child, depth + 1, widths);
-}
-
-function flatten(node: Laid, out: Laid[] = []): Laid[] {
-  out.push(node);
-  for (const child of node.children) flatten(child, out);
-  return out;
-}
-
-/** A soft S-curve from a parent's right edge to a child's left edge. */
-function connector(parent: Laid, child: Laid): string {
-  const x1 = parent.x + parent.w;
-  const y1 = parent.y;
-  const x2 = child.x;
-  const y2 = child.y;
-  const mid = x1 + (x2 - x1) / 2;
-  return `M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`;
-}
-
 export function MindMapDiagram({ root }: { root: MindMapNode }) {
-  const { nodes, width, height } = useMemo(() => {
-    const widths: number[] = [];
-    columnWidths(root, 0, widths);
-
-    const colX: number[] = [];
-    let x = MARGIN;
-    for (let d = 0; d < widths.length; d++) {
-      colX[d] = x;
-      x += widths[d] + COL_GAP;
-    }
-
-    const laid = layout(root, 0, 0, colX, BRANCH_COLORS[0]);
-    const all = flatten(laid);
-    return {
-      nodes: all,
-      width: x - COL_GAP + MARGIN,
-      height: rowsIn(root) * ROW_H + MARGIN * 2,
-    };
-  }, [root]);
-
+  const { nodes, width, height } = useMemo(() => layoutMindMap(root), [root]);
   const byParent = useMemo(() => nodes.flatMap((n) => n.children.map((c) => ({ from: n, to: c }))), [nodes]);
 
   return (
     <div className="fs-mindmap" role="img" aria-label={`Mind map: ${root.title}`}>
-      <svg width={width} height={height} viewBox={`0 ${-ROW_H / 2 - MARGIN} ${width} ${height}`} xmlns="http://www.w3.org/2000/svg">
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} xmlns="http://www.w3.org/2000/svg">
         {byParent.map(({ from, to }, i) => (
           <path key={i} d={connector(from, to)} fill="none" stroke={to.color} strokeWidth={to.depth === 1 ? 1.75 : 1.25} strokeOpacity={to.depth === 1 ? 0.7 : 0.45} strokeLinecap="round" />
         ))}

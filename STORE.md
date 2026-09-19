@@ -91,16 +91,25 @@ own form handles them, so "financial information" is correctly left unticked.
 
 ---
 
-## Screenshots (1280×800)
+## Screenshots (1280×800) and promo tile (440×280)
 
-`e2e-artifacts/` has captures from the end-to-end run that can be cropped. The
-five worth showing, in this order:
+Generated from the store build against the live API, so every AI answer, note
+and mind map in them is real output:
 
-1. The rebuilt home — space chips, Continue watching, ranked subscriptions with match badges
-2. A watch page — the rail with Your course and the knowledge map
-3. A mind map, in diagram view
-4. Make Notes, showing the language options
-5. The first-run picker — "What do you want to focus on?"
+```bash
+VITE_API_URL=https://api.focusspace.xyz VITE_SITE_URL=https://focusspace.xyz npm run build
+node scripts/store-shots.mjs     # → release/store-assets/
+```
+
+Upload in this order:
+
+1. `1-home.png` — the rebuilt home: space chips, ranked channels with match badges, the best match from YouTube
+2. `2-watch-explain.png` — a lecture with the rail and a real Explain answer
+3. `3-mind-map.png` — a mind map, expanded
+4. `4-notes-hinglish.png` — Make Notes in Hinglish, with the language options
+5. `5-first-run.png` — the first-run picker, "What do you want to focus on?"
+
+`promo-tile-440x280.png` is the required small promo tile.
 
 ---
 

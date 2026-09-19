@@ -25,14 +25,24 @@ if (!existsSync(join(dist, 'manifest.json'))) {
 }
 
 // The built service worker carries whatever URLs were baked in. Read them back
-// rather than trusting that the right env vars were set.
-const background = readFileSync(join(dist, 'background.js'), 'utf8');
+// rather than trusting that the right env vars were set. Vite moves code shared
+// with the pages (src/config.ts among it) into chunks the worker imports, so
+// the check follows those imports — reading background.js alone misses them.
+function withImports(file, seen = new Set()) {
+  if (seen.has(file)) return '';
+  seen.add(file);
+  const code = readFileSync(join(dist, file), 'utf8');
+  const chunks = [...code.matchAll(/from\s*["']\.\/([^"']+\.js)["']/g)].map((m) => join(file, '..', m[1]));
+  return code + chunks.map((chunk) => withImports(chunk, seen)).join('\n');
+}
+const background = withImports('background.js');
 const problems = [];
 if (background.includes('127.0.0.1') || background.includes('localhost')) {
-  problems.push('dist/background.js contains a localhost URL — rebuild with the production VITE_API_URL and VITE_SITE_URL.');
+  problems.push('The service worker contains a localhost URL — rebuild with the production VITE_API_URL and VITE_SITE_URL.');
 }
-if (!background.includes('focusspace')) {
-  problems.push('dist/background.js has no FocusSpace URL baked in — VITE_API_URL was probably unset, so AI would not work for anyone.');
+// The site URL has a built-in default, so "mentions focusspace" proves nothing; the API URL has none.
+if (!background.includes('https://api.focusspace.xyz')) {
+  problems.push('The service worker has no https://api.focusspace.xyz baked in — VITE_API_URL was probably unset, so sign-in and AI would not work for anyone.');
 }
 if (problems.length) {
   for (const problem of problems) console.error(`✗ ${problem}`);
