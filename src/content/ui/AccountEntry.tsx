@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ChevronLeft, User, X } from 'lucide-react';
 import { OverlayRootContext } from '@/ui/components/Modal';
 import { accountIdentity, useAccountFlow } from '@/ui/account/flow';
+import { planLabel } from '@/billing/plans';
 
 /**
  * The FocusSpace account, in FocusSpace's own sidebar header — the one place in
@@ -15,7 +16,6 @@ import { accountIdentity, useAccountFlow } from '@/ui/account/flow';
  * anything longer belongs in Settings.
  */
 
-const PLAN_LABEL: Record<string, string> = { free: 'Free plan', pro: 'Pro plan' };
 
 export function AccountEntry() {
   const [open, setOpen] = useState(false);
@@ -103,7 +103,7 @@ export function AccountEntry() {
                 ) : user && step.view === 'menu' ? (
                   <>
                     <div className="fs-account-id">{identity}</div>
-                    <Meter label={usage ? (PLAN_LABEL[usage.plan] ?? usage.plan) : 'Plan'} used={usage?.used} limit={usage?.limit} unit="AI actions" loading={usage === undefined} />
+                    <Meter label={usage ? planLabel(usage.plan) : 'Plan'} used={usage?.used} limit={usage?.limit} unit="AI actions" loading={usage === undefined} />
                     <Meter label="Spaces on your account" used={spaces?.used} limit={spaces?.limit} unit="spaces" loading={spaces === undefined} />
                     <div className="fs-account-actions">
                       <button type="button" className="fs-pill-button" onClick={actions.openSettings}>
@@ -208,9 +208,19 @@ export function AccountEntry() {
   );
 }
 
-function Meter({ label, used, limit, unit, loading }: { label: string; used?: number; limit?: number; unit: string; loading: boolean }) {
+function Meter({ label, used, limit, unit, loading }: { label: string; used?: number; limit?: number | null; unit: string; loading: boolean }) {
   if (loading) return <p className="fs-account-note">Checking {unit}…</p>;
-  if (used === undefined || limit === undefined || !limit) return null;
+  if (used === undefined || limit === undefined || limit === 0) return null;
+  if (limit === null) {
+    return (
+      <div className="fs-account-meter">
+        <div className="fs-account-meter-label">
+          <span>{label}</span>
+          <span>Unlimited {unit}</span>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="fs-account-meter">
       <div className="fs-account-meter-label">

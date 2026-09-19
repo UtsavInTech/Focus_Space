@@ -10,6 +10,7 @@ import type { AiResult, AiStatus } from '@/learning/ai/service';
 import type { ConceptPosition, ConceptStop } from '@/learning/knowledge/locate';
 import { formatTimestamp } from '@/learning/knowledge/timestamps';
 import { MIN_VISIBLE_CONFIDENCE, type KnowledgeMap, type KnowledgeSource } from '@/learning/knowledge/types';
+import { HOSTED_AI_LABEL } from '@/config';
 import { sendMessage } from '@/messaging/runtime';
 import { YtLink } from '@/ui/nav';
 import { useKnowledge, usePlaybackConcept, useVideoDuration } from '../data/knowledge';
@@ -128,7 +129,7 @@ type Answer =
   | { kind: 'loading'; action: AiAction; at: number }
   | { kind: 'local'; action: AiAction; at: number; context: LearningContext; now: string | null; aiLoading: boolean; provider: string | null }
   | { kind: 'answer'; action: AiAction; at: number; text: string; provider: string }
-  | { kind: 'fallback'; action: AiAction; at: number; excerpt: string | null; setup: 'download' | 'configure' }
+  | { kind: 'fallback'; action: AiAction; at: number; excerpt: string | null; setup: 'off' | 'download' | 'configure' }
   | { kind: 'error'; action: AiAction; at: number; error: string; code?: string };
 
 const TRANSCRIPT_STATUS: Record<string, string> = {
@@ -214,12 +215,12 @@ export function NowLearning({
       return;
     }
     if (result.ok) setAnswer({ kind: 'answer', action, at, text: result.answer, provider: result.provider });
-    else if (result.code === 'unavailable') setAnswer({ kind: 'fallback', action, at, excerpt: context.transcriptWindow?.text ?? null, setup: status?.availability === 'downloadable' ? 'download' : 'configure' });
+    else if (result.code === 'unavailable') setAnswer({ kind: 'fallback', action, at, excerpt: context.transcriptWindow?.text ?? null, setup: ai.provider === 'off' ? 'off' : status?.availability === 'downloadable' ? 'download' : 'configure' });
     else setAnswer({ kind: 'error', action, at, error: result.error, code: result.code });
   }
 
   const aiState =
-    ai.provider === 'off' ? 'Off' : status?.availability === 'available' ? (status.provider === 'chrome' ? 'On-device' : 'Your endpoint') : status?.availability === 'downloadable' || status?.availability === 'downloading' ? 'Model not downloaded' : status ? 'Not set up' : '';
+    ai.provider === 'off' ? 'Off' : status?.availability === 'available' ? (status.provider === 'chrome' ? 'On-device' : status.label === HOSTED_AI_LABEL ? HOSTED_AI_LABEL : 'Your endpoint') : status?.availability === 'downloadable' || status?.availability === 'downloading' ? 'Model not downloaded' : status ? 'Not set up' : '';
 
   return (
     <>
@@ -465,7 +466,7 @@ function AnswerView({ answer, providerLabel, onSeek, onClose }: { answer: Answer
           <>
             <p className="fs-answer-note">
               <CircleHelp size={14} aria-hidden />{' '}
-              {answer.setup === 'download' ? 'The on-device AI model needs a one-time download — Settings → Learning companion.' : 'FocusSpace couldn’t reach its AI just now. Try again in a moment.'}
+              {answer.setup === 'off' ? 'AI is turned off — turn it back on in Settings → Learning companion.' : answer.setup === 'download' ? 'The on-device AI model needs a one-time download — Settings → Learning companion.' : 'FocusSpace couldn’t reach its AI just now. Try again in a moment.'}
             </p>
             {answer.excerpt && (
               <>
@@ -489,7 +490,7 @@ function AnswerView({ answer, providerLabel, onSeek, onClose }: { answer: Answer
         )}
       </div>
 
-      {provider && <div className="fs-answer-foot">From {PROVIDER_NAME[provider] ?? providerLabel ?? 'AI'} · AI can make mistakes</div>}
+      {provider && <div className="fs-answer-foot">From {providerLabel === HOSTED_AI_LABEL ? HOSTED_AI_LABEL : PROVIDER_NAME[provider] ?? providerLabel ?? 'AI'} · AI can make mistakes</div>}
     </div>
   );
 }

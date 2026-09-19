@@ -16,7 +16,7 @@ export async function status(): Promise<UsageStatusView | null> {
     const res = await fetch(`${base}/v1/me/usage`, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!res.ok) return null;
     const json = (await res.json().catch(() => null)) as Partial<UsageStatusView> & { ok?: boolean };
-    if (!json?.ok || typeof json.used !== 'number' || typeof json.limit !== 'number') return null;
+    if (!json?.ok || typeof json.used !== 'number' || (typeof json.limit !== 'number' && json.limit !== null)) return null;
     return { plan: json.plan ?? 'free', period: json.period ?? '', used: json.used, limit: json.limit };
   } catch {
     return null;

@@ -23,7 +23,8 @@ export interface SignupTicket {
 export interface SpaceAllowanceView {
   plan: string;
   used: number;
-  limit: number;
+  /** `null` is unlimited (Infinity does not survive JSON), never "unknown". */
+  limit: number | null;
 }
 
 /**

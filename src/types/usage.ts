@@ -8,5 +8,6 @@ export interface UsageStatusView {
   plan: string;
   period: string;
   used: number;
-  limit: number;
+  /** `null` is unlimited (Infinity does not survive JSON), never "unknown". */
+  limit: number | null;
 }

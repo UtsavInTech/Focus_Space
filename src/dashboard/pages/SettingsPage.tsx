@@ -4,6 +4,8 @@ import type { AiSettings, ApiSettings, Settings } from '@/types/domain';
 import type { NoteLanguage } from '@/types/notes';
 import type { AiStatus } from '@/learning/ai/service';
 import { downloadOnDeviceModel } from '@/ai/on-device';
+import { API_URL, HOSTED_AI_LABEL, usesHostedAi } from '@/config';
+import { planLabel } from '@/billing/plans';
 import { sendMessage } from '@/messaging/runtime';
 import { accountIdentity, useAccountFlow } from '@/ui/account/flow';
 import type { DashboardData } from '../DashboardApp';
@@ -38,16 +40,19 @@ function Section({ id, title, description, children }: { id: string; title: stri
   );
 }
 
-function Meter({ label, detail, used, limit }: { label: string; detail?: string; used: number; limit: number }) {
+/** `limit: null` is an unlimited plan: it says so, with no bar to fill. */
+function Meter({ label, used, limit, unit }: { label: string; used: number; limit: number | null; unit: string }) {
   return (
     <div className="fs-meter">
       <div className="fs-meter-head">
         <span className="fs-label">{label}</span>
-        <span className="fs-hint">{detail}</span>
+        <span className="fs-hint">{limit === null ? `Unlimited ${unit}` : `${used} of ${limit} ${unit}`}</span>
       </div>
-      <div className="fs-meter-track">
-        <span className="fs-meter-fill" style={{ width: `${Math.min(100, Math.round((used / Math.max(1, limit)) * 100))}%` }} />
-      </div>
+      {limit !== null && (
+        <div className="fs-meter-track">
+          <span className="fs-meter-fill" style={{ width: `${Math.min(100, Math.round((used / Math.max(1, limit)) * 100))}%` }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -60,7 +65,6 @@ const isHttpUrl = (url: string) => {
   }
 };
 
-const PLAN_LABEL: Record<string, string> = { free: 'Free plan', pro: 'Pro plan' };
 
 /* ─── Account ──────────────────────────────────────────────────────────────── */
 
@@ -73,6 +77,8 @@ function AccountSection({ settings }: { settings: Settings }) {
 
   const setApi = (p: Partial<ApiSettings>) => patch({ api: { ...settings.api, ...p } });
   const trimmedBaseUrl = baseUrl.trim();
+  // A store build already knows its server; the address field is only for someone running their own.
+  const hasServer = !!settings.api.baseUrl || !!API_URL;
   const method = step.view === 'phone' ? 'phone' : step.view === 'email-signup' ? 'create' : 'signin';
 
   return (
@@ -88,13 +94,13 @@ function AccountSection({ settings }: { settings: Settings }) {
               Sign out
             </Button>
           </SettingRow>
-          {usage && <Meter label={PLAN_LABEL[usage.plan] ?? usage.plan} detail={`${usage.used} of ${usage.limit} AI actions used this period`} used={usage.used} limit={usage.limit} />}
-          {spaces && <Meter label="Spaces on your account" detail={`${spaces.used} of ${spaces.limit} used`} used={spaces.used} limit={spaces.limit} />}
+          {usage && <Meter label={planLabel(usage.plan)} used={usage.used} limit={usage.limit} unit="AI actions this period" />}
+          {spaces && <Meter label="Spaces on your account" used={spaces.used} limit={spaces.limit} unit="spaces" />}
         </>
       ) : (
         <>
-          {!settings.api.baseUrl && <p className="fs-account-form-rows fs-hint">Add your FocusSpace server address below to create an account or sign in.</p>}
-          {settings.api.baseUrl && (
+          {!hasServer && <p className="fs-account-form-rows fs-hint">Add your FocusSpace server address below to create an account or sign in.</p>}
+          {hasServer && (
             <div className="fs-account-form-rows">
               <Segmented
                 label="Sign-in method"
@@ -186,14 +192,16 @@ function AccountSection({ settings }: { settings: Settings }) {
         </>
       )}
 
-      <SettingRow title="FocusSpace server" description="Where your account lives. Reference server: server/index.ts.">
-        <div className="fs-row">
-          <TextInput value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="http://127.0.0.1:8788" style={{ width: 240 }} aria-label="FocusSpace server URL" />
-          <Button size="sm" variant="secondary" disabled={trimmedBaseUrl === settings.api.baseUrl || (trimmedBaseUrl !== '' && !isHttpUrl(trimmedBaseUrl))} onClick={() => setApi({ baseUrl: trimmedBaseUrl })}>
-            Save
-          </Button>
-        </div>
-      </SettingRow>
+      {(!API_URL || settings.api.baseUrl) && (
+        <SettingRow title="FocusSpace server" description="Where your account lives. Reference server: server/index.ts.">
+          <div className="fs-row">
+            <TextInput value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="http://127.0.0.1:8788" style={{ width: 240 }} aria-label="FocusSpace server URL" />
+            <Button size="sm" variant="secondary" disabled={trimmedBaseUrl === settings.api.baseUrl || (trimmedBaseUrl !== '' && !isHttpUrl(trimmedBaseUrl))} onClick={() => setApi({ baseUrl: trimmedBaseUrl })}>
+              Save
+            </Button>
+          </div>
+        </SettingRow>
+      )}
     </Section>
   );
 }
@@ -220,6 +228,9 @@ function AiSection({ settings }: { settings: Settings }) {
 
   const setAi = (p: Partial<AiSettings>) => patch({ ai: { ...settings.ai, ...p } });
   const trimmed = url.trim();
+  // A store install uses FocusSpace AI; the personal-endpoint controls stay only for someone who already set one.
+  const hosted = usesHostedAi(settings.ai.endpointUrl);
+  const showEndpoint = !hosted || settings.ai.provider === 'endpoint';
   // Typed but not saved yet: the status line reflects *saved* settings, so without this a learner can
   // see a full URL in the box right next to "Add your endpoint URL."
   const unsavedUrl = trimmed !== settings.ai.endpointUrl && (settings.ai.provider === 'endpoint' || settings.ai.provider === 'auto');
@@ -244,15 +255,22 @@ function AiSection({ settings }: { settings: Settings }) {
 
   return (
     <Section id="ai" title="Learning companion" description="Explain, give an example, quiz you, take notes, or answer a question about the moment you're watching. It runs only when you ask.">
-      <SettingRow title="Provider" description="Automatic uses your endpoint when set, otherwise Chrome's on-device model.">
+      <SettingRow
+        title="Provider"
+        description={
+          hosted
+            ? `${HOSTED_AI_LABEL} answers from your plan's monthly credits. On-device uses Chrome's built-in model instead: free and private, but only on computers that support it.`
+            : "Automatic uses your endpoint when set, otherwise Chrome's on-device model."
+        }
+      >
         <Segmented
           label="AI provider"
           value={settings.ai.provider}
           onChange={(provider) => setAi({ provider })}
           options={[
-            { value: 'auto', label: 'Automatic' },
+            { value: 'auto', label: hosted ? HOSTED_AI_LABEL : 'Automatic' },
             { value: 'chrome', label: 'On-device' },
-            { value: 'endpoint', label: 'My endpoint' },
+            ...(showEndpoint ? [{ value: 'endpoint' as const, label: 'My endpoint' }] : []),
             { value: 'off', label: 'Off' },
           ]}
         />
@@ -260,7 +278,7 @@ function AiSection({ settings }: { settings: Settings }) {
       <SettingRow title="Answer language" description="Technical terms stay in English; the explanation around them follows this setting.">
         <Segmented label="Answer language" value={settings.ai.language} onChange={(language) => setAi({ language })} options={LANGUAGE_OPTIONS} />
       </SettingRow>
-      {(settings.ai.provider === 'auto' || settings.ai.provider === 'endpoint') && (
+      {showEndpoint && (settings.ai.provider === 'auto' || settings.ai.provider === 'endpoint') && (
         <SettingRow title="Your endpoint" description="A server you run keeps the API key — the extension never has one. Reference server: server/index.ts.">
           <div className="fs-row">
             <TextInput value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://127.0.0.1:8788/v1/ai/complete" style={{ width: 240 }} aria-label="AI endpoint URL" />
@@ -428,7 +446,10 @@ export function SettingsPage({ data }: { data: DashboardData }) {
             <span className="fs-h3">Learning companion (only when you ask)</span>
             <ul className="fs-bullets">
               <li>On-device AI runs inside Chrome: nothing leaves your browser.</li>
-              <li>Your endpoint receives only the moment you ask about: video title and channel, timestamp, nearby outline items, your course position, your space's topic names, a short transcript excerpt and your question.</li>
+              <li>
+                {usesHostedAi(settings.ai.endpointUrl) ? `${HOSTED_AI_LABEL} receives` : 'Your endpoint receives'} only the moment you ask about: video title and channel, timestamp, nearby outline items, your course position, your space's topic names, a short transcript excerpt and your question.
+                {usesHostedAi(settings.ai.endpointUrl) && ' Our AI provider, OpenRouter, processes it on our behalf. We don’t store your prompts or the answers.'}
+              </li>
               <li>To answer about a moment, FocusSpace may ask YouTube's player to load the video's captions, then restores your caption setting.</li>
             </ul>
           </div>

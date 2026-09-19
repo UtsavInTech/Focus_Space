@@ -129,6 +129,9 @@ export const PLANS: Plan[] = [
   },
 ];
 
+/** "Pro plan", "Max plan" — for a plan id that arrived as a plain string from the server. */
+export const planLabel = (id: string): string => `${PLANS.find((p) => p.id === id)?.name ?? id} plan`;
+
 export const planById = (id: PlanId): Plan => PLANS.find((p) => p.id === id) ?? PLANS[0];
 
 /**

@@ -1,6 +1,7 @@
 import type { AuthState } from '@/types/auth';
 import type { CodeSent, SignupTicket } from '@/types/account';
 import { getItem, setItem } from '@/storage/storage';
+import { API_URL } from '@/config';
 
 /**
  * FocusSpace account (Layer 2B) — the background service worker owns all
@@ -21,7 +22,8 @@ const REFRESH_SKEW_MS = 60_000;
 /** Exported for background/usage.ts (Layer 2C) — reuses this exact origin-validation instead of duplicating it. */
 export async function apiBaseUrl(): Promise<string | null> {
   const { api } = await getItem('settings');
-  const trimmed = api.baseUrl.trim().replace(/\/+$/, '');
+  // A store build signs in against FocusSpace's own API unless the learner pointed Settings somewhere else.
+  const trimmed = (api.baseUrl.trim() || API_URL).replace(/\/+$/, '');
   if (!trimmed) return null;
   try {
     return ['http:', 'https:'].includes(new URL(trimmed).protocol) ? trimmed : null;

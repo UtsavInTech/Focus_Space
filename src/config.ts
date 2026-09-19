@@ -24,4 +24,14 @@ export const SITE_URL = fromEnv('VITE_SITE_URL') ?? 'https://focusspace.xyz';
 /** The deployed API. Empty means "not deployed yet"; the extension then falls back to whatever the learner configured in Settings. */
 export const API_URL = fromEnv('VITE_API_URL') ?? '';
 
+/** What learners see AI answers attributed to when they come from the deployed API rather than a personal endpoint. */
+export const HOSTED_AI_LABEL = 'FocusSpace AI';
+
+/**
+ * True when this build talks to FocusSpace's own AI service and the learner has not set a personal
+ * endpoint — the normal case for a store install. The endpoint settings are for people running
+ * their own relay; everyone else should never be shown them.
+ */
+export const usesHostedAi = (endpointUrl: string): boolean => !!API_URL && !/^https?:\/\//i.test(endpointUrl.trim());
+
 export const siteUrl = (path = '/'): string => `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`;

@@ -30,7 +30,7 @@ export async function allowance(): Promise<SpaceAllowanceView | null> {
   try {
     const res = await fetch(`${session.base}/v1/me/spaces`, { headers: { Authorization: `Bearer ${session.token}` } });
     const json = (await res.json().catch(() => null)) as (SpaceAllowanceView & { ok?: boolean }) | null;
-    if (!res.ok || !json?.ok || typeof json.used !== 'number' || typeof json.limit !== 'number') return null;
+    if (!res.ok || !json?.ok || typeof json.used !== 'number' || (typeof json.limit !== 'number' && json.limit !== null)) return null;
     return { plan: json.plan ?? 'free', used: json.used, limit: json.limit };
   } catch {
     return null;

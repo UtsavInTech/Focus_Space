@@ -61,6 +61,13 @@ describe('usage status (Layer 2C)', () => {
     expect(await status()).toEqual({ plan: 'free', period: '2025-06', used: 12, limit: 200 });
   });
 
+  it('keeps an unlimited plan (null limit) instead of discarding it as malformed', async () => {
+    // Infinity reaches the wire as null. Dropping it hid the plan from every Unlimited and Max subscriber.
+    fakeChromeStorage({ settings: settingsWithBaseUrl(BASE_URL), auth: loggedIn });
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ ok: true, plan: 'unlimited', period: '2026-09', used: 40, limit: null }) })));
+    expect(await status()).toEqual({ plan: 'unlimited', period: '2026-09', used: 40, limit: null });
+  });
+
   it('fails silently to null on a non-2xx response, a network error, or a malformed body', async () => {
     fakeChromeStorage({ settings: settingsWithBaseUrl(BASE_URL), auth: loggedIn });
 

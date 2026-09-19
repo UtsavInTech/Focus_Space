@@ -2,7 +2,7 @@ import { LANGUAGE_OPTIONS, languageModel } from '@/ai/on-device';
 import { createAiService, type AiProvider } from '@/learning/ai/service';
 import { createUsageLog } from '@/learning/ai/usage';
 import { getItem } from '@/storage/storage';
-import { API_URL } from '@/config';
+import { API_URL, HOSTED_AI_LABEL } from '@/config';
 import { status as authStatus } from './auth';
 
 /** The one AI route the FocusSpace API exposes (server/index.ts). */
@@ -44,7 +44,7 @@ export const chromeProvider: AiProvider = {
 export function endpointProvider(url: string, accessToken?: string): AiProvider {
   return {
     id: 'endpoint',
-    label: `Your AI endpoint (${new URL(url).host})`,
+    label: API_URL && sameOrigin(url, API_URL) ? HOSTED_AI_LABEL : `Your AI endpoint (${new URL(url).host})`,
     availability: async () => 'available',
     async complete(prompt, request, signal) {
       let res: Response;

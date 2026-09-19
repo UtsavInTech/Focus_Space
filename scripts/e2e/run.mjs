@@ -138,6 +138,8 @@ async function waitForAd() {
         document.querySelector('.ytp-skip-ad-button, .ytp-ad-skip-button-modern, .ytp-ad-skip-button')?.click();
         const v = document.querySelector('#movie_player video');
         if (v?.paused) v.play().catch(() => undefined);
+        // Unskippable ads can outlast any timeout (one ran 174s); jump to the end instead of waiting it out.
+        if (v && Number.isFinite(v.duration) && v.duration > 0 && v.currentTime < v.duration - 0.5) v.currentTime = v.duration - 0.1;
         return false;
       }),
     'pre-roll ad finished',
@@ -399,7 +401,7 @@ await step('AI runs only when asked, with only this moment’s context (test end
   await shot(yt, 'watch-ai-answer');
 });
 
-await step('"What am I learning?" works without any AI; other actions say AI is not set up', async () => {
+await step('"What am I learning?" works without any AI; other actions say AI is turned off', async () => {
   await storage.patchSettings({ ai: { provider: 'off', endpointUrl: AI_URL } });
   await sleep(800);
   const before = aiRequests.length;
@@ -410,7 +412,7 @@ await step('"What am I learning?" works without any AI; other actions say AI is 
   const title = await railText(yt.locator(rail('.fs-learning-title')));
   assert(headline === title, `headline "${headline}" vs current concept "${title}" at ${await yt.evaluate(() => document.querySelector('#movie_player video')?.currentTime)}s`);
   await yt.click(rail('.fs-ai-chip:has-text("Example")'));
-  await waitFor(async () => (await slotText('watch')).includes('AI isn’t set up yet'), 'honest fallback', 20000);
+  await waitFor(async () => (await slotText('watch')).includes('AI is turned off'), 'honest fallback', 20000);
   assert(aiRequests.length === before, 'no AI request when AI is off');
 });
 
