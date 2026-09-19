@@ -442,9 +442,22 @@ await step('Shorts open as a regular video; channel Shorts tab hidden', async ()
 
 console.log('\nSpaces');
 
+/** Adds a suggested Space the way a learner does: from the suggestions in the Space manager. */
+async function addSuggestedSpace(name) {
+  await ext.goto(`${EXT}/dashboard.html#/modes`);
+  await ext.locator(`button:has-text("${name}")`).first().click();
+  await waitFor(async () => ((await storage.get(['modes'])).modes ?? []).some((m) => m.name === name), `${name} added`, 10000);
+}
+
+await step('A new install owns only the Space it picked; the rest are suggestions', async () => {
+  const { modes } = await storage.get(['modes']);
+  assert(modes.length === 1 && modes[0].id === 'dsa', `owned spaces: ${modes.map((m) => m.id)}`);
+});
+
 await step('Switch space from the YouTube sidebar — same tab, new feed', async () => {
+  await addSuggestedSpace('AI / ML');
   await yt.goto('https://www.youtube.com/', { waitUntil: 'domcontentloaded' });
-  await waitFor(async () => (await yt.locator('focusspace-slot[data-slot="guide"] .fs-guide-item').count()) > 3, 'FocusSpace section in the sidebar', 20000);
+  await waitFor(async () => (await yt.locator('focusspace-slot[data-slot="guide"] button:has-text("AI / ML")').count()) > 0, 'FocusSpace section in the sidebar', 20000);
   await shot(yt, 'sidebar');
   const marker = await markPage();
   const pages = context.pages().length;
@@ -480,7 +493,22 @@ await step('Create a space from one sentence: "Punjabi music" + channel search "
   await shot(yt, 'punjabi-music-home');
 });
 
+await step('Without an account, a 4th Space is refused with the guest limit — and deleting one makes room', async () => {
+  // DSA, AI / ML and Punjabi Music: the 3 a guest may keep.
+  assert((await storage.get(['modes'])).modes.length === 3, 'expected three spaces');
+  await ext.goto(`${EXT}/dashboard.html#/modes`);
+  await ext.locator('button:has-text("Web Development")').first().click();
+  await ext.waitForSelector('text=Without an account, FocusSpace keeps 3 Spaces', { timeout: 10000 });
+  assert(!(await storage.get(['modes'])).modes.some((m) => m.name === 'Web Development'), 'the 4th space was created');
+  await ext.locator('button[aria-label="Delete Punjabi Music"]').click();
+  await ext.locator('button:has-text("Delete space")').click();
+  await waitFor(async () => (await storage.get(['modes'])).modes.length === 2, 'space deleted', 10000);
+  await addSuggestedSpace('Web Development');
+});
+
 await step('Topic playlist: Web Development → HTML & CSS → add a video by link', async () => {
+  await yt.goto('https://www.youtube.com/', { waitUntil: 'domcontentloaded' });
+  await waitFor(async () => (await yt.locator('focusspace-slot[data-slot="guide"] button:has-text("Web Development")').count()) > 0, 'Web Development in the sidebar', 20000);
   await yt.click('focusspace-slot[data-slot="guide"] button:has-text("Web Development")');
   await waitFor(async () => (await yt.locator(home('.fs-space-button')).textContent())?.includes('Web Development'), 'web dev');
   await yt.click(home('.fs-chips button:has-text("HTML & CSS")'));
@@ -510,8 +538,8 @@ await step('Popup: toggle, space picker, "Open YouTube" reuses the tab', async (
   assert(!(await popup.textContent('body')).match(/session/i), 'popup still shows sessions');
   await shot(popup, 'popup');
   await popup.click('.fs-dropdown-trigger');
-  await popup.click('.fs-dropdown-item:has-text("SQL")');
-  await waitFor(async () => (await storage.get(['settings'])).settings.activeModeId === 'sql', 'space switched from popup');
+  await popup.click('.fs-dropdown-item:has-text("DSA")');
+  await waitFor(async () => (await storage.get(['settings'])).settings.activeModeId === 'dsa', 'space switched from popup');
   const ytTabs = youtubePages().length;
   await popup.click('button:has-text("Open YouTube")').catch(() => undefined);
   await sleep(1500);
@@ -520,8 +548,12 @@ await step('Popup: toggle, space picker, "Open YouTube" reuses the tab', async (
 });
 
 await step('Space manager: spaces, one-sentence creation with channel search, simple editor', async () => {
-  await ext.goto(`${EXT}/dashboard.html#/`);
+  await ext.goto(`${EXT}/dashboard.html#/modes`);
   await ext.waitForSelector('text=Spaces');
+  // A guest holds 3 Spaces at most; make room for the one this step creates.
+  await ext.locator('button[aria-label="Delete AI / ML"]').click();
+  await ext.locator('button:has-text("Delete space")').click();
+  await waitFor(async () => !(await storage.get(['modes'])).modes.some((m) => m.name === 'AI / ML'), 'space deleted', 10000);
   await ext.click('button:has-text("New space")');
   await ext.fill('#fs-intent', 'System Design');
   await ext.click('.fs-modal button:has-text("Continue")');
@@ -535,6 +567,17 @@ await step('Space manager: spaces, one-sentence creation with channel search, si
   await ext.waitForSelector('.fs-channel-group', { timeout: 20000 });
   await ext.goto(`${EXT}/dashboard.html#/settings`);
   await ext.waitForSelector('text=Advanced filtering');
+});
+
+await step('Dashboard Home, Library and History open, and saved notes are listed', async () => {
+  await ext.goto(`${EXT}/dashboard.html#/`);
+  await ext.waitForSelector('text=Your Spaces');
+  await ext.waitForSelector('text=AI study tools, on any video');
+  await ext.goto(`${EXT}/dashboard.html#/library`);
+  await ext.waitForSelector('h1:has-text("Library")');
+  await ext.goto(`${EXT}/dashboard.html#/history`);
+  await ext.waitForSelector('h1:has-text("History")');
+  await shot(ext, 'dashboard-history');
 });
 
 await step('Narrow YouTube window: home has no horizontal overflow', async () => {

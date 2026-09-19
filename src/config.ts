@@ -34,4 +34,11 @@ export const HOSTED_AI_LABEL = 'FocusSpace AI';
  */
 export const usesHostedAi = (endpointUrl: string): boolean => !!API_URL && !/^https?:\/\//i.test(endpointUrl.trim());
 
+/**
+ * Phone sign-in needs an SMS provider, and there is none yet: the server refuses phone codes in
+ * production (server/notify/sender.ts). Off, so no screen offers a path that cannot finish. Turn on
+ * together with a real SMS sender.
+ */
+export const PHONE_SIGN_IN = false;
+
 export const siteUrl = (path = '/'): string => `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`;

@@ -1,5 +1,6 @@
 import { ApiError } from '../http';
 import type { UsageDb } from './db';
+import { planLabel } from '@/billing/plans';
 import { limitsFor, resolvePlan } from './entitlements';
 
 /**
@@ -25,9 +26,12 @@ export function spaceAllowance(db: UsageDb, userId: string): SpaceAllowance {
   return { plan, used: db.countSpaces(userId), limit: limitsFor(plan).maxSpaces };
 }
 
-/** The product explanation the learner actually sees when the Free plan runs out of Spaces. */
-function spaceLimitReached(limit: number): ApiError {
-  return new ApiError(403, 'space_limit', `Your plan includes ${limit} spaces. Delete one you no longer use to make room — more spaces will come with a paid plan.`);
+/**
+ * The product explanation the learner actually sees when their plan runs out of Spaces. Names the plan
+ * they are on — telling a Pro subscriber that "more spaces will come with a paid plan" was simply wrong.
+ */
+export function spaceLimitMessage(plan: string, limit: number): string {
+  return `Your ${planLabel(plan)} includes ${limit} Spaces. Delete one you no longer use to make room, or upgrade for more.`;
 }
 
 /**
@@ -41,7 +45,7 @@ export function registerSpace(db: UsageDb, userId: string, spaceId: string, name
     if (name) db.renameSpace(userId, spaceId, name, now);
     return current;
   }
-  if (current.used >= current.limit) throw spaceLimitReached(current.limit);
+  if (current.used >= current.limit) throw new ApiError(403, 'space_limit', spaceLimitMessage(current.plan, current.limit));
   db.insertSpace({ user_id: userId, space_id: spaceId, name, created_at: now });
   return { ...current, used: current.used + 1 };
 }

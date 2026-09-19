@@ -1,3 +1,4 @@
+import { CHAT_VERSION, type ChatSession } from '@/types/chat';
 import type {
   Channel,
   FilterConfig,
@@ -23,7 +24,7 @@ import { PREFERENCE_VERSION, type PreferenceProfile } from '@/types/preferences'
 import { NOTES_VERSION, type SavedNote } from '@/types/notes';
 import type { AuthState } from '@/types/auth';
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 /** Knowledge maps per video, rebuilt when their input signature or KNOWLEDGE_VERSION changes. */
 export interface KnowledgeCacheStore {
@@ -77,6 +78,37 @@ export interface StorageSchema {
   notes: NotesStore;
   /** FocusSpace account/session state (Layer 2B) — see src/types/auth.ts. Anonymous by default. */
   auth: AuthState;
+  /** AI conversations ("Ask AI" on a video, and the FocusSpace AI bubble), newest first — for the Library. */
+  chatSessions: ChatStore;
+  /**
+   * A random id for this install, sent only with signed-out AI requests to FocusSpace's own server, so the
+   * free daily allowance is per install rather than per network (server/usage/service.ts). Device data:
+   * it belongs to no account and never changes owner.
+   */
+  installId: string;
+  /** Whose data the other keys hold right now — see storage/ownership.ts. */
+  ownership: Ownership;
+  /** A signed-in learner who has not yet said whether this browser's guest data should become theirs. */
+  pendingClaim: PendingClaim | null;
+}
+
+/**
+ * `owner` is `'guest'` or an account's user id. `epoch` changes whenever the data in the other keys is
+ * replaced by someone else's, so a page still showing the previous owner can tell its view is stale.
+ */
+export interface ChatStore {
+  version: number;
+  sessions: ChatSession[];
+}
+
+export interface Ownership {
+  owner: string;
+  epoch: number;
+}
+
+export interface PendingClaim {
+  userId: string;
+  email: string | null;
 }
 
 export interface RelevanceCacheStore {
@@ -121,8 +153,8 @@ export const FILTER_PRESETS: Record<Exclude<FilterConfig['intensity'], 'custom'>
 
 export const DEFAULT_SETTINGS: Settings = {
   focusEnabled: true,
-  activeModeId: 'dsa',
-  defaultModeId: 'dsa',
+  activeModeId: null,
+  defaultModeId: null,
   focus: { intensity: 'balanced', filters: { ...FILTER_PRESETS.balanced } },
   offTrackNudges: true,
   trackWatchHistory: true,
@@ -148,11 +180,13 @@ export const DEFAULT_SYNC: SyncState = {
   lastError: null,
 };
 
-export function defaultsFor<K extends StorageKey>(key: K): StorageSchema[K] {
-  const defaults: StorageSchema = {
+function allDefaults(): StorageSchema {
+  return {
     schemaVersion: SCHEMA_VERSION,
     settings: DEFAULT_SETTINGS,
-    modes: DEFAULT_MODES,
+    // No Spaces until the learner picks one: the templates are suggestions (modes/templates.ts), and a
+    // Space the learner never chose must not count against an allowance they never used.
+    modes: [],
     session: null,
     sessionHistory: [],
     usage: {},
@@ -169,8 +203,22 @@ export function defaultsFor<K extends StorageKey>(key: K): StorageSchema[K] {
     preferenceProfiles: { version: PREFERENCE_VERSION, modes: {} },
     notes: { version: NOTES_VERSION, byVideo: {} },
     auth: { user: null, accessToken: null, accessTokenExpiresAt: null, refreshToken: null },
+    chatSessions: { version: CHAT_VERSION, sessions: [] },
+    installId: '',
+    ownership: { owner: 'guest', epoch: 0 },
+    pendingClaim: null,
   };
-  return structuredClone(defaults[key]);
+}
+
+/**
+ * Every storage key, read off the defaults so a new key cannot be forgotten by code that iterates them.
+ * A function, not a constant: the defaults use version numbers from modules that import this one, and
+ * building them while those are still loading kills the content script at startup.
+ */
+export const storageKeys = (): StorageKey[] => Object.keys(allDefaults()) as StorageKey[];
+
+export function defaultsFor<K extends StorageKey>(key: K): StorageSchema[K] {
+  return structuredClone(allDefaults()[key]);
 }
 
 const SEARCH_POLICIES = ['show', 'dim', 'focus'];
@@ -259,6 +307,18 @@ export function normalize<K extends StorageKey>(key: K, raw: unknown): StorageSc
       // rather than trust a partially-written value (e.g. a crash mid-write).
       const coherent = !!a.user && typeof a.accessToken === 'string' && typeof a.refreshToken === 'string';
       return (coherent ? { user: a.user, accessToken: a.accessToken, accessTokenExpiresAt: a.accessTokenExpiresAt ?? null, refreshToken: a.refreshToken } : defaultsFor(key)) as StorageSchema[K];
+    }
+    case 'chatSessions': {
+      const store = raw as Partial<ChatStore>;
+      return (store.version === CHAT_VERSION && Array.isArray(store.sessions) ? store : defaultsFor(key)) as StorageSchema[K];
+    }
+    case 'ownership': {
+      const o = raw as Partial<Ownership>;
+      return (typeof o.owner === 'string' && o.owner && typeof o.epoch === 'number' ? { owner: o.owner, epoch: o.epoch } : defaultsFor(key)) as StorageSchema[K];
+    }
+    case 'pendingClaim': {
+      const c = raw as Partial<PendingClaim>;
+      return (typeof c.userId === 'string' && c.userId ? { userId: c.userId, email: typeof c.email === 'string' ? c.email : null } : null) as StorageSchema[K];
     }
     default:
       return raw as StorageSchema[K];

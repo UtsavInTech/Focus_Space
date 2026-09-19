@@ -142,6 +142,15 @@ describe('endpointProvider: the exact wire contract a FocusSpace-compatible serv
     const [, init] = fetchMock.mock.calls[0];
     expect(init.headers).toEqual({ 'Content-Type': 'application/json', Authorization: 'Bearer the-access-token' });
   });
+
+  it('signed out, the install id is sent so the free allowance is per install — and never together with a token', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => ({ ok: true, status: 200, json: async () => ({ answer: 'ok' }) }));
+    vi.stubGlobal('fetch', fetchMock);
+    await endpointProvider('http://127.0.0.1:8788/v1/ai/complete', undefined, 'install-1').complete({ system: 's', user: 'u' }, { action: 'explain', context: ctx });
+    expect(fetchMock.mock.calls[0][1].headers).toEqual({ 'Content-Type': 'application/json', 'X-FocusSpace-Install': 'install-1' });
+    await endpointProvider('http://127.0.0.1:8788/v1/ai/complete', 'the-access-token', 'install-1').complete({ system: 's', user: 'u' }, { action: 'explain', context: ctx });
+    expect(fetchMock.mock.calls[1][1].headers).not.toHaveProperty('X-FocusSpace-Install');
+  });
 });
 
 describe('Chrome on-device stays independent of the endpoint provider', () => {
@@ -232,6 +241,18 @@ describe('resolveProviders: Layer 2C same-origin FocusSpace token attachment', (
 
   it('never attaches a token when the learner is signed out, even if the origins match', async () => {
     fakeChromeStorage({ settings: { ai: { provider: 'endpoint', endpointUrl: 'http://127.0.0.1:8788/v1/ai/complete', language: 'en' }, api: { baseUrl: 'http://127.0.0.1:8788' } } });
+    const [provider] = await resolveProviders();
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => ({ ok: true, status: 200, json: async () => ({ answer: 'ok' }) }));
+    vi.stubGlobal('fetch', fetchMock);
+    await provider.complete({ system: 's', user: 'u' }, { action: 'explain', context: ctx });
+    const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+    expect(headers).not.toHaveProperty('Authorization');
+    // Signed out, FocusSpace's own server gets this install's id instead, for the per-install free allowance.
+    expect(headers['X-FocusSpace-Install']).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('a personal endpoint never receives the install id', async () => {
+    fakeChromeStorage({ settings: { ai: { provider: 'endpoint', endpointUrl: 'https://my-relay.example/v1/ai', language: 'en' }, api: { baseUrl: 'http://127.0.0.1:8788' } } });
     const [provider] = await resolveProviders();
     const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => ({ ok: true, status: 200, json: async () => ({ answer: 'ok' }) }));
     vi.stubGlobal('fetch', fetchMock);

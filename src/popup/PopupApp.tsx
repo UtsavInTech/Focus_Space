@@ -68,12 +68,12 @@ export function PopupApp() {
         <Button variant="primary" icon={<ExternalLink />} onClick={openYouTube}>
           Open YouTube
         </Button>
-        <Button variant="secondary" icon={<Plus />} onClick={() => openDashboard('/?new=1')}>
+        <Button variant="secondary" icon={<Plus />} onClick={() => openDashboard('/modes?new=1')}>
           New space
         </Button>
       </div>
       <nav className="fs-popup-links">
-        <Button size="sm" variant="ghost" onClick={() => openDashboard('/')}>
+        <Button size="sm" variant="ghost" onClick={() => openDashboard('/modes')}>
           Manage spaces
         </Button>
         <Button size="sm" variant="ghost" onClick={() => openDashboard('/subscriptions')}>

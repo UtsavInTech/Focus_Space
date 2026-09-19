@@ -1,4 +1,4 @@
-import { ExternalLink, Layers, Settings as SettingsIcon, Users } from 'lucide-react';
+import { ExternalLink, History, House, Layers, Library, Settings as SettingsIcon, Users } from 'lucide-react';
 import { useDocumentTheme, useStorage } from '@/ui/hooks';
 import { Logo, Skeleton, Switch } from '@/ui/components/primitives';
 import { SpaceIcon } from '@/ui/icons';
@@ -9,9 +9,20 @@ import { ModesPage } from './pages/ModesPage';
 import { ModeEditorPage } from './pages/ModeEditorPage';
 import { SubscriptionsPage } from './pages/SubscriptionsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { HomePage } from './pages/HomePage';
+import { LibraryPage } from './pages/LibraryPage';
+import { HistoryPage } from './pages/HistoryPage';
 
+/**
+ * The learning product's own home, modelled on NoteGPT's workspace: what you made (Library), what you
+ * watched (History) and what organises it (Spaces), with Subscriptions and Settings below. The marketing
+ * site keeps pricing, FAQ and the account; everything here is the learner's.
+ */
 const NAV = [
-  { to: '/', label: 'Spaces', icon: Layers, match: (s: string[]) => s.length === 0 || s[0] === 'modes' || s[0] === 'welcome' },
+  { to: '/', label: 'Home', icon: House, match: (s: string[]) => s.length === 0 },
+  { to: '/library', label: 'Library', icon: Library, match: (s: string[]) => s[0] === 'library' },
+  { to: '/history', label: 'History', icon: History, match: (s: string[]) => s[0] === 'history' },
+  { to: '/modes', label: 'Spaces', icon: Layers, match: (s: string[]) => s[0] === 'modes' || s[0] === 'welcome' },
   { to: '/subscriptions', label: 'Subscriptions', icon: Users, match: (s: string[]) => s[0] === 'subscriptions' },
   { to: '/settings', label: 'Settings', icon: SettingsIcon, match: (s: string[]) => s[0] === 'settings' },
 ];
@@ -50,14 +61,24 @@ export function DashboardApp() {
     case 'modes':
       page = param ? <ModeEditorPage key={param} data={data} modeId={param} /> : <ModesPage data={data} openCreate={route.query.get('new') === '1'} />;
       break;
+    case 'welcome':
+      page = <ModesPage data={data} openCreate={false} />;
+      break;
+    case 'library':
+      page = <LibraryPage segments={route.segments} />;
+      break;
+    case 'history':
+      page = <HistoryPage data={data} />;
+      break;
     default:
-      page = <ModesPage data={data} openCreate={route.query.get('new') === '1'} />;
+      // Older links opened "/?new=1" to create a Space; they still do.
+      page = route.query.get('new') === '1' ? <ModesPage data={data} openCreate /> : <HomePage data={data} />;
   }
 
   return (
     <div className="fs-app">
       <aside className="fs-sidebar">
-        <a href="#/" className="fs-sidebar-logo" aria-label="FocusSpace spaces">
+        <a href="#/" className="fs-sidebar-logo" aria-label="FocusSpace home">
           <Logo size={26} />
         </a>
         <nav className="fs-nav" aria-label="Main">

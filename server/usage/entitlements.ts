@@ -21,22 +21,15 @@ export interface PlanLimits {
   maxSpaces: number;
 }
 
-/**
- * The Free plan's numbers stay environment-tunable — they are the ones most
- * likely to move in response to what the AI actually costs, and moving them
- * should not need a deploy of the website too.
- */
-const FREE_PLAN_MONTHLY_AI_UNITS = Number(process.env.FREE_PLAN_MONTHLY_AI_UNITS ?? 200);
-const FREE_PLAN_MAX_SPACES = Number(process.env.FREE_PLAN_MAX_SPACES ?? 5);
 
 const unlimited = (value: number | null) => (value === null ? Infinity : value);
 
 export const PLAN_LIMITS: Record<PlanId, PlanLimits> = Object.fromEntries(
   PLANS.map((plan) => [
     plan.id,
-    plan.id === 'free'
-      ? { aiUnitsPerPeriod: FREE_PLAN_MONTHLY_AI_UNITS, maxSpaces: FREE_PLAN_MAX_SPACES }
-      : { aiUnitsPerPeriod: unlimited(plan.limits.aiCredits), maxSpaces: unlimited(plan.limits.modes) },
+    // Every plan, Free included, straight from the price book. An environment override here once let the
+    // enforced Free limits drift from what the pricing page promised; there is deliberately no such knob now.
+    { aiUnitsPerPeriod: unlimited(plan.limits.aiCredits), maxSpaces: unlimited(plan.limits.modes) },
   ]),
 ) as Record<PlanId, PlanLimits>;
 

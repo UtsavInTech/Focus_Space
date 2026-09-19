@@ -218,7 +218,6 @@ own table with a `user_id` foreign key when its layer arrives.
 
 | Route | Auth required | Purpose |
 | --- | --- | --- |
-| `POST /v1/auth/register` | no | create account, returns a session (auto-login) |
 | `POST /v1/auth/login` | no | verify credentials, returns a session |
 | `POST /v1/auth/refresh` | refresh token (body) | rotate refresh token, issue new access token |
 | `POST /v1/auth/logout` | access token | revoke the current session |
@@ -246,7 +245,7 @@ own table with a `user_id` foreign key when its layer arrives.
 
 ## Verified sign-up and phone sign-in (added after the foundation)
 
-The foundation shipped one way in: `POST /v1/auth/register` with an e-mail and a password, unverified.
+The foundation shipped one way in: `POST /v1/auth/register` with an e-mail and a password, unverified. **That route has since been removed** — verified sign-up below is the only way to create an account over HTTP.
 Two flows were added on top of it — the same `AuthConfig`, the same `issueSession`, the same session
 table. `register` stays for compatibility and is still unverified.
 

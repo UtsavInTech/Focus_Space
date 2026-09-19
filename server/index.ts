@@ -19,7 +19,7 @@
 // and still works — it's the simpler, zero-orchestration option for anyone
 // who just wants a raw OpenRouter relay for local dev.
 import { createServer } from 'node:http';
-import { ApiError, CORS_HEADERS, readJsonBody, readTextBody, sendJson, type ApiErrorResponse } from './http';
+import { ApiError, clientIp, CORS_HEADERS, readJsonBody, readTextBody, sendJson, type ApiErrorResponse } from './http';
 import { loadOpenRouterConfig } from './openrouter';
 import { orchestrate } from './orchestrator';
 import { validateAiApiRequest } from './validate';
@@ -32,7 +32,6 @@ import {
   login,
   logout,
   refresh,
-  register,
   startEmailSignup,
   startPasswordReset,
   startPhoneSignIn,
@@ -47,7 +46,7 @@ import { validateCredentials, validateEmailCode, validateEmailOnly, validatePhon
 import { RateLimiter } from './auth/rate-limit';
 import { loadSenders } from './notify/sender';
 import { getUsageDb } from './usage/db';
-import { anonymousKey, assertAnonymousQuota, commitUsage, recordAnonymousUsage, releaseUsage, reserveUsage, usageStatus } from './usage/service';
+import { anonymousKeys, assertAnonymousAllowed, commitUsage, parseInstallId, recordAnonymous, releaseUsage, reserveUsage, usageStatus } from './usage/service';
 import { registerSpace, spaceAllowance, unregisterSpace } from './usage/spaces';
 import { resolvePlan } from './usage/entitlements';
 import { loadRazorpayConfig, verifyWebhookSignature } from './billing/razorpay';
@@ -61,7 +60,6 @@ const MAX_BODY_BYTES = 256 * 1024;
 const AUTH_MAX_BODY_BYTES = 8 * 1024;
 const ROUTE = '/v1/ai/complete';
 const HEALTH_ROUTE = '/v1/health';
-const AUTH_REGISTER_ROUTE = '/v1/auth/register';
 const AUTH_LOGIN_ROUTE = '/v1/auth/login';
 const AUTH_REFRESH_ROUTE = '/v1/auth/refresh';
 const AUTH_LOGOUT_ROUTE = '/v1/auth/logout';
@@ -87,13 +85,15 @@ const RESET_VERIFY_ROUTE = '/v1/auth/reset/verify';
 const RESET_COMPLETE_ROUTE = '/v1/auth/reset/complete';
 const PHONE_START_ROUTE = '/v1/auth/phone/start';
 const PHONE_VERIFY_ROUTE = '/v1/auth/phone/verify';
-const AUTH_ROUTES = new Set([ME_PROFILE_ROUTE, BILLING_SUBSCRIBE_ROUTE, BILLING_SUBSCRIBE_CONFIRM_ROUTE, BILLING_CANCEL_ROUTE, BILLING_CHECKOUT_ROUTE, BILLING_CONFIRM_ROUTE, ME_PAYMENTS_ROUTE, AUTH_REGISTER_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, RESET_START_ROUTE, RESET_VERIFY_ROUTE, RESET_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
+const AUTH_ROUTES = new Set([ME_PROFILE_ROUTE, BILLING_SUBSCRIBE_ROUTE, BILLING_SUBSCRIBE_CONFIRM_ROUTE, BILLING_CANCEL_ROUTE, BILLING_CHECKOUT_ROUTE, BILLING_CONFIRM_ROUTE, ME_PAYMENTS_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, RESET_START_ROUTE, RESET_VERIFY_ROUTE, RESET_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
 
 // Layer 2C — a burst/abuse safety net for the anonymous half of /v1/ai/complete, structurally separate
 // from the persisted, user_id-keyed usage/entitlement system below (see docs/LAYER_2C_USAGE_ENTITLEMENTS.md,
 // "Rate limiting vs. quota"). Reuses the exact same RateLimiter class Layer 2B already established for
 // login/register, keyed by IP since there is no account identity to key an anonymous caller by.
 const anonymousAiLimiter = new RateLimiter(30, 10 * 60_000);
+/** Railway fronts the API with a proxy; its record of the client's address is the one to trust there (http.ts clientIp). */
+const TRUST_PROXY = process.env.TRUST_PROXY ? process.env.TRUST_PROXY === '1' : process.env.NODE_ENV === 'production';
 
 // Verification-code delivery (email/SMS). No provider is configured by default: codes are logged by
 // the development sender, and only returned to the caller when AUTH_DEV_CODES=1 — never in production.
@@ -179,15 +179,17 @@ const server = createServer(async (req, res) => {
       const identity = authConfig ? tryAuthenticate(getDb(), authConfig, req.headers.authorization) : null;
 
       if (!identity) {
-        const ip = req.socket.remoteAddress ?? 'unknown';
-        if (!anonymousAiLimiter.attempt(ip)) throw new ApiError(429, 'rate_limited', 'Too many requests. Please slow down and try again shortly.');
+        const ip = clientIp(req, TRUST_PROXY);
+        const installId = parseInstallId(req.headers['x-focusspace-install']);
+        // Burst protection per install (or address), so one busy network is not one bucket.
+        if (!anonymousAiLimiter.attempt(installId ?? ip)) throw new ApiError(429, 'rate_limited', 'Too many requests. Please slow down and try again shortly.');
         // A small daily allowance without an account (Layer 2C). Checked before the upstream call and
         // recorded only after a successful one, so a failed request never costs the learner anything.
         const anonDb = getUsageDb();
-        const key = anonymousKey(ip, authConfig?.tokenSecret ?? config.model);
-        assertAnonymousQuota(anonDb, key, request.action);
+        const keys = anonymousKeys(ip, installId, authConfig?.tokenSecret ?? config.model);
+        assertAnonymousAllowed(anonDb, keys, request.action);
         const result = await orchestrate(request, { config });
-        recordAnonymousUsage(anonDb, key, request.action);
+        recordAnonymous(anonDb, keys, request.action);
         sendJson(res, 200, result);
         return;
       }
@@ -213,11 +215,6 @@ const server = createServer(async (req, res) => {
       const db = getDb();
       const userAgent = req.headers['user-agent'] ?? null;
 
-      if (req.method === 'POST' && path === AUTH_REGISTER_ROUTE) {
-        const { email, password } = validateCredentials(await readJsonBody(req, AUTH_MAX_BODY_BYTES));
-        sendJson(res, 201, { ok: true, ...register(db, authConfig, email, password, userAgent) });
-        return;
-      }
       if (req.method === 'POST' && path === AUTH_LOGIN_ROUTE) {
         const { email, password } = validateCredentials(await readJsonBody(req, AUTH_MAX_BODY_BYTES));
         sendJson(res, 200, { ok: true, ...login(db, authConfig, email, password, userAgent) });
@@ -318,7 +315,7 @@ const server = createServer(async (req, res) => {
       if (req.method === 'POST' && path === BILLING_CHECKOUT_ROUTE) {
         const { user } = authenticate(db, authConfig, req.headers.authorization);
         const body = (await readJsonBody(req, AUTH_MAX_BODY_BYTES)) as { planId?: string; period?: string; currency?: string };
-        const session = await startCheckout(requireRazorpay(), user.id, { planId: String(body.planId ?? ''), period: String(body.period ?? ''), currency: String(body.currency ?? '') });
+        const session = await startCheckout(requireRazorpay(), getUsageDb(), user.id, { planId: String(body.planId ?? ''), period: String(body.period ?? ''), currency: String(body.currency ?? '') });
         sendJson(res, 200, { ok: true, ...session });
         return;
       }
@@ -341,7 +338,7 @@ const server = createServer(async (req, res) => {
       if (req.method === 'POST' && path === BILLING_SUBSCRIBE_CONFIRM_ROUTE) {
         const { user } = authenticate(db, authConfig, req.headers.authorization);
         const body = (await readJsonBody(req, AUTH_MAX_BODY_BYTES)) as Record<string, string>;
-        const grant = confirmSubscription(requireRazorpay(), getUsageDb(), user.id, {
+        const grant = await confirmSubscription(requireRazorpay(), getUsageDb(), user.id, {
           subscriptionId: String(body.subscriptionId ?? ''),
           paymentId: String(body.paymentId ?? ''),
           signature: String(body.signature ?? ''),

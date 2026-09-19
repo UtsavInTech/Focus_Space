@@ -40,7 +40,7 @@ discover after a review.
 > • Your watch history and subscriptions never leave your browser.
 > • The player is never touched, and Focus Mode turns off in one click.
 >
-> Free: 3 modes without an account, 5 once you sign in, and a monthly AI allowance. Paid plans start at ₹299 / $3.99 a month.
+> Free: 3 Spaces without an account, 5 with a free account, and an AI allowance. Paid plans start at ₹299 / $3.99 a month.
 >
 > Not affiliated with YouTube or Google.
 
@@ -115,7 +115,10 @@ Upload in this order:
 
 ## Before submitting
 
+- [ ] **Deploy the API first** (DEPLOY.md, "Release order") — the extension expects the server it was built with
 - [ ] Bump `version` in `public/manifest.json` (the store rejects a re-used version)
 - [ ] Confirm https://focusspace.xyz/privacy loads
 - [ ] Verify the packaged build against the live API, not localhost (`npm run package` checks this)
 - [ ] Review takes days to weeks; plan the launch around that, not the other way round
+- [ ] Once the listing exists: set `VITE_CHROME_WEB_STORE_URL` on the website service and redeploy it, so "Add to Chrome" opens the listing
+- [ ] Fresh-install test with the packaged ZIP, a real account (sign-up code arrives, sign in/out), a real ₹ payment (then refund), and an A → B account switch on one Chrome profile

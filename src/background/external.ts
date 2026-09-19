@@ -29,7 +29,9 @@ export type ExternalRequest =
   | { type: 'focus/set'; enabled: boolean }
   | { type: 'space/select'; modeId: string }
   | { type: 'space/create'; name: string }
-  | { type: 'space/delete'; modeId: string };
+  | { type: 'space/delete'; modeId: string }
+  /** Opens the extension's own Home (Library, History) — how the site's "Open FocusSpace" gets there. */
+  | { type: 'home/open' };
 
 export interface ExternalChannel {
   id: string;
@@ -129,6 +131,10 @@ async function handle(request: ExternalRequest): Promise<ExternalResponse> {
     case 'space/delete':
       await deleteMode(request.modeId);
       return { ok: true, data: await readState() };
+    case 'home/open':
+      // Opens a page of this extension and nothing else: no data crosses to the site.
+      await chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html#/') });
+      return { ok: true };
     default:
       return { ok: false, error: 'Unknown request.' };
   }

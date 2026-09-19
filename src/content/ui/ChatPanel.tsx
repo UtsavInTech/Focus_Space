@@ -10,7 +10,8 @@ import type { HomepageContext } from '@/learning/ai/homepage-context';
 import { prepareForSpeech } from '@/learning/ai/voice';
 import type { LearningPath } from '@/learning/path/path';
 import { sendMessage } from '@/messaging/runtime';
-import { RichText } from './LearningPanel';
+import { RichText } from '@/ui/components/RichText';
+import { saveChatSession } from '@/storage/chat-store';
 
 /**
  * "Ask AI…": a genuine back-and-forth conversation, distinct from the
@@ -79,6 +80,8 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, current
   /** Whether the current text in the box came from speech recognition, untouched since — cleared the moment the learner edits it. Provenance only; never triggers anything automatic. */
   const [voiceOrigin, setVoiceOrigin] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  // One saved conversation per panel opened — the Library shows it as it ends.
+  const sessionId = useRef(`chat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`);
 
   async function submit(text: string) {
     const q = text.trim();
@@ -103,7 +106,9 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, current
       return;
     }
     // Text is the primary response — always. Speaking it aloud is a separate, explicit action (the speaker icon below), never automatic.
-    setHistory([...nextHistory, createChatMessage('assistant', result.answer, videoId, at, fromVoice)]);
+    const answered = [...nextHistory, createChatMessage('assistant', result.answer, videoId, at, fromVoice)];
+    setHistory(answered);
+    void saveChatSession({ id: sessionId.current, videoId, modeId: mode?.id ?? '', title: video?.title || 'YouTube home', messages: answered }).catch(() => undefined);
   }
 
   function toggleMic() {

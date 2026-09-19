@@ -1,4 +1,6 @@
 import type { SpaceAllowanceView, SpaceAuthorization } from '@/types/account';
+import { FREE_SPACE_LIMIT, GUEST_SPACE_LIMIT } from '@/billing/plans';
+import { getItem } from '@/storage/storage';
 import { apiBaseUrl, status as authStatus } from './auth';
 
 /**
@@ -10,12 +12,10 @@ import { apiBaseUrl, status as authStatus } from './auth';
  * gets a product explanation instead of a failure after the fact.
  */
 
-/**
- * The number quoted in copy when there is no account to ask (Settings, the account panel). It is
- * only a label: the real limit always comes from the server's entitlement for the signed-in account.
- */
-export const FREE_SPACE_LIMIT_HINT = 4;
-const LIMIT_MESSAGE = `Your plan includes ${FREE_SPACE_LIMIT_HINT} spaces on your account. Delete one you no longer use to make room — more spaces will come with a paid plan.`;
+/** Used only if the server refuses without saying why; its own message names the learner's plan. */
+const LIMIT_MESSAGE = 'Your plan’s Spaces are all in use. Delete one you no longer use to make room, or upgrade for more.';
+
+export const GUEST_LIMIT_MESSAGE = `Without an account, FocusSpace keeps ${GUEST_SPACE_LIMIT} Spaces in this browser. Delete one you no longer use, or create a free account for ${FREE_SPACE_LIMIT}.`;
 
 async function account(): Promise<{ base: string; token: string } | null> {
   const base = await apiBaseUrl();
@@ -37,19 +37,30 @@ export async function allowance(): Promise<SpaceAllowanceView | null> {
   }
 }
 
+export const UNVERIFIED_MESSAGE = 'FocusSpace couldn’t check your plan’s Space allowance. Try again when you’re online.';
+
 /**
  * Asks whether one more Space may be created.
  *
- * A refusal from the server is final — that's the enforcement. A *transport* failure is not: being
- * offline must never stop someone from organising their own YouTube, so an unanswerable question
- * resolves to "yes" rather than blocking the learner on FocusSpace's own infrastructure.
+ * Signed in, the Space allowance is the account's paid entitlement, and only the server can confirm it:
+ * any answer other than the server's "yes" — offline, a timeout, a dead session — refuses the new Space.
+ * (Allowing it offline let a signed-in learner create Spaces the server never counted.) Everything that
+ * already exists keeps working offline; only *creating* waits for the server.
+ *
+ * Signed out there is no account to ask, so the guest limit is counted here, in this browser.
  */
 export async function authorize(spaceId: string, name?: string): Promise<SpaceAuthorization> {
-  const session = await account();
-  // Signed out there is no account to hold an allowance, and the spaces already in this browser
-  // (including FocusSpace's built-in ones) must keep working — so nothing is enforced here. Building a
-  // second, client-side quota would be exactly the parallel system the entitlement layer exists to avoid.
-  if (!session) return { ok: true, allowance: null };
+  const { user } = await getItem('auth');
+  if (!user) {
+    const modes = await getItem('modes');
+    const used = modes.filter((m) => m.id !== spaceId).length;
+    if (used >= GUEST_SPACE_LIMIT) return { ok: false, code: 'space_limit', error: GUEST_LIMIT_MESSAGE, allowance: { plan: 'guest', used, limit: GUEST_SPACE_LIMIT } };
+    return { ok: true, allowance: null };
+  }
+
+  const unverified: SpaceAuthorization = { ok: false, code: 'error', error: UNVERIFIED_MESSAGE, allowance: null };
+  const session = await account().catch(() => null);
+  if (!session) return unverified;
   try {
     const res = await fetch(`${session.base}/v1/me/spaces`, {
       method: 'POST',
@@ -59,10 +70,10 @@ export async function authorize(spaceId: string, name?: string): Promise<SpaceAu
     const json = (await res.json().catch(() => null)) as ({ ok: true } & SpaceAllowanceView) | { ok: false; code?: string; error?: string } | null;
     if (json && json.ok) return { ok: true, allowance: { plan: json.plan, used: json.used, limit: json.limit } };
     if (json && !json.ok && json.code === 'space_limit') return { ok: false, code: 'space_limit', error: json.error ?? LIMIT_MESSAGE, allowance: null };
-    if (res.status === 401) return { ok: true, allowance: null }; // stale session: never block creating a Space over it
-    return { ok: false, code: 'error', error: json && !json.ok && json.error ? json.error : 'FocusSpace couldn’t check your plan just now. Try again in a moment.', allowance: null };
+    if (res.status === 401) return { ok: false, code: 'error', error: 'Your session has ended. Sign in again to create a Space.', allowance: null };
+    return { ok: false, code: 'error', error: json && !json.ok && json.error ? json.error : UNVERIFIED_MESSAGE, allowance: null };
   } catch {
-    return { ok: true, allowance: null };
+    return unverified;
   }
 }
 

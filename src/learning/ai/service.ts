@@ -114,6 +114,11 @@ export function createAiService(options: { providers: () => Promise<AiProvider[]
     options.usage?.record({ provider, action, at: now(), cached, approxTokens: approxTokens(answer) });
 
   return {
+    /** Forgets every cached answer — when the browser's data changes hands, one person's answers are not the next one's. */
+    clear(): void {
+      cache.clear();
+      inflight.clear();
+    },
     async status(): Promise<AiStatus> {
       const found = await pick();
       return found ? { provider: found.provider.id, label: found.provider.label, availability: found.availability } : { provider: null, label: null, availability: 'unavailable' };

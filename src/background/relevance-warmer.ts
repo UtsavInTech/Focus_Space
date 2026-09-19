@@ -6,6 +6,7 @@ import { cacheMisses, exportModeCache, hydrateModeCache, type ModeCacheSnapshot 
 import { CLASSIFIER_VERSION } from '@/learning/relevance/lexicon';
 import { hashString } from '@/learning/relevance/matcher';
 import { findMode } from '@/modes/service';
+import { ownerGuard } from '@/storage/ownership';
 
 /**
  * Expensive, library-wide work happens here, not on YouTube pages:
@@ -53,6 +54,7 @@ async function run() {
 }
 
 export async function warm(): Promise<{ written: boolean }> {
+  const stillOwner = await ownerGuard(); // computed from one person's data, never written into another's
   const { modes, settings, videos, channels, relevanceCache, feedViews, preferenceProfiles } = await getItems(['modes', 'settings', 'videos', 'channels', 'relevanceCache', 'feedViews', 'preferenceProfiles']);
 
   // Feed views for every space (so switching spaces is instant).
@@ -68,6 +70,7 @@ export async function warm(): Promise<{ written: boolean }> {
     nextViews.modes[mode.id] = previous && viewHashes.get(mode.id) === hash && !viewsChanged ? previous : view;
   }
   if (Object.keys(feedViews.modes).some((id) => !nextViews.modes[id])) viewsChanged = true;
+  if (!(await stillOwner())) return { written: false };
   if (viewsChanged) await setItem('feedViews', nextViews);
 
   // Persist classification snapshots for the spaces the user actually uses.
@@ -84,6 +87,7 @@ export async function warm(): Promise<{ written: boolean }> {
     nextCache.modes[mode.id] = snapshot;
   }
   if (Object.keys(relevanceCache.modes).some((id) => !nextCache.modes[id])) cacheChanged = true;
+  if (!(await stillOwner())) return { written: viewsChanged };
   if (cacheChanged) await setItem('relevanceCache', nextCache);
 
   return { written: viewsChanged || cacheChanged };
@@ -91,10 +95,12 @@ export async function warm(): Promise<{ written: boolean }> {
 
 /** Compute one space's view immediately (e.g. a space that was just created). */
 export async function viewFor(modeId: string): Promise<FeedView | null> {
+  const stillOwner = await ownerGuard();
   const { modes, videos, channels, feedViews, preferenceProfiles } = await getItems(['modes', 'videos', 'channels', 'feedViews', 'preferenceProfiles']);
   const mode = findMode(modes, modeId);
   if (!mode) return null;
   const view = buildFeedView(mode, videos, channels, preferenceProfiles.modes[mode.id]?.channels);
+  if (!(await stillOwner())) return null;
   await setItem('feedViews', { version: CLASSIFIER_VERSION, channelIds: Object.keys(channels), modes: { ...feedViews.modes, [modeId]: view } });
   return view;
 }

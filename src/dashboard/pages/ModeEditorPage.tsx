@@ -46,7 +46,7 @@ export function ModeEditorPage({ data, modeId }: { data: DashboardData; modeId: 
 
   if (!mode || !draft) {
     return (
-      <EmptyState icon={<X />} title="This space doesn't exist" actions={<Button onClick={() => navigate('/')}>Back to spaces</Button>}>
+      <EmptyState icon={<X />} title="This space doesn't exist" actions={<Button onClick={() => navigate('/modes')}>Back to spaces</Button>}>
         It may have been deleted in another window.
       </EmptyState>
     );
@@ -72,7 +72,7 @@ export function ModeEditorPage({ data, modeId }: { data: DashboardData; modeId: 
   return (
     <>
       <div>
-        <Button size="sm" variant="ghost" icon={<ArrowLeft />} onClick={() => navigate('/')}>
+        <Button size="sm" variant="ghost" icon={<ArrowLeft />} onClick={() => navigate('/modes')}>
           All spaces
         </Button>
       </div>
@@ -210,7 +210,7 @@ export function ModeEditorPage({ data, modeId }: { data: DashboardData; modeId: 
               variant="danger"
               onClick={async () => {
                 await deleteMode(mode.id);
-                navigate('/');
+                navigate('/modes');
               }}
             >
               Delete space

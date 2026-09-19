@@ -18,7 +18,7 @@ export function createUsageLog(max = 200) {
       if (log.length > max) log.shift();
     },
   };
-  return { sink, entries: (): AiUsageRecord[] => [...log] };
+  return { sink, entries: (): AiUsageRecord[] => [...log], clear: (): void => void log.splice(0) };
 }
 
 /** Rough token estimate (~4 chars/token) — for the learner's own sense of usage, never billed. */

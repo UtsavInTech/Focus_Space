@@ -44,11 +44,12 @@ export interface MessageMap {
   /** any → background: current FocusSpace account state (null user = anonymous). Refreshes an about-to-expire access token first. */
   'auth/status': { req: Record<string, never>; res: AuthState };
   /** ui → background: create a FocusSpace account and sign in. */
-  'auth/register': { req: { email: string; password: string }; res: { ok: true; state: AuthState } | { ok: false; error: string } };
   /** ui → background: sign in to an existing FocusSpace account. */
   'auth/login': { req: { email: string; password: string }; res: { ok: true; state: AuthState } | { ok: false; error: string } };
   /** ui → background: sign out (revokes the session server-side; always clears local state even if that call fails). */
   'auth/logout': { req: Record<string, never>; res: { ok: true } };
+  /** Answer to "keep this browser's guest data with your account?" (background/ownership.ts). */
+  'account/claim': { req: { keep: boolean }; res: { ok: boolean } };
   /** ui → background: step 1 of creating an account — send a verification code to an email address. */
   'auth/signup-start': { req: { email: string }; res: CodeSent | { ok: false; error: string } };
   /** ui → background: step 2 — check the emailed code, returning a short-lived ticket. */

@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import stylesCss from '@/ui/styles.css?inline';
 import { defaultsFor } from '@/storage/schema';
-import { getItems, subscribe } from '@/storage/storage';
+import { bindToOwner, getItems, subscribe } from '@/storage/storage';
 import { listen } from '@/messaging/runtime';
 import { detectPage } from '@/integrations/youtube/urls';
 import { readSubscriptionsFromSession } from '@/integrations/youtube/innertube';
@@ -31,6 +31,10 @@ function whenBodyReady(fn: () => void) {
 function main() {
   if (window.__focusSpaceContent) return;
   window.__focusSpaceContent = true;
+
+  // Signing out, or in as someone else, replaces the data this page is showing: reload rather than keep
+  // the previous person's Spaces, feed or answers on screen (storage/ownership.ts).
+  void bindToOwner(() => location.reload());
 
   // 1. Filters first, at document_start, so distractions never flash.
   injectStylesheet();

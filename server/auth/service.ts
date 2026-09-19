@@ -86,6 +86,11 @@ function issueSession(db: IdentityDb, config: AuthConfig, userId: string, userAg
   return { accessToken, accessTokenExpiresAt, refreshToken };
 }
 
+/**
+ * Creates an account directly, without verifying the email address. **Not reachable over HTTP**: the
+ * public `/v1/auth/register` route was removed so there is one account-creation policy — verified sign-up
+ * (`startEmailSignup` → `verifyEmailSignup` → `completeEmailSignup`). Kept for tests that need an account.
+ */
 export function register(db: IdentityDb, config: AuthConfig, email: string, password: string, userAgent: string | null): AuthResult {
   if (!registerLimiter.attempt(email)) throw new ApiError(429, 'rate_limited', 'Too many registration attempts. Try again later.');
   if (db.findUserByEmail(email)) throw new ApiError(409, 'conflict', 'An account with that email already exists.');
@@ -361,7 +366,11 @@ export function updateProfile(db: IdentityDb, userId: string, patch: { name?: un
 }
 
 
+export const PHONE_UNAVAILABLE = 'Phone sign-in isn’t available yet. Sign in or create an account with your email.';
+
 export async function startPhoneSignIn(db: IdentityDb, config: AuthConfig, senders: Senders, phone: string): Promise<CodeSent> {
+  // Refused before a code is ever created: without an SMS provider it could never reach the learner.
+  if (!senders.phone) throw new ApiError(403, 'forbidden', PHONE_UNAVAILABLE);
   const existing = db.findUserByPhone(phone);
   if (existing && existing.status !== 'active') throw new ApiError(403, 'forbidden', 'This account is disabled.');
   return issueCode(db, config, senders, 'phone_login', phone, 'phone');

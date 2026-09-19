@@ -6,6 +6,7 @@ import { parseChannelInput } from '@/integrations/youtube/urls';
 import { resolveChannelPath } from '@/integrations/youtube/channel-resolve';
 import type { YtVideo } from '@/integrations/youtube/innertube-parse';
 import { backgroundYouTube } from './youtube';
+import { ownerGuard } from '@/storage/ownership';
 
 /**
  * Keeps the local video library in sync with the user's channels.
@@ -75,6 +76,9 @@ function mergeVideos(current: Record<string, VideoRecord>, incoming: VideoRecord
 }
 
 async function runSync(force: boolean): Promise<{ ok: boolean; error?: string }> {
+  // A sync can outlive a sign-out: once the data belongs to someone else, it stops writing.
+  const stillOwner = await ownerGuard();
+  let abandoned = false;
   const channels = await getItem('channels');
   const now = Date.now();
   const due = Object.values(channels)
@@ -83,6 +87,7 @@ async function runSync(force: boolean): Promise<{ ok: boolean; error?: string }>
 
   await updateItem('sync', (s) => ({ ...s, status: 'syncing', progress: { done: 0, total: due.length }, lastError: null }));
 
+  const queue = [...due];
   let done = 0;
   let failures = 0;
   let pending: { channelId: string; videos: VideoRecord[]; error: string | null; title: string }[] = [];
@@ -90,6 +95,11 @@ async function runSync(force: boolean): Promise<{ ok: boolean; error?: string }>
   const flush = async () => {
     const batch = pending;
     pending = [];
+    if (abandoned || !(await stillOwner())) {
+      abandoned = true;
+      queue.length = 0;
+      return;
+    }
     if (batch.length) {
       await updateItem('videos', (videos) => mergeVideos(videos, batch.flatMap((b) => b.videos)));
       await updateItem('channels', (current) => {
@@ -105,7 +115,6 @@ async function runSync(force: boolean): Promise<{ ok: boolean; error?: string }>
     await updateItem('sync', (s) => ({ ...s, progress: { done, total: due.length } }));
   };
 
-  const queue = [...due];
   const worker = async () => {
     for (let channel = queue.shift(); channel; channel = queue.shift()) {
       const result = await fetchChannelVideos(channel);
@@ -120,6 +129,7 @@ async function runSync(force: boolean): Promise<{ ok: boolean; error?: string }>
   };
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, Math.max(1, due.length)) }, worker));
   await flush();
+  if (abandoned) return { ok: false, error: 'The account changed during the refresh.' };
   await pruneLibrary();
 
   const allFailed = due.length > 0 && failures === due.length;
@@ -160,8 +170,10 @@ export async function addChannel(input: string): Promise<ResponseOf<'channel/add
     }
   }
 
+  const stillOwner = await ownerGuard();
   const result = await fetchChannelVideos({ id, title: title ?? handle ?? id });
   if (!result.ok) return { ok: false, error: result.status === 404 ? 'That channel has no public uploads.' : result.error };
+  if (!(await stillOwner())) return { ok: false, error: 'The account changed while adding the channel. Add it again.' };
 
   const now = Date.now();
   let saved!: Channel;

@@ -79,14 +79,6 @@ async function persist(success: ServerAuthSuccess): Promise<AuthState> {
   return state;
 }
 
-export async function register(email: string, password: string): Promise<{ ok: true; state: AuthState } | { ok: false; error: string }> {
-  const base = await apiBaseUrl();
-  if (!base) return { ok: false, error: 'No FocusSpace server is configured. Add one in Settings → Account.' };
-  const result = await postJson<ServerAuthSuccess>(`${base}/v1/auth/register`, { email, password });
-  if (!result.ok) return result;
-  return { ok: true, state: await persist(result) };
-}
-
 export async function login(email: string, password: string): Promise<{ ok: true; state: AuthState } | { ok: false; error: string }> {
   const base = await apiBaseUrl();
   if (!base) return { ok: false, error: 'No FocusSpace server is configured. Add one in Settings → Account.' };

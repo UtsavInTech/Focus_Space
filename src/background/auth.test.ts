@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { login, logout, register, status } from './auth';
+import { login, logout, status } from './auth';
 
 /** Minimal chrome.storage.local shim, same shape src/storage/storage.ts calls (mirrors background/ai.test.ts). */
 function fakeChromeStorage(initial: Record<string, unknown> = {}) {
@@ -32,29 +32,29 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('register/login', () => {
-  it('register: no FocusSpace server configured -> a clear local error, no network call', async () => {
+describe('login', () => {
+  it('no FocusSpace server configured -> a clear local error, no network call', async () => {
     fakeChromeStorage({ settings: settingsWithBaseUrl('') });
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    const result = await register('a@b.com', 'password one');
+    const result = await login('a@b.com', 'password one');
     expect(result).toEqual({ ok: false, error: expect.stringContaining('No FocusSpace server') });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('register: success persists the returned session locally', async () => {
+  it('success persists the returned session locally', async () => {
     fakeChromeStorage({ settings: settingsWithBaseUrl(BASE_URL) });
     const success = { ok: true, user: { id: 'u1', email: 'a@b.com', createdAt: 1 }, accessToken: 'at1', accessTokenExpiresAt: Date.now() + 900_000, refreshToken: 'rt1' };
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string) => {
-        expect(url).toBe(`${BASE_URL}/v1/auth/register`);
-        return jsonResponse(201, success);
+        expect(url).toBe(`${BASE_URL}/v1/auth/login`);
+        return jsonResponse(200, success);
       }),
     );
 
-    const result = await register('a@b.com', 'password one');
+    const result = await login('a@b.com', 'password one');
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.state.user).toEqual({ id: 'u1', email: 'a@b.com', phone: null, emailVerified: false });
 

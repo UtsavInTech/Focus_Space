@@ -4,6 +4,7 @@ import { createUsageLog } from '@/learning/ai/usage';
 import { getItem } from '@/storage/storage';
 import { API_URL, HOSTED_AI_LABEL } from '@/config';
 import { status as authStatus } from './auth';
+import { installId } from './install-id';
 
 /** The one AI route the FocusSpace API exposes (server/index.ts). */
 const AI_ROUTE = '/v1/ai/complete';
@@ -41,7 +42,7 @@ export const chromeProvider: AiProvider = {
  * the FocusSpace server itself (see `resolveProviders`'s same-origin check below) — never for an
  * arbitrary personal endpoint, which would otherwise leak a Bearer token to a third-party URL.
  */
-export function endpointProvider(url: string, accessToken?: string): AiProvider {
+export function endpointProvider(url: string, accessToken?: string, installId?: string): AiProvider {
   return {
     id: 'endpoint',
     label: API_URL && sameOrigin(url, API_URL) ? HOSTED_AI_LABEL : `Your AI endpoint (${new URL(url).host})`,
@@ -51,7 +52,7 @@ export function endpointProvider(url: string, accessToken?: string): AiProvider 
       try {
         res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+          headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : installId ? { 'X-FocusSpace-Install': installId } : {}) },
           // `question` is omitted, never null: notes/mindmap carry no question, and the API's
           // validator accepts a string or nothing at all. Sending null is what made every
           // "Make Notes" and "Mind map" request fail with `"question" must be a string`.
@@ -103,7 +104,8 @@ const sameOrigin = (a: string, b: string) => {
 async function buildEndpointProvider(endpointUrl: string, apiBaseUrl: string): Promise<AiProvider> {
   if (apiBaseUrl && sameOrigin(endpointUrl, apiBaseUrl)) {
     const { accessToken } = await authStatus();
-    return endpointProvider(endpointUrl, accessToken ?? undefined);
+    // Signed out, FocusSpace's server counts the free allowance per install — never sent to anyone else's endpoint.
+    return endpointProvider(endpointUrl, accessToken ?? undefined, accessToken ? undefined : await installId());
   }
   return endpointProvider(endpointUrl);
 }

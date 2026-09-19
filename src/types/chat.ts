@@ -28,8 +28,11 @@ export interface ChatMessage {
 
 export interface ChatSession {
   id: string;
+  /** '' for a conversation held on YouTube's home or search rather than on a video. */
   videoId: string;
   modeId: string;
+  /** What the conversation was about, for the Library: the video's title, or where it happened. */
+  title?: string;
   messages: ChatMessage[];
   createdAt: number;
   updatedAt: number;

@@ -22,8 +22,9 @@ export interface ResolvedScope {
 }
 
 /**
- * `durationSec` unknown + 'full-video' falls back to watched-so-far (0 →
- * currentTime): a note can't ground content that hasn't played yet.
+ * 'full-video' needs the video's length. When it is unknown (or reported as 0), the note can only cover
+ * what has played so far — and it is then *called* watched-so-far, so a saved note never claims to be
+ * "Entire video" when it stops at the playback position.
  */
 export function resolveScope(scope: NoteScope, map: KnowledgeMap | null, currentTime: number, durationSec: number | null): ResolvedScope {
   switch (scope.kind) {
@@ -32,9 +33,9 @@ export function resolveScope(scope: NoteScope, map: KnowledgeMap | null, current
     case 'watched-so-far':
       return { kind: 'watched-so-far', range: { startSec: 0, endSec: Math.max(0, currentTime) } };
     case 'full-video':
-      return durationSec != null
+      return durationSec != null && durationSec > 0
         ? { kind: 'full-video', range: { startSec: 0, endSec: durationSec } }
-        : { kind: 'full-video', range: { startSec: 0, endSec: Math.max(0, currentTime) } };
+        : { kind: 'watched-so-far', range: { startSec: 0, endSec: Math.max(0, currentTime) } };
     case 'revision':
       return { kind: 'revision', range: scope.range ? clampRange(scope.range, durationSec) : { startSec: 0, endSec: Math.max(0, currentTime) } };
     case 'current-section': {

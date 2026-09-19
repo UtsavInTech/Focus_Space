@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../http';
-import type { Senders } from '../notify/sender';
+import { loadSenders, type Senders } from '../notify/sender';
 import { IdentityDb } from './db';
 import { MAX_CODE_ATTEMPTS } from './codes';
-import { completeEmailSignup, login, startEmailSignup, startPhoneSignIn, verifyEmailSignup, verifyPhoneSignIn, type AuthConfig } from './service';
+import { completeEmailSignup, login, PHONE_UNAVAILABLE, startEmailSignup, startPhoneSignIn, verifyEmailSignup, verifyPhoneSignIn, type AuthConfig } from './service';
 
 /**
  * Verified e-mail sign-up and phone OTP sign-in (Layer 2B). Codes are captured
@@ -117,6 +117,19 @@ describe('email sign-up: verify the address before the account exists', () => {
     const email = uniqueEmail();
     for (let i = 0; i < 5; i++) await startEmailSignup(db, config, senders, email);
     await expect(startEmailSignup(db, config, senders, email)).rejects.toThrow(/Too many codes/);
+  });
+});
+
+describe('phone sign-in without an SMS provider', () => {
+  it('production has no phone sender — codes would only reach the server log', () => {
+    expect(loadSenders({ NODE_ENV: 'production' }).phone).toBeNull();
+    expect(loadSenders({ NODE_ENV: 'development' }).phone).not.toBeNull();
+  });
+
+  it('is refused plainly, before any code is created or sent', async () => {
+    const noSms: Senders = { ...senders, phone: null };
+    await expect(startPhoneSignIn(db, config, noSms, uniquePhone())).rejects.toThrow(PHONE_UNAVAILABLE);
+    expect(sent).toHaveLength(0);
   });
 });
 

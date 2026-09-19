@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LearningMode } from '@/types/domain';
 import { blankMode } from './templates';
 import { addMode, addTemplate, deleteMode, SpaceLimitError } from './service';
-import { authorize, release } from '@/background/spaces';
+import { authorize, release, UNVERIFIED_MESSAGE } from '@/background/spaces';
+import { FREE_SPACE_LIMIT, GUEST_SPACE_LIMIT } from '@/billing/plans';
 
 /**
  * The Space allowance as the extension experiences it: the server decides, the
@@ -84,13 +85,13 @@ describe('creating a Space asks the server first', () => {
     expect(messages).toHaveLength(0);
   });
 
-  it('never blocks creation when the check itself fails (offline, no server)', async () => {
+  it('if the allowance cannot be checked at all, the Space is not created', async () => {
     const data = fakeChrome({ modes: [] });
     reply = () => {
-      throw new Error('network down');
+      throw new Error('background unreachable');
     };
-    await addMode(mode('dsa'));
-    expect((data.modes as LearningMode[]).map((m) => m.id)).toEqual(['dsa']);
+    await expect(addMode(mode('dsa'))).rejects.toThrow(/couldn’t check your Space allowance/);
+    expect((data.modes as LearningMode[] | undefined) ?? []).toEqual([]);
   });
 
   it('deleting a Space frees its slot', async () => {
@@ -100,14 +101,59 @@ describe('creating a Space asks the server first', () => {
   });
 });
 
+describe('signed in, only the server can say yes', () => {
+  const signedIn = {
+    settings: { api: { baseUrl: 'https://api.example' }, ai: { provider: 'auto', endpointUrl: '', language: 'en' } },
+    auth: { user: { id: 'u1', email: 'a@x', createdAt: 1 }, accessToken: 'tok', accessTokenExpiresAt: Date.now() + 3_600_000, refreshToken: 'r' },
+    modes: [],
+  };
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('offline: refused with a plain explanation — never created uncounted', async () => {
+    fakeChrome(signedIn);
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch'); }));
+    expect(await authorize('new', 'New')).toEqual({ ok: false, code: 'error', error: UNVERIFIED_MESSAGE, allowance: null });
+  });
+
+  it('a server error that is not an answer: refused', async () => {
+    fakeChrome(signedIn);
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 502, json: async () => null })));
+    expect(await authorize('new', 'New')).toMatchObject({ ok: false, code: 'error' });
+  });
+
+  it('a dead session: refused, asking to sign in again', async () => {
+    fakeChrome(signedIn);
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 401, json: async () => ({ ok: false, code: 'unauthorized' }) })));
+    expect(await authorize('new', 'New')).toMatchObject({ ok: false, error: expect.stringMatching(/Sign in again/) });
+  });
+
+  it('the server’s yes is the only yes', async () => {
+    fakeChrome(signedIn);
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ ok: true, plan: 'free', used: 1, limit: 5 }) })));
+    expect(await authorize('new', 'New')).toEqual({ ok: true, allowance: { plan: 'free', used: 1, limit: 5 } });
+  });
+});
+
 describe('the allowance belongs to an account, not to the browser', () => {
   const settings = { api: { baseUrl: '' }, ai: { provider: 'auto', endpointUrl: '', language: 'en' } };
 
-  it('never blocks creation while signed out — existing spaces keep working', async () => {
-    // A default install already has more built-in spaces than the free plan's limit; enforcing that
-    // limit against the local list would break the product for everyone who never signs in.
-    fakeChrome({ settings, modes: Array.from({ length: 7 }, (_, i) => mode(`m${i}`)) });
+  it('signed out, a guest keeps up to the guest limit — counted in this browser', async () => {
+    fakeChrome({ settings, modes: Array.from({ length: GUEST_SPACE_LIMIT - 1 }, (_, i) => mode(`m${i}`)) });
     expect(await authorize('new-space', 'New space')).toEqual({ ok: true, allowance: null });
+  });
+
+  it('signed out, one more than the guest limit is refused, and says how to get more', async () => {
+    fakeChrome({ settings, modes: Array.from({ length: GUEST_SPACE_LIMIT }, (_, i) => mode(`m${i}`)) });
+    const result = await authorize('new-space', 'New space');
+    expect(result).toMatchObject({ ok: false, code: 'space_limit', allowance: { plan: 'guest', used: GUEST_SPACE_LIMIT, limit: GUEST_SPACE_LIMIT } });
+    expect(result.ok ? '' : result.error).toContain(`free account for ${FREE_SPACE_LIMIT}`);
+  });
+
+  it('signed out, Spaces already over the guest limit keep working — only new ones are refused', async () => {
+    // Installs from before the limit may hold more; the limit never deletes or hides what exists.
+    fakeChrome({ settings, modes: Array.from({ length: 7 }, (_, i) => mode(`m${i}`)) });
+    await expect(addMode(mode('m3', 'Renamed'))).resolves.toBeUndefined(); // an existing id is an update, never refused
+    expect(messages.some((m) => m.type === 'spaces/authorize')).toBe(false);
   });
 
   it('releasing without an account is a no-op that still succeeds', async () => {

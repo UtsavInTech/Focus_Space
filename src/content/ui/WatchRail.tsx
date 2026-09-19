@@ -140,14 +140,14 @@ export function WatchRail({
   return (
     <div className="fs-rail" aria-label={`FocusSpace · ${mode.name}`}>
       {/*
-        The way out to focusspace.app, at the top of the suggestion column where
-        the eye lands first. Deliberately one compact row — it sits above the
-        learner's actual course, so it earns its place by being small.
+        The way into FocusSpace's own home — the Library with every saved note, mind map and AI chat —
+        at the top of the suggestion column where the eye lands first. It used to open the marketing
+        site, which has none of those. Deliberately one compact row: it earns its place by being small.
       */}
-      <button type="button" className="fs-rail-launcher" onClick={() => void sendMessage('site/open', {}).catch(() => undefined)} title="Open FocusSpace — notes, mind maps and plans">
+      <button type="button" className="fs-rail-launcher" onClick={() => void sendMessage('dashboard/open', { route: '/' }).catch(() => undefined)} title="Open FocusSpace — your notes, mind maps, AI chats and history">
         <LogoMark size={20} />
         <span className="fs-rail-launcher-name">FocusSpace</span>
-        <span className="fs-rail-launcher-hint">Notes · Mind maps · Plans</span>
+        <span className="fs-rail-launcher-hint">Library · History</span>
         <ExternalLink size={14} aria-hidden />
       </button>
       <header className="fs-rail-head">

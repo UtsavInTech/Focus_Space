@@ -77,8 +77,17 @@ export interface ContextInputs {
   language?: NoteLanguage;
 }
 
-/** Default transcript budget for a range-based window (notes) — bigger than any point action's, since it may need to cover a whole section. */
-const RANGE_MAX_CHARS = 6000;
+/**
+ * Transcript budget for a range-based window (notes, mind maps). It grows with the span — a fixed 6,000
+ * characters was the whole budget for a two-minute section and for a three-hour lecture alike, so a long
+ * lecture was grounded in a sliver of it — up to a ceiling that keeps the prompt inside the API's limit
+ * (server/validate.ts, 24,000 characters for the whole user message).
+ */
+const RANGE_MIN_CHARS = 6000;
+const RANGE_CHARS_PER_MINUTE = 260;
+const RANGE_MAX_CHARS = 16_000;
+export const rangeBudget = (range: NoteRange): number =>
+  Math.round(Math.min(RANGE_MAX_CHARS, Math.max(RANGE_MIN_CHARS, ((range.endSec - range.startSec) / 60) * RANGE_CHARS_PER_MINUTE)));
 
 /**
  * Notes over a range cover the whole span rather than favouring recency. A
@@ -88,7 +97,8 @@ const RANGE_MAX_CHARS = 6000;
  * comes from across the whole range instead of just its first minutes.
  */
 function sampleAcrossRange(segments: TranscriptSegment[], maxChars: number): string {
-  const bucketCount = Math.min(segments.length, 12);
+  // More, smaller buckets for a longer range, so every part of the lecture is heard — not twelve snapshots of a three-hour video.
+  const bucketCount = Math.min(segments.length, Math.max(12, Math.min(40, Math.round(maxChars / 400))));
   const bucketSize = Math.ceil(segments.length / bucketCount);
   const perBucket = Math.floor(maxChars / bucketCount);
   const parts: string[] = [];
@@ -124,7 +134,7 @@ export function transcriptWindow(
   options: { beforeSec?: number; afterSec?: number; maxChars?: number; conceptStartSec?: number | null; minLeadSec?: number; range?: NoteRange | null } = {},
 ): TranscriptWindow | null {
   if (!segments?.length) return null;
-  if (options.range) return transcriptForRange(segments, options.range, options.maxChars ?? RANGE_MAX_CHARS);
+  if (options.range) return transcriptForRange(segments, options.range, options.maxChars ?? rangeBudget(options.range));
   const beforeSec = options.beforeSec ?? 90;
   const afterSec = options.afterSec ?? 20;
   const maxChars = options.maxChars ?? 2400;

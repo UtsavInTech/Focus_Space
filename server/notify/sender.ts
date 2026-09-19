@@ -27,7 +27,8 @@ export interface Sender {
 
 export interface Senders {
   email: Sender;
-  phone: Sender;
+  /** Null when no SMS provider can deliver a code — phone sign-in is then refused, not faked. */
+  phone: Sender | null;
   /** True when the code may be echoed back to the caller (development only). */
   exposeCodes: boolean;
 }
@@ -93,9 +94,10 @@ export function loadSenders(env: NodeJS.ProcessEnv = process.env): Senders {
   if (env.AUTH_DEV_CODES === '1' && env.NODE_ENV === 'production') {
     console.warn('[FocusSpace API] AUTH_DEV_CODES is ignored in production — verification codes are never returned to callers there.');
   }
-  // SMS stays on the console sender: no provider is configured, and phone sign-in is
-  // the secondary path — see docs/LAYER_2B_IDENTITY.md.
-  return { email, phone: consoleSender('phone'), exposeCodes };
+  // There is no SMS provider. In development the console sender stands in; in production a phone code
+  // would only ever reach the server log, so phone sign-in is switched off rather than left to fail.
+  const phone = env.NODE_ENV === 'production' ? null : consoleSender('phone');
+  return { email, phone, exposeCodes };
 }
 
 /** What the API tells the client about how a code was delivered — never the code itself unless `exposeCodes`. */
@@ -107,6 +109,7 @@ export interface DeliveryInfo {
 
 export async function deliverCode(senders: Senders, channel: Channel, target: string, code: string): Promise<DeliveryInfo> {
   const sender = senders[channel];
+  if (!sender) throw new Error(`No ${channel} sender is configured.`); // callers refuse before issuing a code; this is the backstop
   await sender.send(target, code);
   return { delivery: sender.id, ...(senders.exposeCodes ? { devCode: code } : {}) };
 }

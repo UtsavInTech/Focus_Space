@@ -12,6 +12,9 @@ WORKDIR /app
 ARG VITE_API_URL
 ARG VITE_SITE_URL
 ENV VITE_API_URL=$VITE_API_URL
+# The Chrome Web Store listing every "Add to Chrome" button opens (web/src/install.ts).
+ARG VITE_CHROME_WEB_STORE_URL
+ENV VITE_CHROME_WEB_STORE_URL=$VITE_CHROME_WEB_STORE_URL
 ENV VITE_SITE_URL=$VITE_SITE_URL
 COPY package.json package-lock.json ./
 RUN npm ci

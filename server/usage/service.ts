@@ -1,3 +1,4 @@
+import { GUEST_DAILY_AI_CREDITS } from '@/billing/plans';
 import { createHash, randomUUID } from 'node:crypto';
 import { ApiError } from '../http';
 import type { UsageDb } from './db';
@@ -125,10 +126,48 @@ export function releaseUsage(db: UsageDb, id: string, now = Date.now()): void {
  * belongs to a user). Anonymous usage can only ever be approximate — that's inherent to having no
  * account — so it is a goodwill limit, while the account-backed quota stays the real one.
  */
-export const ANON_DAILY_AI_UNITS = Number(process.env.ANON_DAILY_AI_UNITS ?? 10);
+export const ANON_DAILY_AI_UNITS = GUEST_DAILY_AI_CREDITS; // the price book's number, quoted on the pricing page
 
 export function anonymousKey(ip: string, secret: string): string {
   return createHash('sha256').update(`${secret}:${ip}`).digest('base64url').slice(0, 22);
+}
+
+/**
+ * Signed-out allowances are counted per extension install when the request says which install it is —
+ * so thirty students behind one hostel or campus address each get their own — and per address otherwise.
+ * An install id is only a random number the extension made up, so it cannot be trusted on its own:
+ * every address also has a daily ceiling, far above one learner's allowance, that stops anyone minting
+ * install ids to farm free AI.
+ */
+export const ANON_ADDRESS_DAILY_CEILING = 150;
+
+const INSTALL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+export const parseInstallId = (value: unknown): string | null => (typeof value === 'string' && INSTALL_ID.test(value.trim().toLowerCase()) ? value.trim().toLowerCase() : null);
+
+export interface AnonymousKeys {
+  /** What the learner's own daily allowance is counted against. */
+  allowance: string;
+  /** The address's ceiling — null when the allowance already is the address. */
+  ceiling: string | null;
+}
+
+export function anonymousKeys(ip: string, installId: string | null, secret: string): AnonymousKeys {
+  const address = anonymousKey(ip, secret);
+  return installId ? { allowance: anonymousKey(`install:${installId}`, secret), ceiling: address } : { allowance: address, ceiling: null };
+}
+
+/** Both checks, before any upstream call. */
+export function assertAnonymousAllowed(db: UsageDb, keys: AnonymousKeys, action: string, now = Date.now()): void {
+  assertAnonymousQuota(db, keys.allowance, action, now);
+  if (keys.ceiling && db.anonUnits(keys.ceiling, anonymousPeriod(now)) + costOf(action) > ANON_ADDRESS_DAILY_CEILING) {
+    throw new ApiError(429, 'quota_exceeded', "FocusSpace's free AI without an account is busy on your network today. Create a free account to keep going.");
+  }
+}
+
+/** Both counters, after a successful answer. */
+export function recordAnonymous(db: UsageDb, keys: AnonymousKeys, action: string, now = Date.now()): void {
+  recordAnonymousUsage(db, keys.allowance, action, now);
+  if (keys.ceiling) recordAnonymousUsage(db, keys.ceiling, action, now);
 }
 
 const anonymousPeriod = (now: number) => new Date(now).toISOString().slice(0, 10);

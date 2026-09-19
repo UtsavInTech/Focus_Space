@@ -1,6 +1,8 @@
+import { installHref } from './install';
 import { FAQ } from './content/faq';
 import { FEATURES } from './content/features';
 import { CREDIT_COSTS, PLANS, formatAmountless } from './content/plans-helpers';
+import { FREE_SPACE_LIMIT, GUEST_SPACE_LIMIT, planById } from './content/plans';
 
 /**
  * The site guide behind the chat bubble.
@@ -59,7 +61,7 @@ const KNOWLEDGE: Entry[] = [
     title: 'What FocusSpace costs',
     body: `${PLANS.filter((p) => p.id !== 'free')
       .map((p) => `${p.name} — ${formatAmountless(p.price.monthly)} a month. ${p.tagline}`)
-      .join('\n')}\n\nFree stays free: 3 modes without an account, 5 once you sign in, and a monthly AI allowance. Indian visitors are charged in rupees through UPI or card; the dollar price is the headline everywhere.`,
+      .join('\n')}\n\nFree stays free: ${GUEST_SPACE_LIMIT} Spaces without an account, ${FREE_SPACE_LIMIT} with a free account, and a monthly AI allowance. Indian visitors are charged in rupees through UPI or card; the dollar price is the headline everywhere.`,
     actions: [{ label: 'See full pricing', href: '/pricing' }],
   },
   {
@@ -72,12 +74,12 @@ const KNOWLEDGE: Entry[] = [
     keywords: ['install', 'download', 'chrome', 'extension', 'add', 'setup', 'start', 'begin'],
     title: 'Installing FocusSpace',
     body: 'FocusSpace is a Chrome extension. Add it to Chrome, open YouTube, and it asks you one question: what do you want to focus on. Type it in plain words and your home page is rebuilt around it. Nothing else to configure — no API key, no account needed to start.',
-    actions: [{ label: 'Add to Chrome', href: '/#install' }],
+    actions: [{ label: 'Add to Chrome', href: installHref() }],
   },
   {
     keywords: ['mode', 'modes', 'space', 'spaces', 'topic', 'topics', 'subtopic', 'subtopics'],
     title: 'What a mode is',
-    body: 'A mode is one intention — “DSA”, “System design”, “Punjabi music”. FocusSpace works out the topics, vocabulary and searches that express it, then ranks your subscriptions and the wider YouTube against it. You get 3 modes without an account, 5 signed in, 15 on Pro, and unlimited on Unlimited and Max.',
+    body: `A mode is one intention — “DSA”, “System design”, “Punjabi music”. FocusSpace works out the topics, vocabulary and searches that express it, then ranks your subscriptions and the wider YouTube against it. You get ${GUEST_SPACE_LIMIT} without an account, ${FREE_SPACE_LIMIT} with a free account, ${planById('pro').limits.modes} on Pro, and unlimited on Unlimited and Max.`,
     actions: [{ label: 'See plans', href: '/pricing' }],
   },
   {

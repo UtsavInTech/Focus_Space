@@ -1,3 +1,4 @@
+import { hasStoreListing, installHref } from '../install';
 import { useState } from 'react';
 import { navigate, onLinkClick } from '../router';
 import { useAuth } from '../auth';
@@ -31,7 +32,8 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
    */
   async function buy(plan: Plan) {
     if (plan.id === 'free') {
-      navigate('/#install');
+      if (hasStoreListing()) window.open(installHref(), '_blank', 'noreferrer');
+      else navigate('/#install');
       return;
     }
     if (!auth.user) {

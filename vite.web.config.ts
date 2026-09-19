@@ -14,8 +14,19 @@ const resolve = (...parts: string[]) => fileURLToPath(new URL(parts.join('/'), `
  * is genuinely shared — the `--fs-*` design tokens in src/ui/styles.css — via
  * the same `@` alias the extension uses.
  */
+/** A production site whose "Add to Chrome" goes nowhere is a launch bug — say so on every such build. */
+const storeListingWarning = {
+  name: 'focusspace-store-listing',
+  buildStart() {
+    const url = process.env.VITE_CHROME_WEB_STORE_URL ?? '';
+    if (!/^https:\/\/chromewebstore\.google\.com\//.test(url)) {
+      console.warn('\n⚠  VITE_CHROME_WEB_STORE_URL is not set — every "Add to Chrome" button only scrolls the page.\n   Set it to the listing URL (https://chromewebstore.google.com/detail/…) before the public launch.\n');
+    }
+  },
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), storeListingWarning],
   root: resolve('web'),
   publicDir: resolve('web/public'),
   resolve: { alias: { '@': resolve('src') } },

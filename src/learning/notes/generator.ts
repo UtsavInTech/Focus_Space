@@ -104,7 +104,8 @@ export async function generateNote(inputs: NoteRequestInputs, complete: (prompt:
           videoId: inputs.video.id,
           range,
           markdown: null,
-          mindmap: parseMindMap(raw, request.context.currentConcept ?? inputs.video.title),
+          // A map of one section is about that concept; any wider map is about the whole video.
+          mindmap: parseMindMap(raw, request.scopeKind === 'current-section' ? (request.context.currentConcept ?? inputs.video.title) : inputs.video.title),
           conceptIds: request.grounding.conceptIds,
           contextVersion: request.context.version,
           provenance,

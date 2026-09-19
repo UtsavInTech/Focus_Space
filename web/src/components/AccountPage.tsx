@@ -1,3 +1,4 @@
+import { hasStoreListing, installHref } from '../install';
 import { useEffect, useState } from 'react';
 import { navigate, onLinkClick } from '../router';
 import { useAuth } from '../auth';
@@ -286,7 +287,7 @@ function NotInstalled({ checking }: { checking: boolean }) {
             Your spaces, channels and settings live inside the extension, in this browser — they are never uploaded. This
             page reads them directly from it, so it needs FocusSpace installed here to show them.
           </p>
-          <a className="fsw-btn fsw-btn-primary" href="/#install" onClick={onLinkClick('/#install')} style={{ marginTop: 14 }}>
+          <a className="fsw-btn fsw-btn-primary" href={installHref()} {...(hasStoreListing() ? { target: '_blank', rel: 'noreferrer' } : { onClick: onLinkClick(installHref()) })} style={{ marginTop: 14 }}>
             Add FocusSpace to Chrome
           </a>
         </>

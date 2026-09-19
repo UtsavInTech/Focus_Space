@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { activeModeOf, effectiveFilters } from '@/modes/service';
+import { activeModeOf, effectiveFilters, needsFirstSpace } from '@/modes/service';
 import { localSidekick } from '@/ai/sidekick';
 import { OverlayRootContext, Modal } from '@/ui/components/Modal';
 import { CreateSpace } from '@/ui/components/CreateSpace';
@@ -53,7 +53,7 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
     <NavigatorContext.Provider value={navigator}>
       <YouTubeDataContext.Provider value={pageYouTubeData}>
         <OverlayRootContext.Provider value={slots.overlay.container}>
-          {active && config.filters.replaceHomeFeed && s.homeVisited && createPortal(<SpaceHome settings={s.settings} modes={s.modes} onCreateSpace={openCreate} />, slots.home.container)}
+          {((active && config.filters.replaceHomeFeed) || (s.ready && needsFirstSpace(s.settings, s.modes))) && s.homeVisited && createPortal(<SpaceHome settings={s.settings} modes={s.modes} onCreateSpace={openCreate} />, slots.home.container)}
 
           {active &&
             mode &&

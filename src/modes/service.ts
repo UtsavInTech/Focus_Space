@@ -1,5 +1,5 @@
-import type { ChannelRef, FilterConfig, FocusIntensity, LearningMode, Settings } from '@/types/domain';
-import type { SpaceAllowanceView } from '@/types/account';
+import type { ChannelRef, FilterConfig, FocusIntensity, LearningMode, Settings, TopicPlaylists } from '@/types/domain';
+import type { SpaceAllowanceView, SpaceAuthorization } from '@/types/account';
 import { sendMessage } from '@/messaging/runtime';
 import { getItems, updateItem, setItems } from '@/storage/storage';
 import { FILTER_PRESETS } from '@/storage/schema';
@@ -25,7 +25,10 @@ export class SpaceLimitError extends Error {
 async function authorizeSpace(id: string, name: string): Promise<void> {
   const modes = await getItems(['modes']).then((s) => s.modes);
   if (modes.some((m) => m.id === id)) return; // already exists locally: an update, not a new Space
-  const result = await sendMessage('spaces/authorize', { spaceId: id, name }).catch(() => ({ ok: true as const, allowance: null }));
+  // If the background cannot answer, the allowance was not checked — so the Space is not created.
+  const result = await sendMessage('spaces/authorize', { spaceId: id, name }).catch(
+    (): SpaceAuthorization => ({ ok: false, code: 'error', error: 'FocusSpace couldn’t check your Space allowance. Reload the page and try again.', allowance: null }),
+  );
   if (!result.ok) throw new SpaceLimitError(result.error, result.allowance);
 }
 
@@ -35,6 +38,13 @@ const releaseSpace = (id: string) => void sendMessage('spaces/release', { spaceI
 export const findMode = (modes: LearningMode[], id: string | null | undefined) => (id ? modes.find((m) => m.id === id) ?? null : null);
 
 export const activeModeOf = (settings: Settings, modes: LearningMode[]) => findMode(modes, settings.activeModeId);
+
+/**
+ * Focus Mode is on but there is no Space to focus on yet — a new install, or every Space deleted. The
+ * home page then shows the picker ("What do you want to focus on?"); nothing else changes YouTube until
+ * a Space exists.
+ */
+export const needsFirstSpace = (settings: Settings, modes: LearningMode[]) => settings.focusEnabled && !activeModeOf(settings, modes);
 
 /** The distraction rules that actually apply right now. */
 export function effectiveFilters(settings: Settings, mode: LearningMode | null): FilterConfig {
@@ -53,7 +63,8 @@ export async function setFocusEnabled(enabled: boolean): Promise<void> {
   const { settings, modes } = await getItems(['settings', 'modes']);
   let activeModeId = settings.activeModeId;
   if (enabled && !findMode(modes, activeModeId)) activeModeId = findMode(modes, settings.defaultModeId)?.id ?? modes[0]?.id ?? null;
-  await updateItem('settings', (s) => ({ ...s, focusEnabled: enabled && !!activeModeId, activeModeId }));
+  // With no Space at all, "on" still means on: YouTube's home shows the picker to create the first one.
+  await updateItem('settings', (s) => ({ ...s, focusEnabled: enabled && (!!activeModeId || modes.length === 0), activeModeId }));
 }
 
 export async function toggleFocus(): Promise<boolean> {
@@ -99,6 +110,18 @@ export async function deleteMode(id: string): Promise<void> {
     ...(session?.modeId === id ? { session: null } : {}),
   });
   releaseSpace(id);
+}
+
+/**
+ * Schema 5 migration: before it, every install was seeded with all the templates as real Spaces. Those
+ * the learner never touched (still `createdAt === 0`, exactly as seeded) are removed, unless they are
+ * the active or default Space or hold saved videos — anything the learner used or changed is kept.
+ * Removed ones stay one click away as suggestions.
+ */
+export function pruneUnusedTemplates(modes: LearningMode[], settings: Pick<Settings, 'activeModeId' | 'defaultModeId'>, topicPlaylists: TopicPlaylists): LearningMode[] {
+  const used = (m: LearningMode) =>
+    m.id === settings.activeModeId || m.id === settings.defaultModeId || Object.values(topicPlaylists[m.id] ?? {}).some((videos) => videos.length > 0);
+  return modes.filter((m) => !(m.createdAt === 0 && m.updatedAt === 0 && DEFAULT_MODES.some((t) => t.id === m.id)) || used(m));
 }
 
 /** Built-in templates the user has deleted (or never had), available to re-add. */

@@ -3,6 +3,7 @@ import type { ImportResult, SessionSubscriptionsResult } from '@/types/messages'
 import { sendTabMessage } from '@/messaging/runtime';
 import { updateItem } from '@/storage/storage';
 import { pruneLibrary, syncLibrary } from './library-sync';
+import { ownerGuard } from '@/storage/ownership';
 
 /**
  * Orchestrates "Import my subscriptions": asks a youtube.com content script
@@ -52,6 +53,9 @@ export function importSubscriptions(): Promise<ImportResult> {
 }
 
 async function runImport(): Promise<ImportResult> {
+  // Reading subscriptions takes a YouTube round-trip; they are only written if the data still belongs to
+  // whoever started the import (storage/ownership.ts).
+  const stillOwner = await ownerGuard();
   await updateItem('sync', (s) => ({ ...s, status: 'importing', lastError: null }));
   let acquired: { tabId: number; created: boolean } | null = null;
   let result: SessionSubscriptionsResult;
@@ -73,6 +77,8 @@ async function runImport(): Promise<ImportResult> {
     await updateItem('sync', (s) => ({ ...s, status: 'idle', lastError: result.ok ? null : result.error }));
     return result;
   }
+
+  if (!(await stillOwner())) return { ok: false, code: 'network', error: 'The account changed during the import. Import again.' };
 
   const now = Date.now();
   let added = 0;

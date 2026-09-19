@@ -1,4 +1,4 @@
-import { activeModeOf, effectiveFilters } from '@/modes/service';
+import { activeModeOf, effectiveFilters, needsFirstSpace } from '@/modes/service';
 import type { PageContext } from '@/integrations/youtube/urls';
 import { getClassifier } from '@/ai/registry';
 import { updateItem } from '@/storage/storage';
@@ -53,16 +53,20 @@ export function createController(store: Store<ContentState>, slots: Slots) {
     const s = store.get();
     const mode = activeModeOf(s.settings, s.modes);
     const active = s.ready && s.settings.focusEnabled && !!mode;
-    return { s, mode, active, filters: effectiveFilters(s.settings, mode).filters };
+    const filters = effectiveFilters(s.settings, mode).filters;
+    // FocusSpace's home replaces YouTube's when a Space is active — or when Focus Mode is on and there is
+    // no Space yet, to show the picker. One definition for mounting it and for the CSS that reveals it.
+    const showHome = (active && filters.replaceHomeFeed) || (s.ready && needsFirstSpace(s.settings, s.modes));
+    return { s, mode, active, showHome, filters };
   };
 
   function apply() {
-    const { s, active, filters: f } = focus();
+    const { s, active, showHome, filters: f } = focus();
     if (!s.ready) return;
 
     setFlags({
       shorts: active && f.hideShorts,
-      home: active && f.replaceHomeFeed,
+      home: showHome,
       'related-hide': active && f.relatedVideos !== 'show' && !s.showNativeRelated,
       endscreens: active && f.hideEndScreens,
       explore: active && f.hideExplore,
@@ -187,13 +191,13 @@ export function createController(store: Store<ContentState>, slots: Slots) {
 
   function reconcile() {
     if (!extensionAlive()) return teardown();
-    const { s, mode, active, filters: f } = focus();
+    const { s, mode, active, showHome, filters: f } = focus();
     if (!s.ready || !document.body) return;
 
     // Home: stays attached inside YouTube's home browse element (hidden by YouTube on other pages).
-    const homeParent = active && f.replaceHomeFeed ? document.querySelector(HOME_MOUNT_PARENT) : null;
+    const homeParent = showHome ? document.querySelector(HOME_MOUNT_PARENT) : null;
     if (homeParent) slots.home.prepend(homeParent);
-    else if (!active || !f.replaceHomeFeed) slots.home.detach();
+    else if (!showHome) slots.home.detach();
 
     let watch = false;
     if (active && s.page.type === 'watch') {

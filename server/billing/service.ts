@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { PLANS, type BillingPeriod, type CurrencyCode, type PlanId } from '@/billing/plans';
 import { ApiError } from '../http';
-import type { UsageDb } from '../usage/db';
-import { cancelSubscription, createOrder, createPlan, createSubscription, verifyPaymentSignature, verifySubscriptionSignature, type RazorpayConfig } from './razorpay';
+import type { CheckoutRow, UsageDb } from '../usage/db';
+import { cancelSubscription, createOrder, createPlan, createSubscription, fetchSubscription, verifyPaymentSignature, verifySubscriptionSignature, type RazorpayConfig } from './razorpay';
 
 /**
  * What a payment buys.
@@ -62,7 +62,7 @@ function minorUnits(amount: number): number {
   return Math.round(amount * 100);
 }
 
-export async function startCheckout(config: RazorpayConfig, userId: string, request: CheckoutRequest): Promise<CheckoutSession> {
+export async function startCheckout(config: RazorpayConfig, db: UsageDb, userId: string, request: CheckoutRequest, now = Date.now()): Promise<CheckoutSession> {
   const { plan, period, currency } = parse(request);
   const price = plan.price[period];
   const amountMinor = minorUnits(currency === 'INR' ? price.inr : price.usd);
@@ -77,6 +77,8 @@ export async function startCheckout(config: RazorpayConfig, userId: string, requ
     // without the browser (the user closed the tab) still knows what it bought.
     notes: { userId, planId: plan.id, period },
   });
+  // The purchase is fixed here, server-side. Confirmation grants this row and nothing else.
+  db.putCheckout({ ref: order.id, kind: 'order', user_id: userId, plan: plan.id, period, currency, amount_minor: amountMinor, remote_plan_id: null, created_at: now });
 
   return {
     orderId: order.id,
@@ -150,6 +152,17 @@ export async function startSubscription(
   });
 
   const price = plan.price[period];
+  db.putCheckout({
+    ref: subscription.id,
+    kind: 'subscription',
+    user_id: userId,
+    plan: plan.id,
+    period,
+    currency,
+    amount_minor: minorUnits(currency === 'INR' ? price.inr : price.usd),
+    remote_plan_id: remotePlanId,
+    created_at: now,
+  });
   return {
     subscriptionId: subscription.id,
     keyId: config.keyId,
@@ -221,30 +234,43 @@ export function grantPlan(db: UsageDb, input: GrantInput, now = Date.now()): Gra
   return { plan: input.planId, expiresAt, granted: true, autoRenew };
 }
 
+const UNVERIFIED = 'That payment could not be verified. If money left your account, contact support and nothing will be lost.';
+
 /**
- * Confirms a payment the browser reported. The signature is what makes this
- * trustworthy — without it, anyone could POST a plan id and be upgraded.
+ * The purchase a confirmation refers to, as the server recorded it when checkout started — and only if
+ * it belongs to the account confirming it. A Razorpay signature proves the order and the payment belong
+ * together; it says nothing about which plan was bought or by whom. So the plan, period, currency and
+ * amount always come from this record, never from the request.
+ *
+ * If the browser does name a plan, period or currency, it must match: a mismatch means the request was
+ * altered, and it is refused rather than quietly corrected.
  */
+function recordedPurchase(db: UsageDb, userId: string, ref: string, kind: CheckoutRow['kind'], claimed: { planId?: string; period?: string; currency?: string }): CheckoutRow {
+  const row = db.getCheckout(ref);
+  if (!row || row.kind !== kind || row.user_id !== userId) throw new ApiError(400, 'unknown_purchase', UNVERIFIED);
+  const altered = (claimed.planId && claimed.planId !== row.plan) || (claimed.period && claimed.period !== row.period) || (claimed.currency && claimed.currency !== row.currency);
+  if (altered) throw new ApiError(400, 'purchase_mismatch', UNVERIFIED);
+  return row;
+}
+
+/** Confirms a one-off payment the browser reported: a valid signature for an order this account started. */
 export function confirmPayment(
   config: RazorpayConfig,
   db: UsageDb,
   userId: string,
-  body: { orderId: string; paymentId: string; signature: string; planId: string; period: string; currency: string },
+  body: { orderId: string; paymentId: string; signature: string; planId?: string; period?: string; currency?: string },
   now = Date.now(),
 ): Grant {
-  if (!verifyPaymentSignature(config, body.orderId, body.paymentId, body.signature)) {
-    throw new ApiError(400, 'invalid_signature', 'That payment could not be verified. If money left your account, contact support and nothing will be lost.');
-  }
-  const { plan, period, currency } = parse(body);
-  const price = plan.price[period];
+  if (!verifyPaymentSignature(config, body.orderId, body.paymentId, body.signature)) throw new ApiError(400, 'invalid_signature', UNVERIFIED);
+  const purchase = recordedPurchase(db, userId, body.orderId, 'order', body);
   return grantPlan(
     db,
     {
       userId,
-      planId: plan.id,
-      period,
-      currency,
-      amountMinor: minorUnits(currency === 'INR' ? price.inr : price.usd),
+      planId: purchase.plan as PlanId,
+      period: purchase.period as BillingPeriod,
+      currency: purchase.currency as CurrencyCode,
+      amountMinor: purchase.amount_minor,
       orderId: body.orderId,
       paymentId: body.paymentId,
     },
@@ -253,29 +279,31 @@ export function confirmPayment(
 }
 
 /**
- * Confirms the first charge of a subscription, reported by the browser.
- * Note the signature order — `payment|subscription`, the reverse of an order.
+ * Confirms the first charge of a subscription. Note the signature order — `payment|subscription`, the
+ * reverse of an order. Beyond the signature and the recorded purchase, Razorpay is asked which Plan the
+ * subscription actually charges, and it must be the one created for this entitlement.
  */
-export function confirmSubscription(
+export async function confirmSubscription(
   config: RazorpayConfig,
   db: UsageDb,
   userId: string,
-  body: { subscriptionId: string; paymentId: string; signature: string; planId: string; period: string; currency: string },
+  body: { subscriptionId: string; paymentId: string; signature: string; planId?: string; period?: string; currency?: string },
   now = Date.now(),
-): Grant {
-  if (!verifySubscriptionSignature(config, body.subscriptionId, body.paymentId, body.signature)) {
-    throw new ApiError(400, 'invalid_signature', 'That payment could not be verified. If money left your account, contact support and nothing will be lost.');
+): Promise<Grant> {
+  if (!verifySubscriptionSignature(config, body.subscriptionId, body.paymentId, body.signature)) throw new ApiError(400, 'invalid_signature', UNVERIFIED);
+  const purchase = recordedPurchase(db, userId, body.subscriptionId, 'subscription', body);
+  const remote = await fetchSubscription(config, body.subscriptionId);
+  if (!purchase.remote_plan_id || remote.plan_id !== purchase.remote_plan_id || (remote.notes?.userId && remote.notes.userId !== userId)) {
+    throw new ApiError(400, 'purchase_mismatch', UNVERIFIED);
   }
-  const { plan, period, currency } = parse(body);
-  const price = plan.price[period];
   return grantPlan(
     db,
     {
       userId,
-      planId: plan.id,
-      period,
-      currency,
-      amountMinor: minorUnits(currency === 'INR' ? price.inr : price.usd),
+      planId: purchase.plan as PlanId,
+      period: purchase.period as BillingPeriod,
+      currency: purchase.currency as CurrencyCode,
+      amountMinor: purchase.amount_minor,
       orderId: '',
       paymentId: body.paymentId,
       subscriptionId: body.subscriptionId,

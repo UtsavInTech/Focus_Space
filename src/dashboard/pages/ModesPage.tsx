@@ -25,7 +25,7 @@ export function ModesPage({ data, openCreate }: { data: DashboardData; openCreat
 
   const closeCreate = () => {
     setCreating(false);
-    if (openCreate) navigate('/');
+    if (openCreate) navigate('/modes');
   };
 
   return (

@@ -668,3 +668,33 @@ body.fs-popup-body {
 .fs-channel-group + .fs-channel-group { margin-top: 22px; }
 .fs-channel-group > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .fs-channel-group > header p { color: var(--fs-text-3); font-size: 12.5px; }
+
+/* ─── Notes and mind maps ── shared by the YouTube panel and the dashboard Library. */
+.fs-answer-text p { margin: 0 0 10px; white-space: pre-wrap; }
+.fs-answer-text p:last-child { margin-bottom: 0; }
+.fs-answer-text strong { font-weight: 600; }
+.fs-answer-text code { padding: 1px 4px; border-radius: 4px; background: var(--fs-surface-2); font-family: 'Roboto Mono', ui-monospace, Menlo, monospace; font-size: 12.5px; }
+.fs-answer-text pre { margin: 0 0 10px; padding: 10px 12px; border-radius: 8px; background: var(--fs-surface-2); overflow-x: auto; font-size: 12.5px; line-height: 18px; white-space: pre; }
+.fs-answer-text pre code { padding: 0; background: none; }
+.fs-mindmap { max-width: 100%; overflow: auto; padding: 4px 0 8px; border-radius: 10px; }
+.fs-mindmap svg { display: block; }
+.fs-mindmap-title { padding: 3px 0; font-size: 13px; line-height: 1.45; color: var(--fs-text-2); }
+.fs-mindmap-title[data-depth='0'] { font-size: 14px; font-weight: 600; color: var(--fs-text); }
+.fs-mindmap-title[data-depth='1'] { font-weight: 560; color: var(--fs-text); }
+.fs-mindmap-full { min-width: 0; }
+.fs-mindmap-full .fs-mindmap { overflow: visible; }
+
+/* ─── Plan names ── a paid plan glows softly in the accent colour (text-shadow, never a gradient). */
+.fs-plan-premium { font-weight: 700; color: var(--fs-accent-text); text-shadow: 0 0 10px color-mix(in srgb, var(--fs-accent) 55%, transparent), 0 0 22px color-mix(in srgb, var(--fs-accent) 30%, transparent); letter-spacing: 0.01em; }
+.fs-plan-premium[data-plan='max'] { text-shadow: 0 0 12px color-mix(in srgb, var(--fs-accent) 70%, transparent), 0 0 28px color-mix(in srgb, var(--fs-accent) 40%, transparent); }
+@media (prefers-reduced-motion: no-preference) {
+  .fs-plan-premium { animation: fs-plan-glow 3.2s ease-in-out infinite; }
+  @keyframes fs-plan-glow { 50% { text-shadow: 0 0 14px color-mix(in srgb, var(--fs-accent) 70%, transparent), 0 0 30px color-mix(in srgb, var(--fs-accent) 40%, transparent); } }
+}
+.fs-mm-canvas { display: flex; flex-direction: column; gap: 8px; }
+.fs-mm-controls { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; padding: 3px; border-radius: 9px; background: var(--fs-surface-2); font-size: 12px; color: var(--fs-text-2); }
+.fs-mm-controls button { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px; border: none; border-radius: 7px; background: none; color: var(--fs-text); font: inherit; cursor: pointer; }
+.fs-mm-controls button:hover, .fs-mm-controls button[aria-pressed='true'] { background: var(--fs-surface); }
+.fs-mm-controls span { min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+.fs-mm-frame { overflow: auto; }
+.fs-mm-frame .fs-mindmap { overflow: visible; max-width: none; }

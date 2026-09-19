@@ -24,7 +24,28 @@ const SCOPE_LABEL: Record<NoteScopeKind, string> = {
 };
 
 const NOTES_INSTRUCTION = 'Write structured study notes: a heading per concept covered, bullet points for facts, definitions and steps, and short code blocks where the evidence includes code or syntax.';
-const MINDMAP_INSTRUCTION = 'Write a hierarchical outline, not prose: one concept or detail per line, nested under its parent using 2 spaces of indentation per level. No markdown headers, no paragraphs, no bullet markers other than plain indentation.';
+const MINDMAP_FORMAT = 'Write a hierarchical outline, not prose: one concept or detail per line, nested under its parent using 2 spaces of indentation per level. No markdown headers, no paragraphs, no bullet markers other than plain indentation.';
+
+/**
+ * How big and how deep the map should be — from the evidence, not the clock. A long lecture with many
+ * distinct concepts earns a large, deep map; a short one, or one with thin evidence, a small one. The
+ * old prompt said nothing about size, and the model returned a handful of lines for a three-hour lecture.
+ */
+export function mindmapGuidance(ctx: LearningContext, scopeKind: NoteScopeKind, grounding: Grounding): string {
+  const minutes = ctx.range ? (ctx.range.endSec - ctx.range.startSec) / 60 : 0;
+  const concepts = grounding.conceptTitles.length;
+  const branches = Math.max(3, Math.min(9, concepts || Math.round(minutes / 7) || 3));
+  const long = scopeKind !== 'current-section' && (minutes >= 25 || concepts >= 6);
+  const root = scopeKind === 'current-section' ? 'the concept this section teaches' : `the subject of the whole video ("${ctx.videoTitle}")`;
+  return [
+    `Start with a single root line: ${root}.`,
+    `Under it, about ${branches} main branches — one per major concept the evidence covers, in the order they are taught.`,
+    long
+      ? 'Go three to four levels deep where the evidence supports it: under each concept, its definition or purpose, the steps or cases, key details, and examples or pitfalls the instructor gives.'
+      : 'Two to three levels deep: under each concept, the few details the evidence actually gives.',
+    'Keep each line short (a phrase, not a sentence). Every line must be a distinct idea from the evidence — no filler, no repeating a parent in its child, no generic knowledge the video does not teach. If the evidence is thin, a smaller map is the right answer.',
+  ].join(' ');
+}
 const REVISION_INSTRUCTION = 'These are quick revision notes for reviewing before continuing or before an exam: be concise — definitions, key facts, formulas and common pitfalls only, minimal elaboration.';
 
 const SYSTEM = [
@@ -58,7 +79,7 @@ function evidenceBlock(ctx: LearningContext, grounding: Grounding): string {
 }
 
 export function buildNotePrompt(ctx: LearningContext, scopeKind: NoteScopeKind, format: NoteFormat, grounding: Grounding, terms: string[]): NotePrompt {
-  const formatRule = format === 'mindmap' ? MINDMAP_INSTRUCTION : NOTES_INSTRUCTION;
+  const formatRule = format === 'mindmap' ? `${MINDMAP_FORMAT} ${mindmapGuidance(ctx, scopeKind, grounding)}` : NOTES_INSTRUCTION;
   const revisionRule = scopeKind === 'revision' ? REVISION_INSTRUCTION : '';
   const languageRule = LANGUAGE_INSTRUCTION[ctx.language];
   const termsRule = terms.length ? `Keep these terms exactly as written, in every language: ${terms.join(', ')}.` : '';

@@ -59,9 +59,17 @@ function promptFor(request: AiApiRequest): AiPrompt {
   return buildPrompt(request.action as AiAction, request.context as LearningContext, request.question);
 }
 
+/**
+ * How long an answer may be, per action. One cap for everything (700 tokens) was right for "Explain this
+ * moment" and far too small for notes or a mind map of a whole lecture, which it cut short however much
+ * the video covered. The configured cap stays the floor; notes and mind maps get room to be complete.
+ */
+export const OUTPUT_TOKENS: Record<string, number> = { notes: 2400, mindmap: 1800, quiz: 1000 };
+export const maxTokensFor = (action: string, configured: number): number => Math.max(configured, OUTPUT_TOKENS[action] ?? 0);
+
 export async function orchestrate(request: AiApiRequest, deps: OrchestratorDeps): Promise<AiApiSuccess> {
   const prompt = promptFor(request);
-  const { answer, usage } = await callOpenRouter(prompt, deps.config, deps.signal);
+  const { answer, usage } = await callOpenRouter(prompt, { ...deps.config, maxTokens: maxTokensFor(request.action, deps.config.maxTokens) }, deps.signal);
   deps.onUsage?.({ action: request.action, model: deps.config.model, at: Date.now() });
   return { ok: true, answer, provider: 'openrouter', model: deps.config.model, usage };
 }

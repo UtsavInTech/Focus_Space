@@ -4,6 +4,8 @@
  * my data → how do I stop paying.
  */
 
+import { FREE_MONTHLY_AI_CREDITS, FREE_SPACE_LIMIT, GUEST_DAILY_AI_CREDITS, GUEST_SPACE_LIMIT } from './plans';
+
 export interface FaqItem {
   q: string;
   a: string;
@@ -16,11 +18,11 @@ export const FAQ: FaqItem[] = [
   },
   {
     q: 'Is FocusSpace free?',
-    a: 'Yes, and the part that makes YouTube usable is free forever: modes, the ranked feed, the learning path, the knowledge map and Shorts removal all run on your own machine and cost us nothing to give away. What a paid plan buys is AI — notes, mind maps, explanations and quizzes — because every one of those is a real request we pay for, plus more modes and sub-topics.',
+    a: 'Yes, and the part that makes YouTube usable is free forever: modes, the ranked feed, the learning path, the knowledge map and Shorts removal all run on your own machine and cost us nothing to give away. What a paid plan buys is AI — notes, mind maps, explanations and quizzes — because every one of those is a real request we pay for, plus more Spaces.',
   },
   {
     q: 'Do I need an account?',
-    a: 'No. FocusSpace works fully signed out, with 3 modes and a small daily AI allowance. Signing in is free and raises you to 5 modes and a monthly allowance, and it carries your modes and notes between devices.',
+    a: `No. FocusSpace works fully signed out, with ${GUEST_SPACE_LIMIT} Spaces and ${GUEST_DAILY_AI_CREDITS} AI credits a day. A free account raises that to ${FREE_SPACE_LIMIT} Spaces and ${FREE_MONTHLY_AI_CREDITS} AI credits a month. Your Spaces, notes and history stay in the browser you use — an account carries your plan and allowance, not your data.`,
   },
   {
     q: 'Do I need my own OpenAI or OpenRouter API key?',

@@ -1,6 +1,5 @@
 import { listen } from '@/messaging/runtime';
-import { getItem, setItem, subscribe, updateItem } from '@/storage/storage';
-import { SCHEMA_VERSION } from '@/storage/schema';
+import { getItem, subscribe, updateItem } from '@/storage/storage';
 import { toggleFocus } from '@/modes/service';
 import { addChannel, syncLibrary } from './library-sync';
 import { importSubscriptions } from './subscriptions';
@@ -16,6 +15,8 @@ import * as usage from './usage';
 import * as spaces from './spaces';
 import { SITE_URL, siteUrl } from '@/config';
 import { registerExternalMessaging } from './external';
+import { migrate } from './migrate';
+import { resolveClaim, startOwnership } from './ownership';
 
 const TICK_ALARM = 'fs-tick';
 const SYNC_ALARM = 'fs-library-sync';
@@ -67,7 +68,7 @@ async function openYouTube(url = YOUTUBE) {
 }
 
 chrome.runtime.onInstalled.addListener(async (details) => {
-  await setItem('schemaVersion', SCHEMA_VERSION);
+  await migrate();
   await ensureAlarms();
   await refreshSessionState();
   // First run happens on YouTube itself ("What do you want to focus on?").
@@ -92,6 +93,16 @@ chrome.commands.onCommand.addListener(async (command) => {
 });
 
 registerExternalMessaging();
+// Before anything reads user data: the data in use must belong to whoever is signed in. A switch clears
+// what the worker holds in memory from the previous owner, so no answer or usage line crosses over.
+void migrate().then(() =>
+  startOwnership({
+    onSwitch: () => {
+      aiService.clear();
+      usageLog.clear();
+    },
+  }),
+);
 subscribe(['session', 'settings'], () => void refreshSessionState());
 registerSessionNotificationHandlers();
 startRelevanceWarmer();
@@ -135,9 +146,9 @@ listen({
     return { ok: true };
   },
   'auth/status': () => auth.status(),
-  'auth/register': ({ email, password }) => auth.register(email, password),
   'auth/login': ({ email, password }) => auth.login(email, password),
   'auth/logout': () => auth.logout(),
+  'account/claim': ({ keep }) => resolveClaim(keep),
   'auth/signup-start': ({ email }) => auth.startEmailSignup(email),
   'auth/signup-verify': ({ email, code }) => auth.verifyEmailSignup(email, code),
   'auth/signup-complete': ({ ticket, password }) => auth.completeEmailSignup(ticket, password),

@@ -10,7 +10,8 @@
   --fsw-max: 1120px;
   --fsw-gutter: 16px;
   --fsw-nav-h: 64px;
-  --fsw-glow: radial-gradient(60% 60% at 50% 0%, rgba(139, 125, 255, 0.18), transparent 70%);
+  /* FocusSpace uses no gradients: the hero's backdrop is a flat, faint tint of the accent. */
+  --fsw-glow: var(--fs-accent-softer);
 }
 
 * {
@@ -322,10 +323,7 @@ button {
 }
 
 .fsw-grad {
-  background: linear-gradient(100deg, var(--fs-accent), #4cc3ff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--fs-accent-text);
 }
 
 .fsw-lede {
@@ -446,7 +444,7 @@ button {
   width: 56px;
   height: 32px;
   border-radius: var(--fs-r-sm);
-  background: linear-gradient(135deg, var(--fs-surface-3), var(--fs-surface-2));
+  background: var(--fs-surface-3);
 }
 
 .fsw-preview-resume strong,

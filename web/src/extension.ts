@@ -44,7 +44,8 @@ type Request =
   | { type: 'focus/set'; enabled: boolean }
   | { type: 'space/select'; modeId: string }
   | { type: 'space/create'; name: string }
-  | { type: 'space/delete'; modeId: string };
+  | { type: 'space/delete'; modeId: string }
+  | { type: 'home/open' };
 
 interface ChromeRuntime {
   sendMessage: (id: string, message: unknown, cb: (response: unknown) => void) => void;
@@ -92,6 +93,8 @@ export interface ExtensionLink {
   createSpace: (name: string) => Promise<void>;
   deleteSpace: (modeId: string) => Promise<void>;
   updateSettings: (patch: Record<string, unknown>) => Promise<void>;
+  /** Opens FocusSpace's own Home in the extension. */
+  openHome: () => Promise<void>;
 }
 
 export function useExtension(): ExtensionLink {
@@ -144,5 +147,6 @@ export function useExtension(): ExtensionLink {
     createSpace: (name) => mutate({ type: 'space/create', name }),
     deleteSpace: (modeId) => mutate({ type: 'space/delete', modeId }),
     updateSettings: (patch) => mutate({ type: 'settings/update', patch }),
+    openHome: () => send<unknown>({ type: 'home/open' }).then(() => undefined),
   };
 }

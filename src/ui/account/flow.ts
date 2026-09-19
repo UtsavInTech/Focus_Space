@@ -3,6 +3,7 @@ import type { SpaceAllowanceView } from '@/types/account';
 import type { AuthState } from '@/types/auth';
 import type { UsageStatusView } from '@/types/usage';
 import { sendMessage } from '@/messaging/runtime';
+import { useStorage } from '@/ui/hooks';
 
 /**
  * The FocusSpace account state machine. Settings → Account
@@ -34,6 +35,17 @@ export interface AccountFields {
 
 const EMPTY: AccountFields = { email: '', password: '', code: '', phone: '' };
 
+/**
+ * The question a guest is asked the first time they sign in on a browser that already holds their work
+ * (background/ownership.ts). Shared so the YouTube panel and Settings say exactly the same thing.
+ */
+export const CLAIM_COPY = {
+  title: 'Keep what’s in this browser?',
+  body: 'You used FocusSpace here before signing in. Keep those Spaces, notes and watch history with this account, or start fresh — they will be here again if you sign out.',
+  keep: 'Keep with my account',
+  fresh: 'Start fresh',
+} as const;
+
 export function useAccountFlow() {
   /** undefined = still checking (first paint, or a refresh in flight). */
   const [auth, setAuth] = useState<AuthState | undefined>(undefined);
@@ -45,6 +57,7 @@ export function useAccountFlow() {
   const [devCode, setDevCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const claimStore = useStorage(['pendingClaim'] as const);
 
   const loadAccountDetails = useCallback(() => {
     sendMessage('usage/status', {})
@@ -145,9 +158,16 @@ export function useAccountFlow() {
       ),
 
     openSettings: () => void sendMessage('dashboard/open', { route: '/settings' }),
+
+    /** Answers CLAIM_COPY. Either way the page may reload, since the data in use can change hands. */
+    resolveClaim: (keep: boolean) => run(() => sendMessage('account/claim', { keep }), () => loadAccountDetails()),
   };
 
-  return { auth, user: auth?.user ?? null, usage, spaces, step, go, fields, set, busy, error, devCode, refresh, actions };
+  const user = auth?.user ?? null;
+  // Only ever the offer made to the account signed in here.
+  const claim = user && claimStore?.pendingClaim?.userId === user.id ? claimStore.pendingClaim : null;
+
+  return { auth, user, usage, spaces, claim, step, go, fields, set, busy, error, devCode, refresh, actions };
 }
 
 export type AccountFlow = ReturnType<typeof useAccountFlow>;

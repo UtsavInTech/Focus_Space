@@ -1,4 +1,5 @@
 import { onLinkClick } from '../router';
+import { InstallCta } from './InstallCta';
 
 /**
  * Deliberately no "80,000,000+ users" badge. FocusSpace has not shipped, and
@@ -22,12 +23,15 @@ export function Hero() {
         </p>
 
         <div className="fsw-hero-cta">
-          <a className="fsw-btn fsw-btn-primary fsw-btn-lg" href="/#install" onClick={onLinkClick('/#install')}>
-            Add to Chrome — Free
-          </a>
-          <a className="fsw-btn fsw-btn-ghost fsw-btn-lg" href="/pricing" onClick={onLinkClick('/pricing')}>
-            See pricing
-          </a>
+          <InstallCta
+            size="lg"
+            withYouTube
+            forVisitors={
+              <a className="fsw-btn fsw-btn-ghost fsw-btn-lg" href="/pricing" onClick={onLinkClick('/pricing')}>
+                See pricing
+              </a>
+            }
+          />
         </div>
 
         <ul className="fsw-trust">

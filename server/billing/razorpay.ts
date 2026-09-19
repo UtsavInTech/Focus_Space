@@ -110,6 +110,9 @@ export async function createPlan(
 export interface RazorpaySubscription {
   id: string;
   status: string;
+  /** The Razorpay Plan this subscription charges — what a confirmation checks against. */
+  plan_id?: string;
+  notes?: Record<string, string>;
   short_url?: string;
 }
 
@@ -137,6 +140,19 @@ export async function createSubscription(
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
     throw new ApiError(502, 'upstream_error', `Razorpay could not start the subscription. ${detail.slice(0, 200)}`);
+  }
+  return (await res.json()) as RazorpaySubscription;
+}
+
+/**
+ * Reads a subscription back from Razorpay. Confirmation uses it to check which Razorpay Plan the
+ * subscription really charges — the browser's word for it is never enough.
+ */
+export async function fetchSubscription(config: RazorpayConfig, subscriptionId: string): Promise<RazorpaySubscription> {
+  const res = await fetch(`${API}/subscriptions/${encodeURIComponent(subscriptionId)}`, { headers: { Authorization: authHeader(config) } });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new ApiError(502, 'upstream_error', `Razorpay could not look up the subscription. ${detail.slice(0, 200)}`);
   }
   return (await res.json()) as RazorpaySubscription;
 }

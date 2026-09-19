@@ -139,7 +139,7 @@ const tile = await context.newPage();
 await tile.setViewportSize({ width: 440, height: 280 });
 await tile.setContent(`<!doctype html><html><head><style>
   body { margin: 0; width: 440px; height: 280px; overflow: hidden; font-family: Inter, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    background: radial-gradient(120% 140% at 0% 0%, #7f71ff 0%, #6d5dfc 45%, #4b3fd1 100%); color: #fff; }
+    background: #6d5dfc; color: #fff; } /* flat brand colour — FocusSpace uses no gradients */
   .wrap { box-sizing: border-box; height: 100%; padding: 34px 36px; display: flex; flex-direction: column; justify-content: space-between; }
   .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 22px; letter-spacing: -0.01em; }
   .brand img { width: 44px; height: 44px; border-radius: 11px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }

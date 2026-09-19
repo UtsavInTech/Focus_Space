@@ -3,6 +3,7 @@ import { navigate, onLinkClick } from '../router';
 import { useAuth } from '../auth';
 import * as api from '../api';
 import { Logo } from './Logo';
+import { FREE_SPACE_LIMIT } from '../content/plans';
 
 /**
  * Sign in, sign up and password reset, on one page.
@@ -137,7 +138,7 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
         </h1>
         <p className="fsw-auth-sub">
           {mode === 'signin'
-            ? 'Your spaces, notes and monthly allowance, on every device.'
+            ? 'Your plan and monthly AI allowance, wherever you sign in.'
             : step === 'password'
               ? mode === 'reset'
                 ? 'This also signs you out everywhere else, which is the point of resetting.'
@@ -146,7 +147,7 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
                 ? `If there is an account for ${email}, a 6-digit code is on its way.`
                 : mode === 'reset'
                   ? 'Tell us your email and we will send a code to set a new password.'
-                  : 'Free: 5 modes and a monthly AI allowance. No card needed.'}
+                  : `Free: ${FREE_SPACE_LIMIT} Spaces and a monthly AI allowance. No card needed.`}
         </p>
 
         {!api.apiConfigured && (

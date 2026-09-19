@@ -19,6 +19,19 @@ const { DatabaseSync } = require('node:sqlite') as { DatabaseSync: typeof Databa
 
 export type UsageStatus = 'reserved' | 'committed' | 'failed';
 
+/** A purchase as the server started it — see the `checkouts` table. `ref` is the Razorpay order or subscription id. */
+export interface CheckoutRow {
+  ref: string;
+  kind: 'order' | 'subscription';
+  user_id: string;
+  plan: string;
+  period: string;
+  currency: string;
+  amount_minor: number;
+  remote_plan_id: string | null;
+  created_at: number;
+}
+
 export interface EntitlementRow {
   user_id: string;
   plan: string;
@@ -94,6 +107,20 @@ CREATE TABLE IF NOT EXISTS remote_plans (
   key              TEXT PRIMARY KEY,
   razorpay_plan_id TEXT NOT NULL,
   created_at       INTEGER NOT NULL
+);
+
+-- What a checkout was started for, recorded by the server before the browser ever sees the order.
+-- Confirmation grants exactly this row — never a plan named by the browser — and only to its owner.
+CREATE TABLE IF NOT EXISTS checkouts (
+  ref            TEXT PRIMARY KEY,
+  kind           TEXT NOT NULL,
+  user_id        TEXT NOT NULL REFERENCES users(id),
+  plan           TEXT NOT NULL,
+  period         TEXT NOT NULL,
+  currency       TEXT NOT NULL,
+  amount_minor   INTEGER NOT NULL,
+  remote_plan_id TEXT,
+  created_at     INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS payments (
@@ -220,6 +247,18 @@ export class UsageDb {
 
   putRemotePlan(key: string, razorpayPlanId: string, at: number): void {
     this.db.prepare('INSERT OR REPLACE INTO remote_plans (key, razorpay_plan_id, created_at) VALUES (?, ?, ?)').run(key, razorpayPlanId, at);
+  }
+
+  // ── checkouts ──────────────────────────────────────────────────────────
+
+  putCheckout(row: CheckoutRow): void {
+    this.db
+      .prepare('INSERT INTO checkouts (ref, kind, user_id, plan, period, currency, amount_minor, remote_plan_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(row.ref, row.kind, row.user_id, row.plan, row.period, row.currency, row.amount_minor, row.remote_plan_id, row.created_at);
+  }
+
+  getCheckout(ref: string): CheckoutRow | undefined {
+    return this.db.prepare('SELECT * FROM checkouts WHERE ref = ?').get(ref) as CheckoutRow | undefined;
   }
 
   // ── payments ───────────────────────────────────────────────────────────

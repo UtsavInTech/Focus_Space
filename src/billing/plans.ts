@@ -37,13 +37,16 @@ export interface Plan {
   price: Record<BillingPeriod, Amount>;
   /** Highlighted card. Exactly one plan should set this. */
   featured?: boolean;
-  /** Limits the server enforces. `null` means unlimited. */
+  /**
+   * Limits the product enforces — the only ones it has. `null` means unlimited.
+   * `modes` is the number of Spaces an account may keep (server/usage/spaces.ts);
+   * `aiCredits` is the monthly allowance in the units of server/usage/cost.ts.
+   */
   limits: {
     modes: number | null;
-    subtopicsPerMode: number | null;
     aiCredits: number | null;
-    premiumCredits: number | null;
   };
+  /** Only what the product actually does today — pricing, FAQ and the extension quote this list. */
   features: string[];
   /** Shown under the feature list — what this plan deliberately does not include. */
   missing?: string[];
@@ -57,22 +60,33 @@ export interface Plan {
  */
 export const ANNUAL_DISCOUNT_LABEL = 'Save up to 33%';
 
+/**
+ * Without an account there is no server-side allowance, so these two are
+ * enforced differently: Spaces in the browser (background/spaces.ts), AI per
+ * day on the server, keyed by a hash of the caller's address
+ * (server/usage/service.ts).
+ */
+export const GUEST_SPACE_LIMIT = 3;
+export const GUEST_DAILY_AI_CREDITS = 10;
+
+/** The Free account's allowances — the same numbers as the Free plan's `limits`, named for the copy that quotes them. */
+export const FREE_SPACE_LIMIT = 5;
+export const FREE_MONTHLY_AI_CREDITS = 200;
+
 export const PLANS: Plan[] = [
   {
     id: 'free',
     name: 'Free',
     tagline: 'Everything that makes YouTube usable again, at no cost.',
     price: { monthly: { usd: 0, inr: 0 }, annual: { usd: 0, inr: 0 } },
-    limits: { modes: 5, subtopicsPerMode: 5, aiCredits: 200, premiumCredits: null },
+    limits: { modes: FREE_SPACE_LIMIT, aiCredits: FREE_MONTHLY_AI_CREDITS },
     features: [
-      '3 modes without an account, 5 once you sign in',
-      'Up to 5 sub-topics per mode',
+      `${GUEST_SPACE_LIMIT} Spaces without an account, ${FREE_SPACE_LIMIT} with a free account`,
       'Relevance-ranked subscriptions and discovery',
       'Learning path, knowledge map and Shorts removal',
-      '200 AI credits a month (10 a day signed out)',
+      `${FREE_MONTHLY_AI_CREDITS} AI credits a month with a free account (${GUEST_DAILY_AI_CREDITS} a day without one)`,
       'Notes and mind maps in English, हिंदी or Hinglish',
     ],
-    missing: ['No sync across devices', 'No premium models'],
     cta: 'Add to Chrome — Free',
   },
   {
@@ -81,16 +95,8 @@ export const PLANS: Plan[] = [
     tagline: 'For one subject you are serious about.',
     // Annual totals are 12 x a .99 monthly figure, so the "/month" line stays clean: $2.99 / ₹199.
     price: { monthly: { usd: 3.99, inr: 299 }, annual: { usd: 35.88, inr: 2388 } },
-    limits: { modes: 15, subtopicsPerMode: 15, aiCredits: 2000, premiumCredits: 100 },
-    features: [
-      '15 modes',
-      'Up to 15 sub-topics per mode',
-      '2,000 AI credits a month',
-      '100 premium credits for the advanced model',
-      'Mind map diagrams, exportable as SVG',
-      'Notes and modes synced across devices',
-      'Email support',
-    ],
+    limits: { modes: 15, aiCredits: 2000 },
+    features: ['Everything in Free', '15 Spaces', '2,000 AI credits a month', 'Email support'],
     cta: 'Get Pro',
   },
   {
@@ -99,32 +105,17 @@ export const PLANS: Plan[] = [
     tagline: 'For everything you are learning at once.',
     price: { monthly: { usd: 7.99, inr: 599 }, annual: { usd: 71.88, inr: 4788 } },
     featured: true,
-    limits: { modes: null, subtopicsPerMode: null, aiCredits: null, premiumCredits: 2800 },
-    features: [
-      'Unlimited modes and sub-topics',
-      'Unlimited AI credits on the standard model',
-      '2,800 premium credits a month',
-      'Full-course notes across a whole playlist',
-      'Mind map diagrams, exportable as SVG',
-      'Notes and modes synced across devices',
-      'Priority support',
-    ],
+    limits: { modes: null, aiCredits: null },
+    features: ['Everything in Free', 'Unlimited Spaces', 'Unlimited AI credits', 'Priority support'],
     cta: 'Get Unlimited',
   },
   {
     id: 'max',
     name: 'Max',
-    tagline: 'For people who live inside long courses.',
+    tagline: 'Everything in Unlimited, for people who want to back FocusSpace.',
     price: { monthly: { usd: 19.99, inr: 1499 }, annual: { usd: 179.88, inr: 11988 } },
-    limits: { modes: null, subtopicsPerMode: null, aiCredits: null, premiumCredits: 10000 },
-    features: [
-      'Everything in Unlimited',
-      '10,000 premium credits a month',
-      'The advanced model by default on every action',
-      'Longest transcript windows for multi-hour lectures',
-      'Early access to new features',
-      'Priority support',
-    ],
+    limits: { modes: null, aiCredits: null },
+    features: ['Everything in Unlimited', 'Unlimited Spaces', 'Unlimited AI credits', 'Priority support'],
     cta: 'Get Max',
   },
 ];

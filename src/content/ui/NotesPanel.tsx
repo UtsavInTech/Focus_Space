@@ -2,15 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { Download, Maximize2, Network, NotebookPen, Save, Text, Trash2, X } from 'lucide-react';
 import type { LearningMode } from '@/types/domain';
 import type { GeneratedNote, MindMapNode, NoteFormat, NoteLanguage, SavedNote } from '@/types/notes';
-import type { KnowledgeMap, TranscriptSegment } from '@/learning/knowledge/types';
+import type { KnowledgeMap, KnowledgeSource, TranscriptSegment } from '@/learning/knowledge/types';
 import { formatTimestamp } from '@/learning/knowledge/timestamps';
 import type { LearningPath } from '@/learning/path/path';
 import type { NoteRequestInputs } from '@/learning/notes/generator';
 import type { NoteScope } from '@/learning/notes/scope';
 import { sendMessage } from '@/messaging/runtime';
 import { Modal } from '@/ui/components/Modal';
-import { RichText } from './LearningPanel';
-import { MindMapDiagram, MindMapOutline, downloadMindMapSvg } from './MindMapDiagram';
+import { RichText } from '@/ui/components/RichText';
+import { FORMAT_NAME, noteLabel, noteStartSec } from '@/learning/notes/label';
+import { MindMapDiagram, MindMapOutline, downloadMindMapSvg } from '@/ui/mindmap/MindMapDiagram';
+import { MindMapCanvas } from '@/ui/mindmap/MindMapCanvas';
 
 /**
  * "Make Notes": the minimum UI to pick a scope, a format and a language,
@@ -27,6 +29,9 @@ const SCOPE_OPTIONS: { scope: NoteScope; label: string }[] = [
   { scope: { kind: 'full-video' }, label: 'Full video' },
   { scope: { kind: 'revision' }, label: 'Revision' },
 ];
+
+/** What a note was grounded in, in words — never the internal source ids. */
+const SOURCE_NAME: Record<KnowledgeSource, string> = { transcript: 'transcript', chapters: 'chapters', 'auto-chapters': 'chapters', description: 'description', comments: 'viewer comments', ai: 'outline' };
 
 const scopeKey = (s: NoteScope) => (s.kind === 'range' ? `range:${s.range.startSec}-${s.range.endSec}` : s.kind);
 
@@ -59,6 +64,7 @@ export function NotesPanel({ video, mode, topicId, path, map, transcript, durati
   const [gen, setGen] = useState<GenState>({ kind: 'idle' });
   const [saved, setSaved] = useState<SavedNote[] | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -147,7 +153,7 @@ export function NotesPanel({ video, mode, topicId, path, map, transcript, durati
         {gen.kind === 'ready' && (
           <div style={{ marginTop: 10 }}>
             <div className="fs-answer-note">
-              {gen.note.provenance.sources.length ? `Grounded in: ${gen.note.provenance.sources.join(', ')}` : ''}
+              {gen.note.provenance.sources.length ? `From the video’s ${[...new Set(gen.note.provenance.sources.map((x) => SOURCE_NAME[x] ?? 'video'))].join(', ')}` : ''} · {noteLabel(gen.note)}
               {!gen.note.provenance.hasTranscript && ' · no transcript for this part'}
             </div>
             {gen.note.markdown && <RichText text={gen.note.markdown} />}
@@ -161,18 +167,36 @@ export function NotesPanel({ video, mode, topicId, path, map, transcript, durati
         {!!saved?.length && (
           <div style={{ marginTop: 14 }}>
             <button type="button" className="fs-text-button" aria-expanded={expanded} onClick={() => setExpanded((e) => !e)}>
-              {expanded ? 'Hide' : `${saved.length} saved note${saved.length > 1 ? 's' : ''}`}
+              {expanded ? 'Hide saved' : `${saved.length} saved on this video`}
             </button>
             {expanded && (
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
+              <ul className="fs-saved-list">
                 {saved.map((n) => (
-                  <li key={n.id} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 32 }}>
-                    <button type="button" className="fs-text-button" style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={() => onSeek(n.range?.startSec ?? 0)}>
-                      {n.range ? formatTimestamp(n.range.startSec) : 'Full video'} · {n.provenance.scope} · {n.language}
-                    </button>
-                    <button type="button" className="fs-icon-plain" aria-label="Delete note" onClick={() => void remove(n.id)}>
-                      <Trash2 size={14} aria-hidden />
-                    </button>
+                  <li key={n.id}>
+                    <div className="fs-saved-row">
+                      {/* Opens the saved note itself — reading it is the point; jumping the video is a separate action. */}
+                      <button type="button" className="fs-text-button fs-saved-open" aria-expanded={openId === n.id} onClick={() => setOpenId((id) => (id === n.id ? null : n.id))}>
+                        {FORMAT_NAME[n.format]} · {noteLabel(n)}
+                      </button>
+                      <button type="button" className="fs-icon-plain" aria-label="Delete note" onClick={() => void remove(n.id)}>
+                        <Trash2 size={14} aria-hidden />
+                      </button>
+                    </div>
+                    {openId === n.id && (
+                      <div className="fs-saved-body">
+                        {n.markdown ? <RichText text={n.markdown} /> : n.mindmap ? <MindMapResult node={n.mindmap} title={video.title} /> : null}
+                        <div className="fs-ai-actions" style={{ marginTop: 8 }}>
+                          {noteStartSec(n) > 0 && (
+                            <button type="button" className="fs-ai-chip" onClick={() => onSeek(noteStartSec(n))}>
+                              Watch from {formatTimestamp(noteStartSec(n))}
+                            </button>
+                          )}
+                          <button type="button" className="fs-ai-chip" onClick={() => void sendMessage('dashboard/open', { route: `/library/note/${encodeURIComponent(n.id)}` }).catch(() => undefined)}>
+                            Open in Library
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -227,7 +251,7 @@ function MindMapResult({ node, title }: { node: MindMapNode; title: string }) {
 
       <Modal open={full} onClose={() => setFull(false)} title="Mind map" subtitle={title} width={1100}>
         <div ref={fullHolder} className="fs-mindmap-full">
-          <MindMapDiagram root={node} />
+          <MindMapCanvas root={node} maxHeight="70vh" />
         </div>
         <div className="fs-ai-actions" style={{ marginTop: 12 }}>
           <button type="button" className="fs-ai-chip" onClick={() => downloadMindMapSvg(fullHolder.current, filename)}>

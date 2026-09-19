@@ -4,10 +4,11 @@ import type { AiSettings, ApiSettings, Settings } from '@/types/domain';
 import type { NoteLanguage } from '@/types/notes';
 import type { AiStatus } from '@/learning/ai/service';
 import { downloadOnDeviceModel } from '@/ai/on-device';
-import { API_URL, HOSTED_AI_LABEL, usesHostedAi } from '@/config';
-import { planLabel } from '@/billing/plans';
+import { API_URL, HOSTED_AI_LABEL, PHONE_SIGN_IN, usesHostedAi } from '@/config';
+import { FREE_SPACE_LIMIT, GUEST_SPACE_LIMIT, planLabel } from '@/billing/plans';
+import { isPaidPlan, PlanName } from '@/ui/components/PlanName';
 import { sendMessage } from '@/messaging/runtime';
-import { accountIdentity, useAccountFlow } from '@/ui/account/flow';
+import { accountIdentity, CLAIM_COPY, useAccountFlow } from '@/ui/account/flow';
 import type { DashboardData } from '../DashboardApp';
 import { navigate } from '../router';
 import { setItem, updateItem } from '@/storage/storage';
@@ -70,7 +71,7 @@ const isHttpUrl = (url: string) => {
 
 function AccountSection({ settings }: { settings: Settings }) {
   const flow = useAccountFlow();
-  const { user, usage, spaces, step, go, fields, set, busy, error, devCode, actions } = flow;
+  const { user, usage, spaces, claim, step, go, fields, set, busy, error, devCode, actions } = flow;
   const [baseUrl, setBaseUrl] = useState(settings.api.baseUrl);
   useEffect(() => setBaseUrl(settings.api.baseUrl), [settings.api.baseUrl]);
   useEffect(flow.refresh, [settings.api.baseUrl]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -85,13 +86,31 @@ function AccountSection({ settings }: { settings: Settings }) {
     <Section
       id="account"
       title="Account"
-      description="Optional. FocusSpace works fully signed out; an account carries your AI allowance and spaces across devices."
+      description="Optional. FocusSpace works fully signed out; an account raises your Space and AI allowance. Your Spaces, notes and history stay in this browser."
     >
       {user ? (
         <>
           <SettingRow title="Signed in" description={`${accountIdentity(flow)}${user.email && user.emailVerified === false ? ' · email not verified' : ''}`}>
             <Button size="sm" variant="secondary" disabled={busy} onClick={() => void actions.signOut()}>
               Sign out
+            </Button>
+          </SettingRow>
+          {claim && (
+            <SettingRow title={CLAIM_COPY.title} description={CLAIM_COPY.body}>
+              <div className="fs-row">
+                <Button size="sm" disabled={busy} onClick={() => void actions.resolveClaim(true)}>
+                  {CLAIM_COPY.keep}
+                </Button>
+                <Button size="sm" variant="secondary" disabled={busy} onClick={() => void actions.resolveClaim(false)}>
+                  {CLAIM_COPY.fresh}
+                </Button>
+              </div>
+            </SettingRow>
+          )}
+          {error && user && <p className="fs-form-error">{error}</p>}
+          <SettingRow title="Plan" description={usage ? <PlanName plan={usage.plan} /> : 'Checking…'}>
+            <Button size="sm" variant="secondary" onClick={() => void sendMessage('site/open', { path: usage && isPaidPlan(usage.plan) ? '/account' : '/pricing' }).catch(() => undefined)}>
+              {usage && isPaidPlan(usage.plan) ? 'Manage plan' : 'See plans'}
             </Button>
           </SettingRow>
           {usage && <Meter label={planLabel(usage.plan)} used={usage.used} limit={usage.limit} unit="AI actions this period" />}
@@ -109,7 +128,7 @@ function AccountSection({ settings }: { settings: Settings }) {
                 options={[
                   { value: 'signin', label: 'Sign in' },
                   { value: 'create', label: 'New account' },
-                  { value: 'phone', label: 'Phone' },
+                  ...(PHONE_SIGN_IN ? [{ value: 'phone' as const, label: 'Phone' }] : []),
                 ]}
               />
               {error && <p className="fs-form-error">{error}</p>}
@@ -192,6 +211,9 @@ function AccountSection({ settings }: { settings: Settings }) {
         </>
       )}
 
+      <SettingRow title="Your name" description="Optional. FocusSpace’s Home greets you with it. Stays in this browser.">
+        <TextInput value={settings.displayName} onChange={(e) => patch({ displayName: e.target.value })} maxLength={40} placeholder="Optional" style={{ width: 200 }} aria-label="Your name" />
+      </SettingRow>
       {(!API_URL || settings.api.baseUrl) && (
         <SettingRow title="FocusSpace server" description="Where your account lives. Reference server: server/index.ts.">
           <div className="fs-row">
@@ -288,6 +310,8 @@ function AiSection({ settings }: { settings: Settings }) {
           </div>
         </SettingRow>
       )}
+      {/* "Ready · FocusSpace AI" is not worth a row; only a problem, or a non-default setup, is. */}
+      {!(hosted && status?.availability === 'available' && settings.ai.provider !== 'off' && !download) && (
       <SettingRow title="Status" description={download?.error ?? statusText}>
         {status?.provider === 'chrome' && status.availability === 'downloadable' && (
           <Button
@@ -310,6 +334,7 @@ function AiSection({ settings }: { settings: Settings }) {
           </Button>
         )}
       </SettingRow>
+      )}
     </Section>
   );
 }
@@ -371,21 +396,28 @@ export function SettingsPage({ data }: { data: DashboardData }) {
 
       <AiSection settings={settings} />
 
-      <Section id="spaces" title="Spaces" description="A space is what you came to YouTube for. Your plan includes four spaces on your account; spaces already in this browser keep working.">
+      <Section
+        id="spaces"
+        title="Spaces"
+        description={`A Space is what you came to YouTube for. ${GUEST_SPACE_LIMIT} without an account, ${FREE_SPACE_LIMIT} with a free account, more on a paid plan. Spaces live in this browser.`}
+      >
         <SettingRow title={`${modes.length} ${modes.length === 1 ? 'space' : 'spaces'} in this browser`} description={modes.map((m) => m.name).join(' · ')}>
-          <Button size="sm" variant="secondary" onClick={() => navigate('/')}>
+          <Button size="sm" variant="secondary" onClick={() => navigate('/modes')}>
             Manage spaces
           </Button>
         </SettingRow>
       </Section>
 
-      <Section id="library" title="Subscriptions library" description="The channels FocusSpace ranks for each space.">
+      <Section id="subscriptions" title="Subscriptions" description="The channels FocusSpace ranks for each Space.">
         <SettingRow title="Refresh automatically" description="Check your channels for new uploads every 6 hours while Chrome is open.">
           <Switch label="Refresh automatically" checked={settings.autoSyncSubscriptions} onChange={(v) => patch({ autoSyncSubscriptions: v })} />
         </SettingRow>
-        <SettingRow title="Show relevance details" description="Developer aid: score breakdowns in the space editor, channel metrics, and data-fs-score attributes on search results.">
-          <Switch label="Show relevance details" checked={settings.debugRelevance} onChange={(v) => patch({ debugRelevance: v })} />
-        </SettingRow>
+        <details className="fs-advanced">
+          <summary className="fs-label">Troubleshooting</summary>
+          <SettingRow title="Show relevance details" description="Shows how FocusSpace scored each channel and video — useful when reporting a ranking that looks wrong.">
+            <Switch label="Show relevance details" checked={settings.debugRelevance} onChange={(v) => patch({ debugRelevance: v })} />
+          </SettingRow>
+        </details>
       </Section>
 
       <Section id="appearance" title="Appearance" description="On youtube.com FocusSpace follows YouTube's own theme. These apply to FocusSpace's own pages.">
@@ -412,9 +444,6 @@ export function SettingsPage({ data }: { data: DashboardData }) {
             ]}
           />
         </SettingRow>
-        <SettingRow title="Your name" description="Optional. Used only in FocusSpace's own greeting.">
-          <TextInput value={settings.displayName} onChange={(e) => patch({ displayName: e.target.value })} maxLength={40} placeholder="Optional" style={{ width: 200 }} aria-label="Your name" />
-        </SettingRow>
       </Section>
 
       <Section id="privacy" title="Privacy" description="Exactly what stays here, and what leaves.">
@@ -431,7 +460,7 @@ export function SettingsPage({ data }: { data: DashboardData }) {
             <span className="fs-h3">Your account (only if you create one)</span>
             <ul className="fs-bullets">
               <li>Your email or phone number, and a securely hashed password — never the password itself. Verification codes are stored only as keyed hashes.</li>
-              <li>Your plan, AI usage count and the ids of your spaces, so allowances follow you across devices.</li>
+              <li>Your plan, AI usage count and the ids and names of your Spaces, so your plan’s limits apply wherever you sign in. Not their contents.</li>
               <li>Nothing else: spaces' contents, history and notes stay in this browser.</li>
             </ul>
           </div>

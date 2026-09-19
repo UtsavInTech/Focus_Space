@@ -2,8 +2,9 @@ import { useContext, useEffect, useRef, useState, type InputHTMLAttributes, type
 import { createPortal } from 'react-dom';
 import { ChevronLeft, User, X } from 'lucide-react';
 import { OverlayRootContext } from '@/ui/components/Modal';
-import { accountIdentity, useAccountFlow } from '@/ui/account/flow';
-import { planLabel } from '@/billing/plans';
+import { accountIdentity, CLAIM_COPY, useAccountFlow } from '@/ui/account/flow';
+import { PlanName } from '@/ui/components/PlanName';
+import { PHONE_SIGN_IN } from '@/config';
 
 /**
  * The FocusSpace account, in FocusSpace's own sidebar header — the one place in
@@ -24,7 +25,7 @@ export function AccountEntry() {
   const panelRef = useRef<HTMLDivElement>(null);
   const overlayRoot = useContext(OverlayRootContext);
   const flow = useAccountFlow();
-  const { auth, user, usage, spaces, step, go, fields, set, busy, error, devCode, actions } = flow;
+  const { auth, user, usage, spaces, claim, step, go, fields, set, busy, error, devCode, actions } = flow;
 
   // Re-checked whenever the panel opens: catches a sign-in/out made in Settings while it was closed.
   useEffect(() => {
@@ -103,7 +104,22 @@ export function AccountEntry() {
                 ) : user && step.view === 'menu' ? (
                   <>
                     <div className="fs-account-id">{identity}</div>
-                    <Meter label={usage ? planLabel(usage.plan) : 'Plan'} used={usage?.used} limit={usage?.limit} unit="AI actions" loading={usage === undefined} />
+                    {claim && (
+                      <div role="group" aria-label={CLAIM_COPY.title}>
+                        <p className="fs-account-note">
+                          <strong>{CLAIM_COPY.title}</strong> {CLAIM_COPY.body}
+                        </p>
+                        <div className="fs-account-actions">
+                          <button type="button" className="fs-pill-button" disabled={busy} onClick={() => void actions.resolveClaim(true)}>
+                            {CLAIM_COPY.keep}
+                          </button>
+                          <button type="button" className="fs-link" disabled={busy} onClick={() => void actions.resolveClaim(false)}>
+                            {CLAIM_COPY.fresh}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <Meter label={usage ? <PlanName plan={usage.plan} /> : 'Plan'} used={usage?.used} limit={usage?.limit} unit="AI actions" loading={usage === undefined} />
                     <Meter label="Spaces on your account" used={spaces?.used} limit={spaces?.limit} unit="spaces" loading={spaces === undefined} />
                     <div className="fs-account-actions">
                       <button type="button" className="fs-pill-button" onClick={actions.openSettings}>
@@ -116,7 +132,7 @@ export function AccountEntry() {
                   </>
                 ) : step.view === 'menu' ? (
                   <>
-                    <p className="fs-account-note">An account carries your AI allowance and spaces across devices. Everything else in FocusSpace works signed out.</p>
+                    <p className="fs-account-note">A free account raises your Space and AI allowance. Everything else in FocusSpace works signed out, and your data stays in this browser.</p>
                     <div className="fs-account-actions">
                       <button type="button" className="fs-pill-button" onClick={() => go({ view: 'email-signup', step: 'email', email: '' })}>
                         Create account
@@ -125,9 +141,11 @@ export function AccountEntry() {
                         Sign in
                       </button>
                     </div>
-                    <button type="button" className="fs-link" onClick={() => go({ view: 'phone', step: 'phone', phone: '' })}>
-                      Continue with a phone number
-                    </button>
+                    {PHONE_SIGN_IN && (
+                      <button type="button" className="fs-link" onClick={() => go({ view: 'phone', step: 'phone', phone: '' })}>
+                        Continue with a phone number
+                      </button>
+                    )}
                   </>
                 ) : step.view === 'email-signin' ? (
                   <Form
@@ -208,7 +226,7 @@ export function AccountEntry() {
   );
 }
 
-function Meter({ label, used, limit, unit, loading }: { label: string; used?: number; limit?: number | null; unit: string; loading: boolean }) {
+function Meter({ label, used, limit, unit, loading }: { label: ReactNode; used?: number; limit?: number | null; unit: string; loading: boolean }) {
   if (loading) return <p className="fs-account-note">Checking {unit}…</p>;
   if (used === undefined || limit === undefined || limit === 0) return null;
   if (limit === null) {

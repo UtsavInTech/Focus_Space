@@ -18,13 +18,14 @@ import { connector, FONT, layoutMindMap, LINE_H, PAD_X, PAD_Y } from './mindmap-
  * picture, so the diagram costs nothing beyond the note itself.
  */
 
-export function MindMapDiagram({ root }: { root: MindMapNode }) {
+/** `scale` resizes the drawing itself (not a CSS transform), so text stays crisp at any zoom. */
+export function MindMapDiagram({ root, scale = 1 }: { root: MindMapNode; scale?: number }) {
   const { nodes, width, height } = useMemo(() => layoutMindMap(root), [root]);
   const byParent = useMemo(() => nodes.flatMap((n) => n.children.map((c) => ({ from: n, to: c }))), [nodes]);
 
   return (
     <div className="fs-mindmap" role="img" aria-label={`Mind map: ${root.title}`}>
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} xmlns="http://www.w3.org/2000/svg">
+      <svg width={Math.round(width * scale)} height={Math.round(height * scale)} viewBox={`0 0 ${width} ${height}`} xmlns="http://www.w3.org/2000/svg">
         {byParent.map(({ from, to }, i) => (
           <path key={i} d={connector(from, to)} fill="none" stroke={to.color} strokeWidth={to.depth === 1 ? 1.75 : 1.25} strokeOpacity={to.depth === 1 ? 0.7 : 0.45} strokeLinecap="round" />
         ))}

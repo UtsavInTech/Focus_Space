@@ -10,7 +10,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
  * shape and one `ApiError` class, not a duplicate per domain.
  */
 
-export type ErrorCode = 'invalid_request' | 'unauthorized' | 'forbidden' | 'conflict' | 'rate_limited' | 'quota_exceeded' | 'space_limit' | 'invalid_signature' | 'billing_unavailable' | 'upstream_error' | 'internal_error';
+export type ErrorCode = 'invalid_request' | 'unauthorized' | 'forbidden' | 'conflict' | 'rate_limited' | 'quota_exceeded' | 'space_limit' | 'invalid_signature' | 'unknown_purchase' | 'purchase_mismatch' | 'billing_unavailable' | 'upstream_error' | 'internal_error';
 
 export interface ApiErrorResponse {
   ok: false;
@@ -45,7 +45,7 @@ export class ApiError extends Error {
 export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-FocusSpace-Install',
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'no-referrer',
@@ -84,4 +84,22 @@ export async function readJsonBody(req: IncomingMessage, maxBytes: number): Prom
   } catch {
     throw new ApiError(400, 'invalid_request', 'Malformed JSON body.');
   }
+}
+
+/**
+ * The caller's address, for per-address limits. Behind a proxy (Railway in production) the socket's peer
+ * is the proxy itself — keying on it made every signed-out learner share one allowance and one rate
+ * limit. With `trustProxy`, the proxy's own record of the client is used: `X-Real-IP`, else the last
+ * `X-Forwarded-For` entry (the one the proxy appended; earlier entries are whatever the client claimed).
+ * Without a proxy those headers are the client's to forge, so they are ignored.
+ */
+export function clientIp(req: { headers: Record<string, string | string[] | undefined>; socket: { remoteAddress?: string } }, trustProxy: boolean): string {
+  if (trustProxy) {
+    const real = req.headers['x-real-ip'];
+    if (typeof real === 'string' && real.trim()) return real.trim();
+    const forwarded = req.headers['x-forwarded-for'];
+    const list = (Array.isArray(forwarded) ? forwarded.join(',') : forwarded ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+    if (list.length) return list[list.length - 1];
+  }
+  return req.socket.remoteAddress ?? 'unknown';
 }

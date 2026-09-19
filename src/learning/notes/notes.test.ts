@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_MODES } from '@/modes/templates';
 import type { NoteFormat, NoteLanguage } from '@/types/notes';
-import { transcriptWindow } from '../context/context';
+import { rangeBudget, transcriptWindow } from '../context/context';
 import { buildKnowledgeMap } from '../knowledge/fuse';
 import { conceptStops } from '../knowledge/locate';
 import type { TranscriptSegment } from '../knowledge/types';
@@ -129,6 +129,17 @@ describe('scopes', () => {
     if (result.ok) expect(result.note.range).toBeNull();
   });
 
+  it('"Full video" without a known length is honestly a watched-so-far note — never labelled the entire video', async () => {
+    const { complete } = mockComplete(REAL_NOTE);
+    for (const durationSec of [null, 0]) {
+      const result = await generateNote(inputs({ scope: { kind: 'full-video' }, durationSec, currentTime: 1100 }), complete);
+      expect(result.ok).toBe(true);
+      if (!result.ok) continue;
+      expect(result.note.provenance.scope).toBe('watched-so-far');
+      expect(result.note.range).toEqual({ startSec: 0, endSec: 1100 });
+    }
+  });
+
   it('revision: defaults to watched-so-far and asks for a concise recap', async () => {
     const request = buildNoteRequest(inputs({ currentTime: 900, scope: { kind: 'revision' } }));
     expect(request.context.range).toEqual({ startSec: 0, endSec: 900 });
@@ -242,7 +253,7 @@ describe('long video / range handling and context limits', () => {
   it('a range too long to fit verbatim is sampled across the whole span, not truncated to the start', () => {
     const w = transcriptWindow(transcript, 0, { range: { startSec: 0, endSec: 10800 } })!; // full 3-hour transcript
     expect(w.text.length).toBeLessThan(transcript.map((s) => s.text).join(' ').length);
-    expect(w.text.length).toBeLessThanOrEqual(6000 * 1.2);
+    expect(w.text.length).toBeLessThanOrEqual(rangeBudget({ startSec: 0, endSec: 10800 }) * 1.05);
     expect(w.text).toContain('Sentence 0 '); // start of the range
     expect(w.text).toContain('[…]'); // non-contiguous — honestly marked as sampled, not pretended continuous
     const numbers = [...w.text.matchAll(/Sentence (\d+) /g)].map((m) => Number(m[1]));
@@ -258,8 +269,46 @@ describe('long video / range handling and context limits', () => {
 
   it('full-video notes on a long course still ground across the whole map, within the character budget', () => {
     const request = buildNoteRequest(inputs({ scope: { kind: 'full-video' }, durationSec: 3600 }));
-    expect(request.context.transcriptWindow!.text.length).toBeLessThanOrEqual(6000 * 1.2);
+    expect(request.context.transcriptWindow!.text.length).toBeLessThanOrEqual(rangeBudget({ startSec: 0, endSec: 3600 }) * 1.05);
     expect(request.grounding.conceptTitles).toEqual(expect.arrayContaining(['Introduction', 'Reversal']));
+    // The whole prompt must still fit the API's limit on a user message (server/validate.ts).
+    expect(request.prompt.user.length).toBeLessThanOrEqual(24_000);
+  });
+
+  it('the transcript budget grows with the span — a long lecture is not squeezed into a short one’s budget', () => {
+    expect(rangeBudget({ startSec: 0, endSec: 120 })).toBe(6000);
+    expect(rangeBudget({ startSec: 0, endSec: 3600 })).toBeGreaterThan(rangeBudget({ startSec: 0, endSec: 600 }));
+    expect(rangeBudget({ startSec: 0, endSec: 36_000 })).toBe(16_000);
+  });
+
+  it('a long lecture is sampled from more points across it than a short one', () => {
+    const sampled = transcriptWindow(transcript, 0, { range: { startSec: 0, endSec: 10800 } })!;
+    expect(sampled.text.split('[…]').length).toBeGreaterThan(12);
+  });
+});
+
+describe('mind maps scale with the evidence', () => {
+  it('a whole long lecture asks for a deep map rooted in the video; a section asks for a small one rooted in its concept', () => {
+    const whole = buildNoteRequest(inputs({ scope: { kind: 'full-video' }, format: 'mindmap', durationSec: 3600 })).prompt.user;
+    expect(whole).toMatch(/single root line: the subject of the whole video/);
+    expect(whole).toMatch(/three to four levels deep/);
+    const section = buildNoteRequest(inputs({ scope: { kind: 'current-section' }, format: 'mindmap', currentTime: 1100 })).prompt.user;
+    expect(section).toMatch(/single root line: the concept this section teaches/);
+    expect(section).toMatch(/Two to three levels deep/);
+  });
+
+  it('asks for no filler — a thin map is right when the evidence is thin', () => {
+    const prompt = buildNoteRequest(inputs({ scope: { kind: 'full-video' }, format: 'mindmap', durationSec: 3600 })).prompt.user;
+    expect(prompt).toMatch(/no filler/);
+    expect(prompt).toMatch(/If the evidence is thin, a smaller map is the right answer/);
+  });
+
+  it('a whole-video map is titled with the video, not the concept playing when it was made', async () => {
+    const outline = 'Linked lists\n  Insertion\n  Deletion';
+    const result = await generateNote(inputs({ scope: { kind: 'full-video' }, format: 'mindmap', durationSec: 3600, currentTime: 1100 }), async () => outline);
+    expect(result.ok && result.note.mindmap?.title).toBe('Linked lists'); // the model's single root is kept
+    const multi = await generateNote(inputs({ scope: { kind: 'full-video' }, format: 'mindmap', durationSec: 3600, currentTime: 1100 }), async () => 'Insertion\nDeletion');
+    expect(multi.ok && multi.note.mindmap?.title).toBe(inputs({}).video.title);
   });
 });
 

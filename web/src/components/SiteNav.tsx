@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { onLinkClick } from '../router';
 import { useAuth } from '../auth';
 import { Logo } from './Logo';
+import { InstallCta } from './InstallCta';
 
 const LINKS = [
   { label: 'Features', to: '/#features' },
@@ -48,9 +49,7 @@ export function SiteNav() {
               Sign in
             </a>
           )}
-          <a className="fsw-btn fsw-btn-primary" href="/#install" onClick={onLinkClick('/#install')}>
-            Add to Chrome
-          </a>
+          <InstallCta label="Add to Chrome" />
           <button
             type="button"
             className="fsw-nav-toggle"

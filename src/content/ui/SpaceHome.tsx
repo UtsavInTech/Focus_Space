@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Check, ChevronDown, Pencil, Plus, Power, RefreshCw, X } from 'lucide-react';
 import type { LearningMode, Settings, Topic } from '@/types/domain';
-import { activeModeOf, selectMode, setChannelRule, setFocusEnabled } from '@/modes/service';
+import { activeModeOf, addTemplate, missingTemplates, selectMode, setChannelRule, setFocusEnabled, SpaceLimitError } from '@/modes/service';
 import { parseVideoInput, removeFromTopic, saveToTopic } from '@/modes/playlists';
 import { updateItem } from '@/storage/storage';
 import { sendMessage } from '@/messaging/runtime';
@@ -37,18 +37,31 @@ export function SpaceHome({ settings, modes, onCreateSpace }: { settings: Settin
   );
 }
 
+/**
+ * The Spaces the learner already has, then suggestions. A suggestion is only a template until it is
+ * picked: choosing one creates the Space (and so counts it against the allowance) — nothing is handed
+ * out up front.
+ */
 function FirstRun({ modes, onCreate }: { modes: LearningMode[]; onCreate: () => void }) {
-  const choose = async (mode: LearningMode) => {
-    await selectMode(mode.id);
-    await updateItem('settings', (s) => ({ ...s, onboarded: true }));
+  const [error, setError] = useState<string | null>(null);
+  const suggestions = missingTemplates(modes);
+  const choose = async (mode: LearningMode, isSuggestion: boolean) => {
+    setError(null);
+    try {
+      if (isSuggestion) await addTemplate(mode.id);
+      await selectMode(mode.id);
+      await updateItem('settings', (s) => ({ ...s, onboarded: true, defaultModeId: s.defaultModeId ?? mode.id }));
+    } catch (err) {
+      setError(err instanceof SpaceLimitError ? err.message : 'FocusSpace couldn’t create that Space. Try again.');
+    }
   };
   return (
     <div className="fs-first-run fs-animate-in">
       <h1>What do you want to focus on?</h1>
       <p>FocusSpace organises YouTube around it — your subscriptions first, then the best matches from the rest of YouTube. You can switch anytime.</p>
       <div className="fs-chips fs-chips-wrap">
-        {modes.map((m) => (
-          <button key={m.id} type="button" className="fs-chip fs-chip-lg" onClick={() => choose(m)}>
+        {[...modes.map((m) => ({ m, isSuggestion: false })), ...suggestions.map((m) => ({ m, isSuggestion: true }))].map(({ m, isSuggestion }) => (
+          <button key={m.id} type="button" className="fs-chip fs-chip-lg" onClick={() => void choose(m, isSuggestion)}>
             <SpaceIcon name={m.icon} size={18} />
             {m.name}
           </button>
@@ -58,6 +71,7 @@ function FirstRun({ modes, onCreate }: { modes: LearningMode[]; onCreate: () => 
           Something else
         </button>
       </div>
+      {error && <p className="fs-error" role="alert">{error}</p>}
 
       {/*
         An explicit way out. Someone who opened YouTube to watch one thing
