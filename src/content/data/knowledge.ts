@@ -95,19 +95,25 @@ const idle = () =>
 /* ─── Hooks ────────────────────────────────────────────────────────────────── */
 
 /** The video's real duration (never an ad's). */
+/** The playing video's length right now, if the player knows it — never an ad's length, never another video's. */
+export function readVideoDuration(videoId: string): number | null {
+  const video = currentVideoElement();
+  if (!video || document.querySelector(WATCH.adShowing)) return null;
+  const flexyId = document.querySelector(WATCH.flexy)?.getAttribute('video-id');
+  if (flexyId && flexyId !== videoId) return null;
+  return Number.isFinite(video.duration) && video.duration > 0 ? Math.round(video.duration) : null;
+}
+
 export function useVideoDuration(videoId: string): number | null {
   const [duration, setDuration] = useState<number | null>(null);
   useEffect(() => {
     setDuration(null);
     let found = false;
     const read = () => {
-      const video = currentVideoElement();
-      if (!video || document.querySelector(WATCH.adShowing)) return;
-      const flexyId = document.querySelector(WATCH.flexy)?.getAttribute('video-id');
-      if (flexyId && flexyId !== videoId) return;
-      if (Number.isFinite(video.duration) && video.duration > 0) {
+      const seconds = readVideoDuration(videoId);
+      if (seconds !== null) {
         found = true;
-        setDuration(Math.round(video.duration));
+        setDuration(seconds);
       }
     };
     read();

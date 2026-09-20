@@ -1,3 +1,4 @@
+import { readVideoDuration } from '../data/knowledge';
 import { useEffect, useRef, useState } from 'react';
 import { Download, Maximize2, Network, NotebookPen, Save, Text, Trash2, X } from 'lucide-react';
 import type { LearningMode } from '@/types/domain';
@@ -78,7 +79,9 @@ export function NotesPanel({ video, mode, topicId, path, map, transcript, durati
 
   async function generate() {
     setGen({ kind: 'loading' });
-    const inputs: NoteRequestInputs = { video, mode, topicId, path, map, transcript, currentTime: currentTime(), durationSec, scope, format, language };
+    // The polled length can lag the player by a moment (e.g. just after an ad); ask the player directly rather than
+    // turn an "Entire video" request into a watched-so-far note.
+    const inputs: NoteRequestInputs = { video, mode, topicId, path, map, transcript, currentTime: currentTime(), durationSec: durationSec ?? readVideoDuration(video.id), scope, format, language };
     const result = await sendMessage('notes/generate', { inputs }).catch(() => null);
     if (!result) {
       setGen({ kind: 'error', error: 'FocusSpace couldn’t reach its AI service. Reload the page and try again.' });
