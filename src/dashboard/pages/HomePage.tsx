@@ -27,6 +27,7 @@ export function HomePage({ data }: { data: DashboardData }) {
   const recentNotes = notes.slice(0, 4);
   const continuing = latestPerVideo(store?.watchHistory ?? []).filter((e) => e.progress < 0.9).slice(0, 4);
   const chats = (store?.chatSessions.sessions ?? []).slice(0, 3);
+  const yourName = (user?.name ?? '').trim() || data.settings.displayName.trim();
 
   return (
     <>
@@ -34,7 +35,8 @@ export function HomePage({ data }: { data: DashboardData }) {
         <div>
           <h1 className="fs-h1">
             {greeting()}
-            {data.settings.displayName.trim() ? `, ${data.settings.displayName.trim()}` : ''}
+            {/* The account's name when signed in — asking again for a name the account already has is what made it feel forgetful. */}
+            {yourName ? `, ${yourName}` : ''}
           </h1>
           <p>Your Spaces, what you were watching, and everything you have saved from YouTube.</p>
         </div>

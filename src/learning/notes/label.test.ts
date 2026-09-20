@@ -15,7 +15,7 @@ const note = (over: Partial<SavedNote> & { scope?: SavedNote['provenance']['scop
     contextVersion: 1,
     createdAt: over.createdAt ?? 1,
     updatedAt: 1,
-    provenance: { videoTitle: 'Linked Lists', channel: 'Apna College', playlist: null, topic: null, scope: over.scope ?? 'full-video', sources: [], hasTranscript: true, generatedAt: 1 },
+    provenance: { videoTitle: 'Linked Lists', channel: 'Apna College', space: { id: 'dsa', name: 'DSA' }, playlist: null, topic: null, scope: over.scope ?? 'full-video', sources: [], hasTranscript: true, generatedAt: 1 },
   }) as SavedNote;
 
 describe('saved-note labels speak to people, not to the code', () => {

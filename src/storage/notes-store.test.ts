@@ -34,6 +34,7 @@ const note = (over: Partial<GeneratedNote> = {}): GeneratedNote => ({
   conceptIds: ['1052-insertion-at-beginning'],
   contextVersion: 2,
   provenance: {
+    space: { id: 'dsa', name: 'DSA' },
     videoTitle: 'Lecture 18',
     channel: 'Apna College',
     playlist: { id: 'PLjava', title: 'Java DSA Complete Series', position: 18, total: 22 },

@@ -86,6 +86,7 @@ export async function generateNote(inputs: NoteRequestInputs, complete: (prompt:
   const provenance: NoteProvenance = {
     videoTitle: inputs.video.title,
     channel: inputs.video.channelTitle,
+    space: { id: inputs.mode.id, name: inputs.mode.name },
     playlist: request.context.playlist ? { id: request.context.playlist.id, title: request.context.playlist.title, position: request.context.playlist.position, total: request.context.playlist.total } : null,
     topic: request.context.learningPath.currentTopic,
     scope: request.scopeKind,

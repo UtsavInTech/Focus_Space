@@ -301,9 +301,12 @@ export function SignInSection({ settings }: { settings: Settings }) {
         </>
       )}
 
-      <SettingRow title="Your name" description="Optional. FocusSpace’s Home greets you with it. Stays in this browser.">
-        <TextInput value={settings.displayName} onChange={(e) => patch({ displayName: e.target.value })} maxLength={40} placeholder="Optional" style={{ width: 200 }} aria-label="Your name" />
-      </SettingRow>
+      {/* Signed in, the name comes from the account (Your details below); this is the signed-out equivalent. */}
+      {!user && (
+        <SettingRow title="Your name" description="Optional. FocusSpace’s Home greets you with it. Stays in this browser.">
+          <TextInput value={settings.displayName} onChange={(e) => patch({ displayName: e.target.value })} maxLength={40} placeholder="Optional" style={{ width: 200 }} aria-label="Your name" />
+        </SettingRow>
+      )}
       {(!API_URL || settings.api.baseUrl) && (
         <SettingRow title="FocusSpace server" description="Where your account lives. Reference server: server/index.ts.">
           <div className="fs-row">

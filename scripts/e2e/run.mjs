@@ -523,8 +523,13 @@ await step('Focus Mode off = normal YouTube', async () => {
   await storage.patchSettings({ focusEnabled: false });
   await waitFor(async () => (await displayOf('ytd-browse[page-subtype="home"] > ytd-two-column-browse-results-renderer')) !== 'none', 'YouTube feed visible');
   await waitFor(() => yt.evaluate(() => !document.querySelector('focusspace-slot[data-slot="guide"]')?.isConnected), 'sidebar section removed');
+  // The switch is the only way back in when everything else is unmounted.
+  const pillText = () => yt.evaluate(() => document.querySelector('focusspace-slot[data-slot="overlay"]')?.shadowRoot?.querySelector('.fs-off-pill')?.textContent ?? '');
+  await waitFor(async () => (await pillText()).includes('Turn on'), 'the switch offers to turn FocusSpace on');
   await storage.patchSettings({ focusEnabled: true, activeModeId: 'dsa' });
   await waitFor(async () => (await yt.locator(home('.fs-space-button')).count()) === 1, 'focus back on');
+  // And it stays, so Focus Mode can be turned off again without hunting for it.
+  await waitFor(async () => (await pillText()).length > 0, 'the switch stays while FocusSpace is on');
 });
 
 console.log('\nExtension pages');

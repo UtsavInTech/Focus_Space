@@ -584,6 +584,11 @@ a.fs-path-name:hover { color: var(--fs-text); }
 .fs-off-pill-on:hover { background: var(--fs-accent-hover); }
 .fs-off-pill-x { display: grid; place-items: center; width: 26px; height: 26px; border: none; border-radius: 50%; background: transparent; color: var(--fs-text-3); cursor: pointer; }
 .fs-off-pill.is-dragging { cursor: grabbing; border-color: var(--fs-accent); }
+.fs-off-pill[data-on='true'] { opacity: 0.9; padding: 4px 6px; gap: 6px; }
+.fs-off-pill[data-on='true']:hover { opacity: 1; }
+.fs-off-pill[data-on='true'] .fs-off-pill-on { background: var(--fs-surface-2); color: var(--fs-text); padding: 0 8px; }
+.fs-off-pill[data-on='true'] .fs-off-pill-on:hover { background: var(--fs-surface-3); }
+.fs-off-mini[data-on='true'] { border-color: var(--fs-accent); opacity: 0.8; }
 .fs-off-pill-x { font-size: 18px; line-height: 1; }
 .fs-off-pill-x:hover { background: var(--fs-surface-2); color: var(--fs-text); }
 
@@ -621,3 +626,6 @@ a.fs-path-name:hover { color: var(--fs-text); }
 .fs-yt .fs-saved-row { display: flex; align-items: center; gap: 8px; min-height: 32px; }
 .fs-yt .fs-saved-open { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fs-yt .fs-saved-body { padding: 8px 10px 10px; margin-bottom: 6px; border-radius: 10px; background: var(--fs-surface-2); }
+
+/* Read aloud / save, beside an answer in the chat. */
+.fs-yt .fs-turn-actions { display: flex; flex-direction: column; gap: 2px; flex: none; }

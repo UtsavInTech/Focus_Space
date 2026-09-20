@@ -19,7 +19,7 @@ export type NoteLanguage = 'en' | 'hi' | 'hinglish';
 export type NoteFormat = 'notes' | 'mindmap';
 
 /** What span of the video a note was generated for — see docs/V5_CONTRACT.md §E. */
-export type NoteScopeKind = 'current-section' | 'range' | 'watched-so-far' | 'full-video' | 'revision';
+export type NoteScopeKind = 'current-section' | 'range' | 'watched-so-far' | 'full-video' | 'revision' | 'ask';
 
 /** The watched span notes were generated for. Whole-video when range is null. */
 export interface NoteRange {
@@ -43,6 +43,8 @@ export interface MindMapNode {
 export interface NoteProvenance {
   videoTitle: string;
   channel: string;
+  /** The Space the learner was in when they saved this — what the Library files it under. */
+  space: { id: string; name: string } | null;
   playlist: { id: string | null; title: string; position: number | null; total: number } | null;
   topic: string | null;
   scope: NoteScopeKind;

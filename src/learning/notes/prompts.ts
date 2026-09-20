@@ -21,6 +21,7 @@ const SCOPE_LABEL: Record<NoteScopeKind, string> = {
   'watched-so-far': 'everything watched so far in this video',
   'full-video': 'the complete video',
   revision: 'a quick revision recap',
+  ask: 'a question the learner asked',
 };
 
 const NOTES_INSTRUCTION = 'Write structured study notes: a heading per concept covered, bullet points for facts, definitions and steps, and short code blocks where the evidence includes code or syntax.';

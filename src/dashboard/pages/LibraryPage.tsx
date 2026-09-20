@@ -2,11 +2,13 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowLeft, Copy, Download, MessageCircle, Network, NotebookPen, Play, Search, Trash2 } from 'lucide-react';
 import type { SavedNote } from '@/types/notes';
 import type { ChatSession } from '@/types/chat';
+import type { LearningMode } from '@/types/domain';
 import { openYouTube } from '../DashboardApp';
 import { navigate } from '../router';
 import { relativeTime } from '@/learning/library';
 import { formatTimestamp } from '@/learning/knowledge/timestamps';
 import { allSavedNotes, FORMAT_NAME, noteLabel, noteStartSec } from '@/learning/notes/label';
+import { groupBySpace, type LibraryItem } from '@/learning/notes/grouping';
 import { deleteNote } from '@/storage/notes-store';
 import { deleteChatSession } from '@/storage/chat-store';
 import { watchUrl } from '@/integrations/youtube/urls';
@@ -33,7 +35,7 @@ const TABS: { value: Tab; label: string }[] = [
 const atTime = (videoId: string, sec: number) => `${watchUrl(videoId)}${sec > 0 ? `&t=${sec}s` : ''}`;
 
 export function LibraryPage({ segments }: { segments: string[] }) {
-  const store = useStorage(['notes', 'chatSessions'] as const);
+  const store = useStorage(['notes', 'chatSessions', 'modes'] as const);
   const [, view, id] = segments;
   if (!store) return null;
   const notes = allSavedNotes(store.notes.byVideo);
@@ -48,17 +50,24 @@ export function LibraryPage({ segments }: { segments: string[] }) {
     return chat ? <ChatReader chat={chat} /> : <Missing />;
   }
   const tab: Tab = view === 'mindmaps' || view === 'chats' ? view : 'notes';
-  return <LibraryList tab={tab} notes={notes} chats={chats} />;
+  return <LibraryList tab={tab} notes={notes} chats={chats} modes={store.modes} />;
 }
 
-function LibraryList({ tab, notes, chats }: { tab: Tab; notes: SavedNote[]; chats: ChatSession[] }) {
+function LibraryList({ tab, notes, chats, modes }: { tab: Tab; notes: SavedNote[]; chats: ChatSession[]; modes: LearningMode[] }) {
   const [query, setQuery] = useState('');
+  const [space, setSpace] = useState<string | null>(null);
   const q = query.trim().toLowerCase();
   const shown = useMemo(() => {
     const matches = (text: string) => !q || text.toLowerCase().includes(q);
     if (tab === 'chats') return chats.filter((c) => matches(`${c.title ?? ''} ${c.messages.map((m) => m.text).join(' ')}`));
     return notes.filter((n) => (tab === 'mindmaps' ? n.format === 'mindmap' : n.format === 'notes') && matches(`${n.provenance.videoTitle} ${n.provenance.channel} ${n.provenance.topic ?? ''} ${n.markdown ?? ''}`));
   }, [tab, notes, chats, q]);
+
+  // Filed under its Space (learning/notes/grouping.ts), so the shelf reads the way revision does.
+  const spaces = useMemo(() => modes.map((m) => ({ id: m.id, name: m.name })), [modes]);
+  const groups = useMemo(() => groupBySpace(shown as LibraryItem[], spaces), [shown, spaces]);
+  const grouped = groups.filter((g) => space === null || g.space.id === space);
+  const filtered = grouped.flatMap((g) => g.items);
 
   return (
     <>
@@ -76,7 +85,20 @@ function LibraryList({ tab, notes, chats }: { tab: Tab; notes: SavedNote[]; chat
         </div>
       </div>
 
-      {shown.length === 0 ? (
+      {groups.length > 1 && (
+        <div className="fs-row-wrap">
+          <button type="button" className="fs-space-chip" aria-pressed={space === null} onClick={() => setSpace(null)}>
+            All ({shown.length})
+          </button>
+          {groups.map((g) => (
+            <button key={g.space.id || 'none'} type="button" className="fs-space-chip" aria-pressed={space === g.space.id} onClick={() => setSpace(g.space.id)}>
+              {g.space.name} ({g.items.length})
+            </button>
+          ))}
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
         <EmptyState
           icon={tab === 'chats' ? <MessageCircle /> : tab === 'mindmaps' ? <Network /> : <NotebookPen />}
           title={q ? 'Nothing matches that search' : tab === 'chats' ? 'No AI chats yet' : tab === 'mindmaps' ? 'No mind maps yet' : 'No notes yet'}
@@ -85,35 +107,42 @@ function LibraryList({ tab, notes, chats }: { tab: Tab; notes: SavedNote[]; chat
           {q ? 'Try a word from the video title or the note.' : tab === 'chats' ? 'Ask FocusSpace AI about a video, or use the bubble on YouTube’s home — conversations are kept here.' : 'On any video, open FocusSpace’s panel, choose Make Notes, then Save.'}
         </EmptyState>
       ) : (
-        <div className="fs-card fs-list">
-          {tab === 'chats'
-            ? (shown as ChatSession[]).map((c) => (
-                <button key={c.id} type="button" className="fs-list-item fs-lib-row" onClick={() => navigate(`/library/chat/${encodeURIComponent(c.id)}`)}>
-                  <span className="fs-lib-icon">
-                    <MessageCircle size={16} />
-                  </span>
-                  <span className="fs-grow fs-lib-text">
-                    <span className="fs-lib-title">{c.messages.find((m) => m.role === 'learner')?.text ?? 'Conversation'}</span>
-                    <span className="fs-caption">
-                      {c.title ?? 'YouTube'} · {Math.ceil(c.messages.length / 2)} {c.messages.length > 2 ? 'questions' : 'question'}
+        grouped.map(({ space: s, items }) => (
+          <section key={s.id || 'none'} className="fs-home-section">
+            <header>
+              <h2>
+                {s.name} <span className="fs-caption">({items.length})</span>
+              </h2>
+            </header>
+            <div className="fs-card fs-list">
+              {items.map((item) =>
+                'provenance' in item ? (
+                  <button key={item.id} type="button" className="fs-list-item fs-lib-row" onClick={() => navigate(`/library/note/${encodeURIComponent(item.id)}`)}>
+                    <span className="fs-lib-icon">{item.format === 'mindmap' ? <Network size={16} /> : <NotebookPen size={16} />}</span>
+                    <span className="fs-grow fs-lib-text">
+                      <span className="fs-lib-title">{item.provenance.videoTitle}</span>
+                      <span className="fs-caption">{[item.provenance.channel, item.provenance.topic, noteLabel(item)].filter(Boolean).join(' · ')}</span>
                     </span>
-                  </span>
-                  <span className="fs-caption">{relativeTime(c.updatedAt)}</span>
-                </button>
-              ))
-            : (shown as SavedNote[]).map((n) => (
-                <button key={n.id} type="button" className="fs-list-item fs-lib-row" onClick={() => navigate(`/library/note/${encodeURIComponent(n.id)}`)}>
-                  <span className="fs-lib-icon">{n.format === 'mindmap' ? <Network size={16} /> : <NotebookPen size={16} />}</span>
-                  <span className="fs-grow fs-lib-text">
-                    <span className="fs-lib-title">{n.provenance.videoTitle}</span>
-                    <span className="fs-caption">
-                      {[n.provenance.channel, n.provenance.topic, noteLabel(n)].filter(Boolean).join(' · ')}
+                    <span className="fs-caption">{relativeTime(item.createdAt)}</span>
+                  </button>
+                ) : (
+                  <button key={item.id} type="button" className="fs-list-item fs-lib-row" onClick={() => navigate(`/library/chat/${encodeURIComponent(item.id)}`)}>
+                    <span className="fs-lib-icon">
+                      <MessageCircle size={16} />
                     </span>
-                  </span>
-                  <span className="fs-caption">{relativeTime(n.createdAt)}</span>
-                </button>
-              ))}
-        </div>
+                    <span className="fs-grow fs-lib-text">
+                      <span className="fs-lib-title">{item.messages.find((m) => m.role === 'learner')?.text ?? 'Conversation'}</span>
+                      <span className="fs-caption">
+                        {item.title ?? 'YouTube'} · {Math.ceil(item.messages.length / 2)} {item.messages.length > 2 ? 'questions' : 'question'}
+                      </span>
+                    </span>
+                    <span className="fs-caption">{relativeTime(item.updatedAt)}</span>
+                  </button>
+                ),
+              )}
+            </div>
+          </section>
+        ))
       )}
     </>
   );

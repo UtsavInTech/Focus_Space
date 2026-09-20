@@ -7,16 +7,13 @@ import { LogoMark } from '@/ui/components/primitives';
 import { useDraggable } from './useDraggable';
 
 /**
- * What FocusSpace looks like when it is switched off: one small pill, and
- * nothing else.
+ * FocusSpace's switch, always on the page: one small pill that turns Focus Mode on and off.
  *
- * With Focus Mode off, the home view, the sidebar section and the watch rail
- * are all unmounted — YouTube is exactly YouTube. That is the point, but it
- * also means this pill is the only way back in, so it must never be possible
- * to get rid of it and be stranded. It collapses to a logo button instead of
- * disappearing, and it can be dragged anywhere that suits the page.
+ * It used to appear only while FocusSpace was off, which made turning it *off* a hunt through the
+ * sidebar. Being always present makes the state obvious and the switch one click away, and dragging it
+ * keeps it out of the way of whatever the page puts underneath.
  */
-export function FocusOffPill() {
+export function FocusPill({ on }: { on: boolean }) {
   const overlayRoot = useContext(OverlayRootContext);
   const [collapsed, setCollapsed] = useState(false);
   const drag = useDraggable({ key: 'focusspace.off.pos', anchor: 'left', initial: { x: 20, y: 20 } });
@@ -24,6 +21,7 @@ export function FocusOffPill() {
   if (!overlayRoot) return null;
 
   const style = { left: drag.offset.x, bottom: drag.offset.y };
+  const toggle = () => void setFocusEnabled(!on);
 
   // Collapsed: a logo button. Still visible, still draggable, still one click from being useful.
   if (collapsed) {
@@ -31,9 +29,10 @@ export function FocusOffPill() {
       <button
         type="button"
         className={`fs-off-mini${drag.dragging ? ' is-dragging' : ''}`}
+        data-on={on ? 'true' : undefined}
         style={style}
-        aria-label="FocusSpace is off — show controls"
-        title="FocusSpace is off — drag to move, click to show"
+        aria-label={`FocusSpace is ${on ? 'on' : 'off'} — show the switch`}
+        title={`FocusSpace is ${on ? 'on' : 'off'} — drag to move, click to show`}
         {...drag.handlers}
         onClick={() => !drag.dragging && setCollapsed(false)}
       >
@@ -44,11 +43,12 @@ export function FocusOffPill() {
   }
 
   return createPortal(
-    <div className={`fs-off-pill${drag.dragging ? ' is-dragging' : ''}`} style={style} title="Drag to move" {...drag.handlers}>
+    <div className={`fs-off-pill${drag.dragging ? ' is-dragging' : ''}`} data-on={on ? 'true' : undefined} style={style} title="Drag to move" {...drag.handlers}>
       <LogoMark size={18} />
-      <span className="fs-off-pill-text">FocusSpace is off</span>
-      <button type="button" className="fs-off-pill-on" data-no-drag onClick={() => void setFocusEnabled(true)}>
-        <Power size={13} aria-hidden /> Turn on
+      {/* Off, it has to be found; on, it only has to be reachable — so it shrinks to the switch itself. */}
+      {!on && <span className="fs-off-pill-text">FocusSpace</span>}
+      <button type="button" className="fs-off-pill-on" data-no-drag aria-pressed={on} aria-label={on ? 'Turn FocusSpace off' : 'Turn FocusSpace on'} title={on ? 'Turn FocusSpace off' : 'Turn FocusSpace on'} onClick={toggle}>
+        <Power size={13} aria-hidden /> {on ? '' : 'Turn on'}
       </button>
       <button type="button" className="fs-off-pill-x" data-no-drag aria-label="Collapse to a small button" title="Collapse" onClick={() => setCollapsed(true)}>
         <span aria-hidden>–</span>

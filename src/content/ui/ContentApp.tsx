@@ -16,7 +16,7 @@ import { SearchStrip } from './SearchStrip';
 import { GuideSpaces } from './GuideSpaces';
 import { ExploreGate, OffTrackNudge } from './Overlays';
 import { AiEntry } from './AiEntry';
-import { FocusOffPill } from './FocusOffPill';
+import { FocusPill } from './FocusPill';
 
 const navigator = { go: spaNavigate };
 
@@ -81,7 +81,8 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
           {exploreGate && mode && <ExploreGate mode={mode} onAllow={() => controller.allowExplore(s.page.path)} />}
 
           {/* Focus Mode off: YouTube is untouched, and this is the only way back in. */}
-          {!s.settings.focusEnabled && <FocusOffPill />}
+          {/* Always there: the switch is how Focus Mode goes off as well as on. */}
+          {s.ready && <FocusPill on={s.settings.focusEnabled} />}
 
           <Modal open={creating} onClose={() => setCreating(false)} title="New space" width={580}>
             <CreateSpace

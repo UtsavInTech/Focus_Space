@@ -27,6 +27,9 @@ export function noteCoverage(note: Pick<SavedNote, 'range' | 'provenance'>): str
       return range ? `Up to ${formatTimestamp(range.endSec)}` : 'Watched so far';
     case 'revision':
       return range ? `Revision · ${span(range.startSec, range.endSec)}` : 'Revision';
+    case 'ask':
+      // Saved from an Ask AI answer: the moment it was asked about is what places it.
+      return range ? `Asked at ${formatTimestamp(range.startSec)}` : 'Asked about this video';
     case 'current-section':
     case 'range':
       return range ? span(range.startSec, range.endSec) : 'Part of the video';
