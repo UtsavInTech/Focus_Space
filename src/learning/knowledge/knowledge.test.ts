@@ -8,6 +8,7 @@ import { descriptionEvidence } from './description';
 import { buildKnowledgeMap, knowledgeSignature, type KnowledgeInputs } from './fuse';
 import { conceptStops, locateConcept } from './locate';
 import { firstMention, segmentTranscript, tidySpokenTitle } from './segment';
+import { words } from './text';
 import { isProgressNoise, isTopicLabel, parseTimestamp, timestampLines } from './timestamps';
 import type { CommentInput, KnowledgeNode, Transcript } from './types';
 
@@ -192,6 +193,34 @@ describe('comment intelligence', () => {
     // "Binary Search - 1:18:10" and "01:17:58 ▶ Binary Search in Code" are the same moment.
     expect(outline.find((o) => o.title === 'Binary Search in Code')).toMatchObject({ support: 2 });
     expect(commentEvidence([], 600).outline).toEqual([]);
+  });
+});
+
+describe('a Hindi (auto-dubbed) lecture', () => {
+  // What an auto-dubbed lecture sounds like: ordinary Hindi speech, with the technical terms left in English.
+  const HINDI = [
+    'तो चलिए अब हम linked list को समझते हैं',
+    'हमने देखा कि यह एक data structure है',
+    'आप इसे ऐसे बना सकते हैं और फिर इसका उपयोग करेंगे',
+    'उसने बताया कि हर node में data होता है',
+    'अब हम insertion के बारे में बात करेंगे',
+    'यह बहुत आसान है आप बस pointer को update कर दीजिए',
+  ];
+  const transcript = Array.from({ length: 240 }, (_, i) => ({ startSec: i * 15, durSec: 15, text: HINDI[i % HINDI.length] }));
+
+  it('keeps Hindi words whole — the vowel signs are part of the word', () => {
+    expect(words('करना हमने उसने आपने')).toEqual(['करना', 'हमने', 'उसने', 'आपने']);
+  });
+
+  it('never names a section after an everyday Hindi word (करन / हमन came out as "concepts")', () => {
+    const sections = segmentTranscript(transcript, { durationSec: 3600 });
+    for (const section of sections) {
+      expect(section.title).not.toMatch(/^(?:करन|हमन|उसन|आपन|करना|हमने|उसने|आपने|है|हैं|अब|यह)$/);
+      // Any Devanagari title must be a phrase, not one bare word.
+      if (/\p{Script=Devanagari}/u.test(section.title) && !/\p{Script=Latin}/u.test(section.title)) {
+        expect(section.title.trim().split(/\s+/).length).toBeGreaterThan(1);
+      }
+    }
   });
 });
 

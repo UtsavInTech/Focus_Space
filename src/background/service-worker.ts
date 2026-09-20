@@ -13,6 +13,7 @@ import { deleteNote, listNotes, saveNote } from '@/storage/notes-store';
 import * as auth from './auth';
 import * as usage from './usage';
 import * as spaces from './spaces';
+import * as account from './account';
 import { SITE_URL, siteUrl } from '@/config';
 import { registerExternalMessaging } from './external';
 import { migrate } from './migrate';
@@ -27,16 +28,36 @@ async function ensureAlarms() {
   if (!(await chrome.alarms.get(SYNC_ALARM))) await chrome.alarms.create(SYNC_ALARM, { periodInMinutes: 360, delayInMinutes: 5 });
 }
 
+/**
+ * Shows a FocusSpace page, reusing the one already open instead of stacking up tabs.
+ *
+ * The open tab is found with `runtime.getContexts`, not `tabs.query({url})`: reading tab URLs needs the
+ * "tabs" permission, which asks every learner for their browsing history at install. An extension can
+ * always see its own pages, so this needs no permission at all.
+ */
 async function openDashboard(route = '') {
   const base = chrome.runtime.getURL('dashboard.html');
   const url = route ? `${base}#${route.startsWith('/') ? route : `/${route}`}` : base;
-  const [existing] = await chrome.tabs.query({ url: `${base}*` });
-  if (existing?.id !== undefined) {
-    await chrome.tabs.update(existing.id, { url, active: true });
-    if (existing.windowId !== undefined) await chrome.windows.update(existing.windowId, { focused: true });
+  const open = await findOwnTab(base);
+  if (open !== null) {
+    const tab = await chrome.tabs.update(open, { url, active: true });
+    if (tab?.windowId !== undefined) await chrome.windows.update(tab.windowId, { focused: true });
   } else {
     await chrome.tabs.create({ url });
   }
+}
+
+/** The tab id of one of this extension's own pages, if any is open. */
+async function findOwnTab(base: string): Promise<number | null> {
+  try {
+    const contexts = await chrome.runtime.getContexts({ contextTypes: [chrome.runtime.ContextType.TAB] });
+    const found = contexts.find((c) => c.documentUrl?.startsWith(base) && c.tabId !== undefined && c.tabId >= 0);
+    if (found?.tabId !== undefined) return found.tabId;
+  } catch {
+    // getContexts needs Chrome 116; older browsers fall through to the query below.
+  }
+  const [existing] = await chrome.tabs.query({ url: `${base}*` });
+  return existing?.id ?? null;
 }
 
 /**
@@ -149,6 +170,9 @@ listen({
   'auth/login': ({ email, password }) => auth.login(email, password),
   'auth/logout': () => auth.logout(),
   'account/claim': ({ keep }) => resolveClaim(keep),
+  'account/profile': () => account.profile(),
+  'account/profile-update': (patch) => account.updateProfile(patch),
+  'account/payments': () => account.payments(),
   'auth/signup-start': ({ email }) => auth.startEmailSignup(email),
   'auth/signup-verify': ({ email, code }) => auth.verifyEmailSignup(email, code),
   'auth/signup-complete': ({ ticket, password }) => auth.completeEmailSignup(ticket, password),

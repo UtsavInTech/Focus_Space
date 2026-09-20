@@ -20,6 +20,22 @@ export interface SignupTicket {
   expiresAt: number;
 }
 
+export interface ProfilePatch {
+  name?: string | null;
+  city?: string | null;
+}
+
+/** One payment as the account page lists it (server/usage/db.ts PaymentRow). */
+export interface PaymentRecord {
+  id: string;
+  plan: string;
+  period: string;
+  currency: string;
+  amount_minor: number;
+  status: string;
+  created_at: number;
+}
+
 export interface SpaceAllowanceView {
   plan: string;
   used: number;

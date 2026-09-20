@@ -577,6 +577,8 @@ await step('Dashboard Home, Library and History open, and saved notes are listed
   await ext.waitForSelector('h1:has-text("Library")');
   await ext.goto(`${EXT}/dashboard.html#/history`);
   await ext.waitForSelector('h1:has-text("History")');
+  await ext.goto(`${EXT}/dashboard.html#/account`);
+  await ext.waitForSelector('h1:has-text("Account")');
   await shot(ext, 'dashboard-history');
 });
 

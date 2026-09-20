@@ -4,9 +4,9 @@ import type { FeedView } from '@/learning/feed-view';
 import type { ActionRequest, AiResult, AiStatus, ChatRequest, ChatResult } from '@/learning/ai/service';
 import type { NoteRequestInputs, NoteGenerationResult } from '@/learning/notes/generator';
 import type { GeneratedNote, SavedNote } from '@/types/notes';
-import type { AuthState } from '@/types/auth';
+import type { AuthState, AuthUser } from '@/types/auth';
 import type { UsageStatusView } from '@/types/usage';
-import type { CodeSent, SignupTicket, SpaceAllowanceView, SpaceAuthorization } from '@/types/account';
+import type { CodeSent, PaymentRecord, ProfilePatch, SignupTicket, SpaceAllowanceView, SpaceAuthorization } from '@/types/account';
 
 /**
  * Typed runtime message protocol between extension contexts.
@@ -50,6 +50,10 @@ export interface MessageMap {
   'auth/logout': { req: Record<string, never>; res: { ok: true } };
   /** Answer to "keep this browser's guest data with your account?" (background/ownership.ts). */
   'account/claim': { req: { keep: boolean }; res: { ok: boolean } };
+  /** The signed-in learner's details and payments, for FocusSpace's own account page. */
+  'account/profile': { req: Record<string, never>; res: AuthUser | null };
+  'account/profile-update': { req: ProfilePatch; res: { ok: true; user: AuthUser } | { ok: false; error: string } };
+  'account/payments': { req: Record<string, never>; res: PaymentRecord[] };
   /** ui → background: step 1 of creating an account — send a verification code to an email address. */
   'auth/signup-start': { req: { email: string }; res: CodeSent | { ok: false; error: string } };
   /** ui → background: step 2 — check the emailed code, returning a short-lived ticket. */

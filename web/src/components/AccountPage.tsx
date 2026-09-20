@@ -97,55 +97,101 @@ export function AccountPage() {
  */
 function ProfilePanel() {
   const auth = useAuth();
+  const [editing, setEditing] = useState(false);
   const [name, setName] = useState(auth.user?.name ?? '');
   const [city, setCity] = useState(auth.user?.city ?? '');
-  const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [state, setState] = useState<'idle' | 'saving' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const dirty = (auth.user?.name ?? '') !== name || (auth.user?.city ?? '') !== city;
+  // Details already given are shown as what they are. A form that never goes away reads like the product
+  // keeps forgetting what you told it, which is exactly how it felt.
+  const filled = !!(auth.user?.name || auth.user?.city);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setState('saving');
     setError(null);
     try {
-      await auth.setProfile({ name, city });
-      setState('saved');
+      await auth.setProfile({ name: name.trim(), city: city.trim() });
+      setState('idle');
+      setEditing(false);
     } catch (err) {
       setState('error');
       setError(err instanceof api.ApiError ? err.message : 'Could not save.');
     }
   }
 
+  const cancel = () => {
+    setName(auth.user?.name ?? '');
+    setCity(auth.user?.city ?? '');
+    setError(null);
+    setState('idle');
+    setEditing(false);
+  };
+
   return (
     <article className="fsw-account-card fsw-account-wide">
       <h2>Profile</h2>
-      <form className="fsw-profile" onSubmit={save}>
-        <label>
-          <span>Name</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="What should we call you?" maxLength={80} />
-        </label>
-        <label>
-          <span>City</span>
-          <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Where you are" maxLength={80} />
-        </label>
-        <label>
-          <span>Email</span>
-          <input value={auth.user?.email ?? ''} readOnly disabled />
-        </label>
-        <label>
-          <span>Phone</span>
-          <input value={auth.user?.phone ?? 'Not added'} readOnly disabled />
-        </label>
-      </form>
-      <p className="fsw-account-note">Email and phone are how you sign in, so they change through their own verified flow — not here.</p>
-      <div className="fsw-profile-actions">
-        <button type="button" className="fsw-btn fsw-btn-outline" disabled={!dirty || state === 'saving'} onClick={(e) => void save(e)}>
-          {state === 'saving' ? 'Saving…' : 'Save'}
-        </button>
-        {state === 'saved' && !dirty && <span className="fsw-account-note">Saved.</span>}
-        {error && <span className="fsw-account-note fsw-profile-error">{error}</span>}
-      </div>
+      {filled && !editing ? (
+        <>
+          <dl className="fsw-details">
+            <div>
+              <dt>Name</dt>
+              <dd>{auth.user?.name || 'Not added'}</dd>
+            </div>
+            <div>
+              <dt>City</dt>
+              <dd>{auth.user?.city || 'Not added'}</dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd>{auth.user?.email ?? 'Not added'}</dd>
+            </div>
+            <div>
+              <dt>Phone</dt>
+              <dd>{auth.user?.phone ?? 'Not added'}</dd>
+            </div>
+          </dl>
+          <div className="fsw-profile-actions">
+            <button type="button" className="fsw-btn fsw-btn-outline" onClick={() => setEditing(true)}>
+              Edit details
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <form className="fsw-profile" onSubmit={save}>
+            <label>
+              <span>Name</span>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="What should we call you?" maxLength={80} autoFocus={editing} />
+            </label>
+            <label>
+              <span>City</span>
+              <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Where you are" maxLength={80} />
+            </label>
+            <label>
+              <span>Email</span>
+              <input value={auth.user?.email ?? ''} readOnly disabled />
+            </label>
+            <label>
+              <span>Phone</span>
+              <input value={auth.user?.phone ?? 'Not added'} readOnly disabled />
+            </label>
+          </form>
+          <p className="fsw-account-note">Email and phone are how you sign in, so they change through their own verified flow — not here.</p>
+          <div className="fsw-profile-actions">
+            <button type="button" className="fsw-btn fsw-btn-outline" disabled={state === 'saving'} onClick={(e) => void save(e)}>
+              {state === 'saving' ? 'Saving…' : 'Save'}
+            </button>
+            {filled && (
+              <button type="button" className="fsw-btn fsw-btn-ghost" onClick={cancel}>
+                Cancel
+              </button>
+            )}
+            {error && <span className="fsw-account-note fsw-profile-error">{error}</span>}
+          </div>
+        </>
+      )}
     </article>
   );
 }

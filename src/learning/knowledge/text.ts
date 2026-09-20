@@ -20,7 +20,9 @@ export function stem(word: string): string {
 
 export function words(text: string): string[] {
   return normalizeText(text)
-    .replace(/[^\p{L}\p{N}+#]+/gu, ' ')
+    // Marks are kept: in Devanagari (and every other Indic script) the vowel signs are combining marks, and
+    // dropping them turns करना into करन — mangled fragments that then looked like the video's key concepts.
+    .replace(/[^\p{L}\p{N}\p{M}+#]+/gu, ' ')
     .replace(/(?<=\p{L})(?=\d)/gu, ' ')
     .split(' ')
     .filter(Boolean);

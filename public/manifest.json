@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "FocusSpace \u2014 Intent-Driven Learning for YouTube",
+  "name": "FocusSpace — Intent-Driven Learning for YouTube",
   "short_name": "FocusSpace",
   "version": "0.4.1",
   "description": "Tell FocusSpace what you're learning. It structures YouTube around that intention and hides the attention traps.",
@@ -32,7 +32,9 @@
     "alarms"
   ],
   "host_permissions": [
-    "https://www.youtube.com/*"
+    "https://www.youtube.com/*",
+    "https://focusspace.xyz/*",
+    "https://*.focusspace.xyz/*"
   ],
   "content_scripts": [
     {

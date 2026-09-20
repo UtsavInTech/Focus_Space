@@ -12,16 +12,18 @@ export function InstallCta({ size = 'md', label = 'Add to Chrome — Free', with
   const ext = useExtension();
   const cls = `fsw-btn fsw-btn-primary${size === 'lg' ? ' fsw-btn-lg' : ''}`;
 
+  // Installed: FocusSpace lives on YouTube, so that is the way in. The second button opens its own Home
+  // (Library, history, account) for the times the learner wants what they saved rather than a video.
   if (ext.status === 'connected') {
     return (
       <>
-        <button type="button" className={cls} onClick={() => void ext.openHome().catch(() => undefined)}>
-          Open FocusSpace
-        </button>
+        <a className={cls} href="https://www.youtube.com/" target="_blank" rel="noreferrer">
+          Open YouTube
+        </a>
         {withYouTube && (
-          <a className={`fsw-btn fsw-btn-ghost${size === 'lg' ? ' fsw-btn-lg' : ''}`} href="https://www.youtube.com/" target="_blank" rel="noreferrer">
-            Open YouTube
-          </a>
+          <button type="button" className={`fsw-btn fsw-btn-ghost${size === 'lg' ? ' fsw-btn-lg' : ''}`} onClick={() => void ext.openHome().catch(() => undefined)}>
+            Open FocusSpace
+          </button>
         )}
       </>
     );

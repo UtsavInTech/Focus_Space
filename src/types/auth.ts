@@ -16,6 +16,9 @@ export interface AuthUser {
   phone?: string | null;
   /** Whether the email address was confirmed with a code (Layer 2B verified sign-up). */
   emailVerified?: boolean;
+  /** Optional details the learner gave; shown in FocusSpace's own account page. */
+  name?: string | null;
+  city?: string | null;
 }
 
 export interface AuthState {

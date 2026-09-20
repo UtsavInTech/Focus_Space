@@ -1,17 +1,17 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Download, Keyboard, Monitor, Moon, RotateCcw, Sun } from 'lucide-react';
-import type { AiSettings, ApiSettings, Settings } from '@/types/domain';
+import type { AiSettings, Settings } from '@/types/domain';
 import type { NoteLanguage } from '@/types/notes';
 import type { AiStatus } from '@/learning/ai/service';
 import { downloadOnDeviceModel } from '@/ai/on-device';
-import { API_URL, HOSTED_AI_LABEL, PHONE_SIGN_IN, usesHostedAi } from '@/config';
-import { FREE_SPACE_LIMIT, GUEST_SPACE_LIMIT, planLabel } from '@/billing/plans';
-import { isPaidPlan, PlanName } from '@/ui/components/PlanName';
+import { HOSTED_AI_LABEL, usesHostedAi } from '@/config';
+import { FREE_SPACE_LIMIT, GUEST_SPACE_LIMIT } from '@/billing/plans';
 import { sendMessage } from '@/messaging/runtime';
-import { accountIdentity, CLAIM_COPY, useAccountFlow } from '@/ui/account/flow';
+import { accountIdentity, useAccountFlow } from '@/ui/account/flow';
 import type { DashboardData } from '../DashboardApp';
 import { navigate } from '../router';
-import { setItem, updateItem } from '@/storage/storage';
+import { Section, patch, isHttpUrl } from './section';
+import { setItem } from '@/storage/storage';
 import { setFocusEnabled } from '@/modes/service';
 import { Button, Segmented, SettingRow, Switch, TextInput } from '@/ui/components/primitives';
 import { FilterEditor } from '@/ui/components/FilterEditor';
@@ -27,206 +27,7 @@ import { Modal } from '@/ui/components/Modal';
  * the in-YouTube account panel uses, so the two never diverge.
  */
 
-const patch = (p: Partial<Settings>) => updateItem('settings', (s) => ({ ...s, ...p }));
 
-function Section({ id, title, description, children }: { id: string; title: string; description?: ReactNode; children: ReactNode }) {
-  return (
-    <section id={id} className="fs-settings-section">
-      <header>
-        <h2>{title}</h2>
-        {description && <p>{description}</p>}
-      </header>
-      <div className="fs-settings-rows">{children}</div>
-    </section>
-  );
-}
-
-/** `limit: null` is an unlimited plan: it says so, with no bar to fill. */
-function Meter({ label, used, limit, unit }: { label: string; used: number; limit: number | null; unit: string }) {
-  return (
-    <div className="fs-meter">
-      <div className="fs-meter-head">
-        <span className="fs-label">{label}</span>
-        <span className="fs-hint">{limit === null ? `Unlimited ${unit}` : `${used} of ${limit} ${unit}`}</span>
-      </div>
-      {limit !== null && (
-        <div className="fs-meter-track">
-          <span className="fs-meter-fill" style={{ width: `${Math.min(100, Math.round((used / Math.max(1, limit)) * 100))}%` }} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-const isHttpUrl = (url: string) => {
-  try {
-    return ['http:', 'https:'].includes(new URL(url).protocol);
-  } catch {
-    return false;
-  }
-};
-
-
-/* ─── Account ──────────────────────────────────────────────────────────────── */
-
-function AccountSection({ settings }: { settings: Settings }) {
-  const flow = useAccountFlow();
-  const { user, usage, spaces, claim, step, go, fields, set, busy, error, devCode, actions } = flow;
-  const [baseUrl, setBaseUrl] = useState(settings.api.baseUrl);
-  useEffect(() => setBaseUrl(settings.api.baseUrl), [settings.api.baseUrl]);
-  useEffect(flow.refresh, [settings.api.baseUrl]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const setApi = (p: Partial<ApiSettings>) => patch({ api: { ...settings.api, ...p } });
-  const trimmedBaseUrl = baseUrl.trim();
-  // A store build already knows its server; the address field is only for someone running their own.
-  const hasServer = !!settings.api.baseUrl || !!API_URL;
-  const method = step.view === 'phone' ? 'phone' : step.view === 'email-signup' ? 'create' : 'signin';
-
-  return (
-    <Section
-      id="account"
-      title="Account"
-      description="Optional. FocusSpace works fully signed out; an account raises your Space and AI allowance. Your Spaces, notes and history stay in this browser."
-    >
-      {user ? (
-        <>
-          <SettingRow title="Signed in" description={`${accountIdentity(flow)}${user.email && user.emailVerified === false ? ' · email not verified' : ''}`}>
-            <Button size="sm" variant="secondary" disabled={busy} onClick={() => void actions.signOut()}>
-              Sign out
-            </Button>
-          </SettingRow>
-          {claim && (
-            <SettingRow title={CLAIM_COPY.title} description={CLAIM_COPY.body}>
-              <div className="fs-row">
-                <Button size="sm" disabled={busy} onClick={() => void actions.resolveClaim(true)}>
-                  {CLAIM_COPY.keep}
-                </Button>
-                <Button size="sm" variant="secondary" disabled={busy} onClick={() => void actions.resolveClaim(false)}>
-                  {CLAIM_COPY.fresh}
-                </Button>
-              </div>
-            </SettingRow>
-          )}
-          {error && user && <p className="fs-form-error">{error}</p>}
-          <SettingRow title="Plan" description={usage ? <PlanName plan={usage.plan} /> : 'Checking…'}>
-            <Button size="sm" variant="secondary" onClick={() => void sendMessage('site/open', { path: usage && isPaidPlan(usage.plan) ? '/account' : '/pricing' }).catch(() => undefined)}>
-              {usage && isPaidPlan(usage.plan) ? 'Manage plan' : 'See plans'}
-            </Button>
-          </SettingRow>
-          {usage && <Meter label={planLabel(usage.plan)} used={usage.used} limit={usage.limit} unit="AI actions this period" />}
-          {spaces && <Meter label="Spaces on your account" used={spaces.used} limit={spaces.limit} unit="spaces" />}
-        </>
-      ) : (
-        <>
-          {!hasServer && <p className="fs-account-form-rows fs-hint">Add your FocusSpace server address below to create an account or sign in.</p>}
-          {hasServer && (
-            <div className="fs-account-form-rows">
-              <Segmented
-                label="Sign-in method"
-                value={method}
-                onChange={(next) => go(next === 'phone' ? { view: 'phone', step: 'phone', phone: '' } : next === 'create' ? { view: 'email-signup', step: 'email', email: fields.email } : { view: 'email-signin' })}
-                options={[
-                  { value: 'signin', label: 'Sign in' },
-                  { value: 'create', label: 'New account' },
-                  ...(PHONE_SIGN_IN ? [{ value: 'phone' as const, label: 'Phone' }] : []),
-                ]}
-              />
-              {error && <p className="fs-form-error">{error}</p>}
-
-              {/* The flow starts in 'menu' (the panel inside YouTube opens there). Settings has no menu —
-                  its tabs *are* the choice — so 'menu' shows the sign-in form the "Sign in" tab implies. */}
-              {(step.view === 'email-signin' || step.view === 'menu') && (
-                <div className="fs-row-wrap">
-                  <TextInput value={fields.email} onChange={(e) => set({ email: e.target.value })} placeholder="you@example.com" type="email" autoComplete="username" aria-label="Email" style={{ width: 220 }} />
-                  <TextInput value={fields.password} onChange={(e) => set({ password: e.target.value })} placeholder="Password" type="password" autoComplete="current-password" aria-label="Password" style={{ width: 180 }} />
-                  <Button size="sm" loading={busy} disabled={!fields.email.trim() || fields.password.length < 8} onClick={() => void actions.signIn()}>
-                    Sign in
-                  </Button>
-                </div>
-              )}
-
-              {step.view === 'email-signup' && (
-                <>
-                  <p className="fs-hint">Step {step.step === 'email' ? '1 of 3 — confirm your email' : step.step === 'code' ? '2 of 3 — enter the code' : '3 of 3 — choose a password'}</p>
-                  {step.step === 'email' && (
-                    <div className="fs-row-wrap">
-                      <TextInput value={fields.email} onChange={(e) => set({ email: e.target.value })} placeholder="you@example.com" type="email" autoComplete="username" aria-label="Email" style={{ width: 220 }} />
-                      <Button size="sm" loading={busy} disabled={!fields.email.trim()} onClick={() => void actions.sendSignupCode()}>
-                        Send code
-                      </Button>
-                    </div>
-                  )}
-                  {step.step === 'code' && (
-                    <div className="fs-row-wrap">
-                      <TextInput value={fields.code} onChange={(e) => set({ code: e.target.value })} placeholder="6-digit code" inputMode="numeric" maxLength={6} aria-label="Verification code" style={{ width: 140 }} />
-                      <Button size="sm" loading={busy} disabled={fields.code.trim().length !== 6} onClick={() => void actions.verifySignupCode(step.email)}>
-                        Verify
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => void actions.sendSignupCode(step.email)}>
-                        Send a new code
-                      </Button>
-                    </div>
-                  )}
-                  {step.step === 'password' && (
-                    <div className="fs-row-wrap">
-                      <TextInput value={fields.password} onChange={(e) => set({ password: e.target.value })} placeholder="At least 8 characters" type="password" autoComplete="new-password" aria-label="Password" style={{ width: 220 }} />
-                      <Button size="sm" loading={busy} disabled={fields.password.length < 8 || !step.ticket} onClick={() => void actions.completeSignup(step.ticket ?? '')}>
-                        Create account
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {step.view === 'phone' && (
-                <div className="fs-row-wrap">
-                  {step.step === 'phone' ? (
-                    <>
-                      <TextInput value={fields.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 98765 43210" type="tel" autoComplete="tel" aria-label="Phone number" style={{ width: 220 }} />
-                      <Button size="sm" loading={busy} disabled={fields.phone.replace(/\D/g, '').length < 8} onClick={() => void actions.sendPhoneCode()}>
-                        Send code
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <TextInput value={fields.code} onChange={(e) => set({ code: e.target.value })} placeholder="6-digit code" inputMode="numeric" maxLength={6} aria-label="Verification code" style={{ width: 140 }} />
-                      <Button size="sm" loading={busy} disabled={fields.code.trim().length !== 6} onClick={() => void actions.verifyPhoneCode(step.phone)}>
-                        Continue
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => void actions.sendPhoneCode(step.phone)}>
-                        Send a new code
-                      </Button>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {devCode && (
-                <p className="fs-hint">
-                  Development server — no email or SMS provider is configured, so your code is <b>{devCode}</b>.
-                </p>
-              )}
-            </div>
-          )}
-        </>
-      )}
-
-      <SettingRow title="Your name" description="Optional. FocusSpace’s Home greets you with it. Stays in this browser.">
-        <TextInput value={settings.displayName} onChange={(e) => patch({ displayName: e.target.value })} maxLength={40} placeholder="Optional" style={{ width: 200 }} aria-label="Your name" />
-      </SettingRow>
-      {(!API_URL || settings.api.baseUrl) && (
-        <SettingRow title="FocusSpace server" description="Where your account lives. Reference server: server/index.ts.">
-          <div className="fs-row">
-            <TextInput value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://your-server.example" style={{ width: 240 }} aria-label="FocusSpace server URL" />
-            <Button size="sm" variant="secondary" disabled={trimmedBaseUrl === settings.api.baseUrl || (trimmedBaseUrl !== '' && !isHttpUrl(trimmedBaseUrl))} onClick={() => setApi({ baseUrl: trimmedBaseUrl })}>
-              Save
-            </Button>
-          </div>
-        </SettingRow>
-      )}
-    </Section>
-  );
-}
 
 /* ─── Learning companion ───────────────────────────────────────────────────── */
 
@@ -343,6 +144,8 @@ function AiSection({ settings }: { settings: Settings }) {
 
 export function SettingsPage({ data }: { data: DashboardData }) {
   const { settings, modes } = data;
+  const flow = useAccountFlow();
+  const user = flow.user;
   const [confirmReset, setConfirmReset] = useState(false);
   const version = chrome.runtime.getManifest().version;
 
@@ -355,7 +158,13 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         </div>
       </div>
 
-      <AccountSection settings={settings} />
+      <Section id="account" title="Account" description="Your plan, AI credits, payments and details live on their own page.">
+        <SettingRow title={user ? accountIdentity(flow) : 'Not signed in'} description={user ? 'Plan, AI credits, payments and your details.' : 'Sign in to raise your Space and AI allowance. Everything works signed out.'}>
+          <Button size="sm" variant="secondary" onClick={() => navigate('/account')}>
+            {user ? 'Open account' : 'Sign in'}
+          </Button>
+        </SettingRow>
+      </Section>
 
       <Section id="learning" title="Learning" description="How FocusSpace organises YouTube around the space you're in.">
         <SettingRow

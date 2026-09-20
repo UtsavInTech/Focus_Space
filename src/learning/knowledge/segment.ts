@@ -14,6 +14,19 @@ const FILLER = new Set(
   'so okay ok right now going gonna just like actually basically here there thing things want need get got one two three know see look also well really yeah um uh us we you i it this that these those very much can will would could should make sure first next then kind sort way lot little bit say said mean go goes going come back take good great time let lets'.split(' '),
 );
 
+/**
+ * The same everyday words in Hindi — spoken and romanised. An auto-dubbed lecture is mostly these, and
+ * without them a section's "most distinctive term" came out as करना or "karenge": true of the speech,
+ * useless as a concept.
+ */
+const HINDI_FILLER =
+  'है हैं था थे थी हो होता होती होते हुआ करना करता करती करते करेंगे किया कर के का की को में से पर और या तो कि जो यह वह ये वो हम हमने आप आपने मैं मैंने उस उसने इस इसे अब यहाँ यहां वहाँ वहां क्या कैसे क्यों जब तब अगर लेकिन बहुत सब कुछ एक दो तीन भी ही नहीं ना गया गयी दिया देते देखो देखते समझ समझते चलो चलिए मतलब बात बार साथ लिए वाला वाली जैसे ठीक अच्छा फिर अंदर बाहर ऊपर नीचे' +
+  ' hai hain tha thi hota hoti hote hua karna karta karti karte karenge kiya mein aur yeh woh humne aapne maine usne ise yahan wahan kya kaise kyun agar lekin bahut kuch teen bhi nahi gaya gayi diya dete dekho dekhte samajh samajhte chalo chaliye matlab liye wala wali jaise theek accha phir andar bahar niche';
+for (const w of HINDI_FILLER.split(' ')) if (w) FILLER.add(w);
+
+/** Scripts the stemmer and the filler lists actually understand; elsewhere a one-word title is a guess. */
+const hasLatin = (s: string) => /\p{Script=Latin}/u.test(s);
+
 const CUE = /\b(?:let'?s|let us|we(?:'ll| will| are going to|'re going to| can now)|now we(?:'ll| will)?|next(?:,)? we(?:'ll| will)?|moving on|in this (?:section|part|lesson)|the next (?:topic|thing|concept|section) is)\b[^.?!]{0,24}?\b(?:talk about|look at|learn about|learn|discuss|cover|start with|move (?:on )?to|dive into|get into|understand|implement|introduce|explore|define|evaluate|build|write)\s+([^.?!]{3,70})/i;
 const HINGLISH_CUE = /\b(?:ab hum|chaliye|chalo|next topic)\b[^.?!]{0,20}?\b([^.?!]{3,40}?)\s+(?:dekhenge|samjhenge|padhenge|karenge|seekhenge)\b/i;
 const STOP_TITLE = /\s+(?:and then|so that|which|that is|because|where|in order|so we|and see|and how|in this|for this|right|okay)\b.*$/i;
@@ -100,7 +113,12 @@ function termTitle(text: string, idf: Map<string, number>): string | null {
     if (n && n.length >= 3 && !FILLER.has(n) && idf.has(stem(n))) bump(`${st} ${stem(n)}`, `${w} ${n}`, (idf.get(st)! + idf.get(stem(n))!) * 0.8);
   }
   const best = [...score.entries()].filter(([k]) => k.includes(' ') || (score.get(k)?.score ?? 0) > 0).sort((a, b) => b[1].score - a[1].score)[0];
-  return best && best[1].score > 4 ? sentenceCase(best[1].form) : null;
+  if (!best || best[1].score <= 4) return null;
+  // A single word in a script we cannot stem (Devanagari, and anything else non-Latin) is too weak to name a
+  // section by: only a phrase earns a title there.
+  const form = best[1].form;
+  if (!form.includes(' ') && !hasLatin(form)) return null;
+  return sentenceCase(form);
 }
 
 function vocabularyTitle(text: string, vocabulary: string[]): string | null {

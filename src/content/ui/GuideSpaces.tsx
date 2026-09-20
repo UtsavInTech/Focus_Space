@@ -20,11 +20,12 @@ export function GuideSpaces({ settings, modes, onCreate }: { settings: Settings;
     await selectMode(mode.id);
     spaNavigate('/');
   };
-  const openSite = () => void sendMessage('site/open', {}).catch(() => undefined);
+  // FocusSpace's own Home (Library, History, Spaces) — the marketing site is for people who do not have it yet.
+  const openHome = () => void sendMessage('dashboard/open', { route: '/' }).catch(() => undefined);
 
   return (
     <nav className="fs-guide" aria-label="FocusSpace spaces">
-      <button type="button" className="fs-guide-title" onClick={openSite} title="Open FocusSpace — notes, mind maps and plans">
+      <button type="button" className="fs-guide-title" onClick={openHome} title="Open FocusSpace — your Library, history and account">
         <LogoMark size={22} />
         <span>FocusSpace</span>
         <ExternalLink size={14} aria-hidden />

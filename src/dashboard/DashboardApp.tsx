@@ -1,4 +1,4 @@
-import { ExternalLink, History, House, Layers, Library, Settings as SettingsIcon, Users } from 'lucide-react';
+import { CircleUser, ExternalLink, History, House, Layers, Library, Settings as SettingsIcon, Users } from 'lucide-react';
 import { useDocumentTheme, useStorage } from '@/ui/hooks';
 import { Logo, Skeleton, Switch } from '@/ui/components/primitives';
 import { SpaceIcon } from '@/ui/icons';
@@ -12,6 +12,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { HomePage } from './pages/HomePage';
 import { LibraryPage } from './pages/LibraryPage';
 import { HistoryPage } from './pages/HistoryPage';
+import { AccountPage } from './pages/AccountPage';
 
 /**
  * The learning product's own home, modelled on NoteGPT's workspace: what you made (Library), what you
@@ -24,6 +25,7 @@ const NAV = [
   { to: '/history', label: 'History', icon: History, match: (s: string[]) => s[0] === 'history' },
   { to: '/modes', label: 'Spaces', icon: Layers, match: (s: string[]) => s[0] === 'modes' || s[0] === 'welcome' },
   { to: '/subscriptions', label: 'Subscriptions', icon: Users, match: (s: string[]) => s[0] === 'subscriptions' },
+  { to: '/account', label: 'Account', icon: CircleUser, match: (s: string[]) => s[0] === 'account' },
   { to: '/settings', label: 'Settings', icon: SettingsIcon, match: (s: string[]) => s[0] === 'settings' },
 ];
 
@@ -69,6 +71,9 @@ export function DashboardApp() {
       break;
     case 'history':
       page = <HistoryPage data={data} />;
+      break;
+    case 'account':
+      page = <AccountPage data={data} />;
       break;
     default:
       // Older links opened "/?new=1" to create a Space; they still do.
