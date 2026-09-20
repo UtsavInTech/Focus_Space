@@ -105,6 +105,15 @@ const senders = loadSenders();
 // every deployment until the account's website is approved.
 const razorpay = loadRazorpayConfig();
 if (!razorpay) console.warn('[FocusSpace API] Razorpay is not configured — checkout is unavailable, everything else is unaffected.');
+// Says which mode is live, without ever printing a key, and shouts about the one setting that fails
+// silently: without the webhook secret every webhook is rejected, so a renewal or a payment completed
+// after the browser closed is never recorded.
+if (razorpay) {
+  console.log(`[FocusSpace API] Razorpay ${razorpay.test ? 'TEST' : 'LIVE'} mode (key ${razorpay.keyId.slice(0, 12)}…).`);
+  if (!razorpay.webhookSecret) {
+    console.error('[FocusSpace API] RAZORPAY_WEBHOOK_SECRET is unset — every webhook will be rejected, so renewals and payments completed without the browser will not be recorded. Create the webhook in this Razorpay mode and set its secret.');
+  }
+}
 
 function requireRazorpay() {
   if (!razorpay) throw new ApiError(503, 'billing_unavailable', 'Payments are not available yet. Nothing was charged.');
