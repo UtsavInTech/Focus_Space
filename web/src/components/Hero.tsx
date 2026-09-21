@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { onLinkClick } from '../router';
 import { InstallCta } from './InstallCta';
 
@@ -6,20 +7,48 @@ import { InstallCta } from './InstallCta';
  * inventing social proof is the one thing on a launch page that can never be
  * walked back. The trust line below the buttons says true things instead.
  */
-const TRUST = ['No API key to bring', 'No account needed to start', 'Your history never leaves your browser'];
+const TRUST = [
+  'No API key to bring',
+  'No account needed to start',
+  'Your history never leaves your browser',
+];
+
+const HERO_MODES = [
+  {
+    name: 'DSA',
+    image: '/hero-dsa.png',
+  },
+  {
+    name: 'Web Development',
+    image: '/hero-web-development.png',
+  },
+  {
+    name: 'System Design',
+    image: '/hero-system-design.png',
+  },
+  {
+    name: 'Spanish',
+    image: '/hero-spanish.png',
+  },
+];
 
 export function Hero() {
   return (
     <section className="fsw-hero" id="install">
       <div className="fsw-hero-copy">
         <p className="fsw-eyebrow">Chrome extension · Free to start</p>
+
         <h1>
-          YouTube, organised around <span className="fsw-grad">what you came for</span>
+          YouTube, organised around{' '}
+          <span className="fsw-grad">what you came for</span>
         </h1>
+
         <p className="fsw-lede">
-          Tell FocusSpace what you are learning. Your home page becomes your own subscriptions ranked against that
-          intention, the best of the wider YouTube woven in, and the attention traps gone. On a video it follows the
-          course you are on and turns what you watched into notes and mind maps.
+          Tell FocusSpace what you are learning. Your home page becomes your
+          own subscriptions ranked against that intention, the best of the
+          wider YouTube woven in, and the attention traps gone. On a video it
+          follows the course you are on and turns what you watched into notes
+          and mind maps.
         </p>
 
         <div className="fsw-hero-cta">
@@ -27,7 +56,11 @@ export function Hero() {
             size="lg"
             withYouTube
             forVisitors={
-              <a className="fsw-btn fsw-btn-ghost fsw-btn-lg" href="/pricing" onClick={onLinkClick('/pricing')}>
+              <a
+                className="fsw-btn fsw-btn-ghost fsw-btn-lg"
+                href="/pricing"
+                onClick={onLinkClick('/pricing')}
+              >
                 See pricing
               </a>
             }
@@ -41,58 +74,58 @@ export function Hero() {
         </ul>
       </div>
 
-      <FeedPreview />
+      <HeroProductPreview />
     </section>
   );
 }
 
 /**
- * A stylised preview of the rebuilt YouTube home — an illustration, not a
- * screenshot, and drawn in markup so it stays sharp and themed. The tier
- * labels are the extension's real vocabulary (docs/RELEVANCE.md).
+ * Real FocusSpace product previews showing the extension across
+ * different learning modes.
+ *
+ * The screenshots rotate automatically, while the mode buttons also
+ * allow visitors to switch manually.
  */
-function FeedPreview() {
-  const rows = [
-    { title: 'Linked List — full lecture', channel: 'Apna College', tier: 'Excellent match', tone: 'best' },
-    { title: 'Recursion, properly explained', channel: 'CodeWithHarry', tier: 'Strong match', tone: 'good' },
-    { title: 'DSA sheet walkthrough · L6', channel: 'take U forward', tier: 'Strong match', tone: 'good' },
-    { title: 'From YouTube · Trees in 40 min', channel: 'Abdul Bari', tier: 'Best match we found', tone: 'discovery' },
-  ];
+function HeroProductPreview() {
+  const [activeMode, setActiveMode] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveMode((current) => (current + 1) % HERO_MODES.length);
+    }, 4500);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const mode = HERO_MODES[activeMode];
 
   return (
-    <div className="fsw-preview" aria-hidden="true">
-      <div className="fsw-preview-bar">
-        <span className="fsw-preview-dot" />
-        <span className="fsw-preview-dot" />
-        <span className="fsw-preview-dot" />
-        <span className="fsw-preview-url">youtube.com</span>
-      </div>
-      <div className="fsw-preview-body">
-        <div className="fsw-preview-chips">
-          <span className="is-active">DSA</span>
-          <span>Arrays</span>
-          <span>Linked Lists</span>
-          <span>Trees</span>
-        </div>
-        <p className="fsw-preview-label">Continue watching</p>
-        <div className="fsw-preview-resume">
-          <div className="fsw-preview-thumb" />
-          <div>
-            <strong>Insert in a Linked List</strong>
-            <span>▶ you are here · 18:20 of 48:50 · next unwatched: Display/Print</span>
-          </div>
-        </div>
-        <p className="fsw-preview-label">From your subscriptions</p>
-        {rows.map((row) => (
-          <div className="fsw-preview-row" key={row.title}>
-            <div className="fsw-preview-thumb" />
-            <div>
-              <strong>{row.title}</strong>
-              <span>{row.channel}</span>
-            </div>
-            <em className={`fsw-tier is-${row.tone}`}>{row.tier}</em>
-          </div>
+    <div className="fsw-preview fsw-real-product-preview">
+      <div
+        className="fsw-product-modes"
+        role="tablist"
+        aria-label="FocusSpace learning modes"
+      >
+        {HERO_MODES.map((item, index) => (
+          <button
+            key={item.name}
+            type="button"
+            role="tab"
+            aria-selected={index === activeMode}
+            className={index === activeMode ? 'is-active' : ''}
+            onClick={() => setActiveMode(index)}
+          >
+            {item.name}
+          </button>
         ))}
+      </div>
+
+      <div className="fsw-product-image">
+        <img
+          key={mode.image}
+          src={mode.image}
+          alt={`FocusSpace ${mode.name} learning view`}
+        />
       </div>
     </div>
   );

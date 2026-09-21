@@ -117,7 +117,12 @@ export const PLANS: Plan[] = [
     tagline: 'Everything in Unlimited, for people who want to back FocusSpace.',
     price: { monthly: { usd: 19.99, inr: 1499 }, annual: { usd: 179.88, inr: 11988 } },
     limits: { modes: null, aiCredits: null },
-    features: ['Everything in Unlimited', 'Unlimited Spaces', 'Unlimited AI credits', 'Priority support'],
+    features: [
+      'Everything in Unlimited',
+      'Choose your AI model',
+      'Advanced AI models',
+      'Multiple mind-map formats',
+      'Priority support'],
     cta: 'Get Max',
     comingSoon: true,
   },
