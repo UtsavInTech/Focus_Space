@@ -31,7 +31,7 @@ export interface LegalDoc {
 }
 
 const UPDATED = '19 September 2026';
-const CONTACT = 'hello@focusspace.xyz';
+const CONTACT = 'utsav.udk@gmail.com';
 
 export const PRIVACY: LegalDoc = {
   slug: '/privacy',
