@@ -23,7 +23,7 @@ import { cancelSubscription, createOrder, createPlan, createSubscription, fetchS
  */
 
 /** Only these can be bought. 'free' is the absence of a payment, not a purchase. */
-const PURCHASABLE: PlanId[] = ['pro', 'unlimited', 'max'];
+const PURCHASABLE: PlanId[] = ['pro', 'unlimited'];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PERIOD_DAYS: Record<BillingPeriod, number> = { monthly: 30, annual: 365 };
@@ -328,6 +328,27 @@ export async function cancelPlan(config: RazorpayConfig, db: UsageDb, userId: st
 }
 
 /**
+ * Checkout/subscription *creation* is gated on PURCHASABLE. Webhooks are not:
+ * a plan we have stopped selling can still be charged by Razorpay for a
+ * subscription we already created. Those charges must still grant.
+ */
+function canApplyWebhookCharge(db: UsageDb, planId: PlanId, userId: string, orderId: string, subscriptionId: string | null): boolean {
+  if (PURCHASABLE.includes(planId)) return true;
+  if (!PLANS.some((p) => p.id === planId && p.id !== 'free')) return false;
+  if (subscriptionId) {
+    const entitled = db.findBySubscription(subscriptionId);
+    if (entitled?.user_id === userId && entitled.plan === planId) return true;
+    const recorded = db.getCheckout(subscriptionId);
+    if (recorded?.kind === 'subscription' && recorded.user_id === userId && recorded.plan === planId) return true;
+  }
+  if (orderId) {
+    const recorded = db.getCheckout(orderId);
+    if (recorded?.user_id === userId && recorded.plan === planId) return true;
+  }
+  return false;
+}
+
+/**
  * Applies a `payment.captured` webhook. The notes carried on the order are the
  * only link back to who paid for what, which is why `startCheckout` sets them.
  */
@@ -361,9 +382,11 @@ export function applyWebhook(db: UsageDb, event: unknown, now = Date.now()): Gra
   const userId = notes.userId ?? subscriptionNotes.userId;
   const planId = (notes.planId ?? subscriptionNotes.planId) as PlanId | undefined;
   const period = (notes.period ?? subscriptionNotes.period) as BillingPeriod | undefined;
-  if (!userId || !planId || !period || !PURCHASABLE.includes(planId)) return null;
-
   const subscriptionId = String(payment.subscription_id ?? subscriptionEntity?.id ?? '') || null;
+  const orderId = String(payment.order_id ?? '');
+  // New purchases use PURCHASABLE. A coming-soon plan can still renew if this
+  // charge already belongs to one of our Max (or otherwise unlistable) rows.
+  if (!userId || !planId || !period || !canApplyWebhookCharge(db, planId, userId, orderId, subscriptionId)) return null;
 
   return grantPlan(
     db,
@@ -373,7 +396,7 @@ export function applyWebhook(db: UsageDb, event: unknown, now = Date.now()): Gra
       period,
       currency: (payment.currency as CurrencyCode) ?? 'INR',
       amountMinor: Number(payment.amount) || 0,
-      orderId: String(payment.order_id ?? ''),
+      orderId,
       paymentId: String(payment.id ?? randomUUID()),
       subscriptionId,
     },

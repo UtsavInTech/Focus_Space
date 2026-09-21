@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { IdentityDb } from '../auth/db';
 import { UsageDb } from '../usage/db';
 import { resolvePlan } from '../usage/entitlements';
-import { confirmPayment, confirmSubscription, startCheckout, startSubscription } from './service';
+import { applyWebhook, confirmPayment, confirmSubscription, grantPlan, startCheckout, startSubscription } from './service';
 import type { RazorpayConfig } from './razorpay';
 
 /**
@@ -91,7 +91,7 @@ describe('one-off payments', () => {
   });
 
   it("someone else's paid order cannot be confirmed onto your account", async () => {
-    const { orderId } = await startCheckout(config, usageDb, alice, { planId: 'max', period: 'monthly', currency: 'INR' });
+    const { orderId } = await startCheckout(config, usageDb, alice, { planId: 'unlimited', period: 'monthly', currency: 'INR' });
     expect(() => confirmPayment(config, usageDb, bob, { orderId, paymentId: 'pay_1', signature: sign(orderId, 'pay_1') })).toThrow(/could not be verified/);
     expect(planOf(bob)).toBe('free');
   });
@@ -124,7 +124,7 @@ describe('subscriptions', () => {
   });
 
   it('refused when Razorpay says the subscription charges a different plan than the one recorded', async () => {
-    const { subscriptionId } = await startSubscription(config, usageDb, alice, { planId: 'max', period: 'monthly', currency: 'INR' });
+    const { subscriptionId } = await startSubscription(config, usageDb, alice, { planId: 'unlimited', period: 'monthly', currency: 'INR' });
     remoteSubscriptionPlan = 'plan_for_something_cheaper';
     await expect(confirmSubscription(config, usageDb, alice, { subscriptionId, paymentId: 'pay_s1', signature: sign('pay_s1', subscriptionId) })).rejects.toThrow(/could not be verified/);
     expect(planOf(alice)).toBe('free');
@@ -135,5 +135,74 @@ describe('subscriptions', () => {
     remoteSubscriptionPlan = usageDb.getCheckout(subscriptionId)?.remote_plan_id ?? undefined;
     await expect(confirmSubscription(config, usageDb, bob, { subscriptionId, paymentId: 'pay_s1', signature: sign('pay_s1', subscriptionId) })).rejects.toThrow();
     expect(planOf(bob)).toBe('free');
+  });
+});
+
+describe('Max coming soon', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  it('rejects new Max checkout and subscription while Pro and Unlimited remain buyable', async () => {
+    await expect(startCheckout(config, usageDb, alice, { planId: 'max', period: 'monthly', currency: 'INR' })).rejects.toThrow(/That plan cannot be purchased/);
+    await expect(startSubscription(config, usageDb, alice, { planId: 'max', period: 'monthly', currency: 'INR' })).rejects.toThrow(/That plan cannot be purchased/);
+    await expect(startCheckout(config, usageDb, alice, { planId: 'pro', period: 'monthly', currency: 'INR' })).resolves.toMatchObject({ planId: 'pro' });
+    await expect(startCheckout(config, usageDb, alice, { planId: 'unlimited', period: 'monthly', currency: 'INR' })).resolves.toMatchObject({ planId: 'unlimited' });
+    await expect(startSubscription(config, usageDb, alice, { planId: 'pro', period: 'monthly', currency: 'INR' })).resolves.toMatchObject({ planId: 'pro' });
+    await expect(startSubscription(config, usageDb, alice, { planId: 'unlimited', period: 'monthly', currency: 'INR' })).resolves.toMatchObject({ planId: 'unlimited' });
+  });
+
+  it('still extends an existing Max subscription when Razorpay reports a renewal', () => {
+    const now = Date.now();
+    const first = grantPlan(
+      usageDb,
+      {
+        userId: alice,
+        planId: 'max',
+        period: 'monthly',
+        currency: 'INR',
+        amountMinor: 149900,
+        orderId: 'order_max_0',
+        paymentId: 'pay_max_0',
+        subscriptionId: 'sub_max',
+      },
+      now,
+    );
+    expect(planOf(alice)).toBe('max');
+
+    const renewal = applyWebhook(
+      usageDb,
+      {
+        event: 'subscription.charged',
+        payload: {
+          payment: {
+            entity: {
+              id: 'pay_max_1',
+              amount: 149900,
+              currency: 'INR',
+              order_id: 'order_max_1',
+              subscription_id: 'sub_max',
+              notes: {},
+            },
+          },
+          subscription: { entity: { id: 'sub_max', notes: { userId: alice, planId: 'max', period: 'monthly' } } },
+        },
+      },
+      now + DAY,
+    );
+
+    expect(renewal).toMatchObject({ plan: 'max', granted: true, autoRenew: true });
+    expect(renewal?.expiresAt).toBe(first.expiresAt + 30 * DAY);
+    expect(planOf(alice)).toBe('max');
+  });
+
+  it('ignores a Max webhook that is not already tied to a Max subscription', () => {
+    const grant = applyWebhook(usageDb, {
+      event: 'subscription.charged',
+      payload: {
+        payment: { entity: { id: 'pay_stranger', amount: 149900, currency: 'INR', order_id: 'order_x', subscription_id: 'sub_unknown', notes: {} } },
+        subscription: { entity: { id: 'sub_unknown', notes: { userId: alice, planId: 'max', period: 'monthly' } } },
+      },
+    });
+    expect(grant).toBeNull();
+    expect(planOf(alice)).toBe('free');
   });
 });

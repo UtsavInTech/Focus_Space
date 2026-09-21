@@ -31,6 +31,7 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
    * than refusing, send them to sign in — they come back to this page.
    */
   async function buy(plan: Plan) {
+    if (plan.comingSoon) return;
     if (plan.id === 'free') {
       if (hasStoreListing()) window.open(installHref(), '_blank', 'noreferrer');
       else navigate('/#install');
@@ -172,8 +173,9 @@ function PlanCard({
 }) {
   const isFree = plan.id === 'free';
   const isCurrent = current === plan.id;
+  const comingSoon = Boolean(plan.comingSoon);
   // Offering "Get Pro" to someone already on Pro is the bug this replaces.
-  const label = isCurrent ? 'Your plan' : RANK[plan.id] < RANK[current] ? `Switch to ${plan.name}` : plan.cta;
+  const label = isCurrent ? 'Your plan' : comingSoon ? 'Coming soon' : RANK[plan.id] < RANK[current] ? `Switch to ${plan.name}` : plan.cta;
   const monthly = perMonth(plan, period);
   const saving = annualSavingPercent(plan, currency);
 
@@ -203,13 +205,13 @@ function PlanCard({
       <button
         type="button"
         className={`fsw-btn ${plan.featured && !isCurrent ? 'fsw-btn-primary' : 'fsw-btn-outline'} fsw-btn-block`}
-        disabled={busy || isCurrent}
-        onClick={onBuy}
+        disabled={busy || isCurrent || comingSoon}
+        onClick={comingSoon ? undefined : onBuy}
       >
         {busy ? 'Opening payment…' : label}
       </button>
       {/* Buying the same plan again is a renewal, not a mistake — but it should be a deliberate choice. */}
-      {isCurrent && !isFree && !autoRenew && (
+      {isCurrent && !isFree && !autoRenew && !comingSoon && (
         <button type="button" className="fsw-link fsw-plan-renew" onClick={onBuy}>
           Extend by another {period === 'annual' ? 'year' : 'month'}
         </button>

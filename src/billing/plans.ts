@@ -51,6 +51,8 @@ export interface Plan {
   /** Shown under the feature list — what this plan deliberately does not include. */
   missing?: string[];
   cta: string;
+  /** Visible on pricing, but not for sale. Existing entitlements are unchanged. */
+  comingSoon?: boolean;
 }
 
 /**
@@ -117,6 +119,7 @@ export const PLANS: Plan[] = [
     limits: { modes: null, aiCredits: null },
     features: ['Everything in Unlimited', 'Unlimited Spaces', 'Unlimited AI credits', 'Priority support'],
     cta: 'Get Max',
+    comingSoon: true,
   },
 ];
 
