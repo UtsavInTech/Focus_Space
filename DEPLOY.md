@@ -39,14 +39,14 @@ Then set `DB_PATH=/data/focusspace.db` (below) so both database connections —
 
 | Variable | Value | Why |
 | --- | --- | --- |
-| `OPENROUTER_API_KEY` | `sk-or-…` | The one key the product runs on. Never in the extension. |
+| `OPENAI_API_KEY` | `sk-…` | The one key the product runs on. Never in the extension. |
 | `AUTH_TOKEN_SECRET` | `openssl rand -base64 32` | Signs access/refresh tokens. Changing it signs everyone out. |
 | `DB_PATH` | `/data/focusspace.db` | Must point at the mounted volume. |
 | `HOST` | `0.0.0.0` | The default `127.0.0.1` accepts nothing from outside the container. |
 | `NODE_ENV` | `production` | Refuses `AUTH_DEV_CODES`, and turns a missing mail provider into a loud error. |
 | `RESEND_API_KEY` | `re_…` | Delivers verification codes. Without it **sign-up cannot complete**. |
 | `MAIL_FROM` | `FocusSpace <hello@yourdomain>` | Must be on a domain verified in Resend. Unset falls back to Resend's sandbox sender, which only delivers to your own address. |
-| `OPENROUTER_MODEL` | `openai/gpt-4o-mini` | Optional. |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Optional. |
 
 `PORT` is set by Railway; the server already reads it.
 
@@ -90,7 +90,7 @@ with no endpoint for anyone to configure, which is the whole point.
 
 ```bash
 curl https://<service>.up.railway.app/v1/health
-# {"ok":true,"status":"ok","model":"openai/gpt-4o-mini","auth":"enabled"}
+# {"ok":true,"status":"ok","model":"gpt-4o-mini","auth":"enabled"}
 ```
 
 `auth: "enabled"` confirms `AUTH_TOKEN_SECRET` was read. If it says `disabled`,

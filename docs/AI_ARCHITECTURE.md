@@ -98,7 +98,7 @@ Extension (no secrets)
   ```
 
   The endpoint returns `{ "answer": "…" }`. It must allow cross-origin POSTs (CORS), so no extra extension permissions are needed.
-- **Reference server:** `scripts/ai-endpoint/server.mjs`. It keeps `OPENROUTER_API_KEY` in its environment, forwards `prompt` to OpenRouter (`OPENROUTER_MODEL`, default `openai/gpt-4o-mini`), and limits request size.
+- **Reference server:** `scripts/ai-endpoint/server.mjs`. It keeps `OPENAI_API_KEY` in its environment, forwards `prompt` to OpenAI (`OPENAI_MODEL`, default `gpt-4o-mini`), and limits request size.
 - **Rendering:** answers are plain text; code blocks go in `<pre>`. Nothing is rendered as HTML or executed.
 
 ## Data sent (endpoint only)

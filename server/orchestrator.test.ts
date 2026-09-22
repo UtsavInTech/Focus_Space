@@ -3,7 +3,7 @@ import { DEFAULT_MODES } from '@/modes/templates';
 import { buildLearningContext } from '@/learning/context/context';
 import { buildHomepageContext } from '@/learning/ai/homepage-context';
 import { ApiError } from './http';
-import type { OpenRouterConfig } from './openrouter';
+import type { OpenAIConfig } from './openai';
 import { orchestrate } from './orchestrator';
 import { validateAiApiRequest } from './validate';
 
@@ -19,10 +19,10 @@ const homepageContext = buildHomepageContext({
   language: 'en',
 });
 
-const FAKE_KEY = 'sk-or-test-do-not-leak-this-value';
-const config: OpenRouterConfig = { apiKey: FAKE_KEY, model: 'openai/gpt-4o-mini', maxTokens: 700 };
+const FAKE_KEY = 'sk-test-do-not-leak-this-value';
+const config: OpenAIConfig = { apiKey: FAKE_KEY, model: 'gpt-4o-mini', maxTokens: 700 };
 
-function mockOpenRouterOk(content: string) {
+function mockOpenAIOk(content: string) {
   const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => ({
     ok: true,
     status: 200,
@@ -37,22 +37,22 @@ afterEach(() => {
 });
 
 describe('orchestrate: LearningContext requests reach the provider', () => {
-  it('a video-only action builds the same prompt buildPrompt() would, and reaches OpenRouter', async () => {
-    const fetchMock = mockOpenRouterOk('Explanation of linked lists.');
+  it('a video-only action builds the same prompt buildPrompt() would, and reaches OpenAI', async () => {
+    const fetchMock = mockOpenAIOk('Explanation of linked lists.');
     const request = validateAiApiRequest({ action: 'explain', context: learningContext });
     const result = await orchestrate(request, { config });
 
-    expect(result).toEqual({ ok: true, answer: 'Explanation of linked lists.', provider: 'openrouter', model: 'openai/gpt-4o-mini', usage: null });
+    expect(result).toEqual({ ok: true, answer: 'Explanation of linked lists.', provider: 'openai', model: 'gpt-4o-mini', usage: null });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
+    expect(url).toBe('https://api.openai.com/v1/chat/completions');
     const body = JSON.parse(init.body as string) as { model: string; messages: { role: string; content: string }[] };
-    expect(body.model).toBe('openai/gpt-4o-mini');
+    expect(body.model).toBe('gpt-4o-mini');
     expect(body.messages[1].content).toContain('Intro to Linked Lists'); // the actual video title reached the model
   });
 
   it('a chat request over a LearningContext reaches the provider with video-grounded content', async () => {
-    mockOpenRouterOk('answer');
+    mockOpenAIOk('answer');
     const request = validateAiApiRequest({ action: 'chat', context: learningContext, question: 'What are we learning?' });
     const result = await orchestrate(request, { config });
     expect(result.ok).toBe(true);
@@ -61,7 +61,7 @@ describe('orchestrate: LearningContext requests reach the provider', () => {
 
 describe('orchestrate: HomepageContext requests reach the provider, routed correctly (Layer 1.5 bug guard)', () => {
   it('a homepage chat request never mentions transcript/moment language, and includes real feed data', async () => {
-    const fetchMock = mockOpenRouterOk('Try Reverse a Linked List.');
+    const fetchMock = mockOpenAIOk('Try Reverse a Linked List.');
     const request = validateAiApiRequest({ action: 'chat', context: homepageContext, question: 'What should I watch?' });
     const result = await orchestrate(request, { config });
 
@@ -76,7 +76,7 @@ describe('orchestrate: HomepageContext requests reach the provider, routed corre
 
 describe('orchestrate: pre-built prompts pass through unchanged (today\'s extension wire format)', () => {
   it('uses the client-provided prompt verbatim instead of rebuilding one', async () => {
-    const fetchMock = mockOpenRouterOk('ok');
+    const fetchMock = mockOpenAIOk('ok');
     const request = validateAiApiRequest({ action: 'chat', context: homepageContext, prompt: { system: 'custom system', user: 'custom user text' } });
     await orchestrate(request, { config });
     const [, init] = fetchMock.mock.calls[0];
@@ -86,18 +86,18 @@ describe('orchestrate: pre-built prompts pass through unchanged (today\'s extens
   });
 });
 
-describe('orchestrate: OpenRouter failures become safe API errors', () => {
+describe('orchestrate: OpenAI failures become safe API errors', () => {
   it('a non-2xx upstream response becomes an ApiError, not a thrown fetch error or a leaked body', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 401, json: async () => ({ error: { message: 'Invalid API key.' } }) })));
     const request = validateAiApiRequest({ action: 'chat', context: homepageContext, question: 'hi' });
     await expect(orchestrate(request, { config })).rejects.toMatchObject({ status: 502, code: 'upstream_error' });
   });
 
-  it('a network failure reaching OpenRouter becomes a safe upstream_error, not an unhandled exception', async () => {
+  it('a network failure reaching OpenAI becomes a safe upstream_error, not an unhandled exception', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => {
-        throw new Error('getaddrinfo ENOTFOUND openrouter.ai');
+        throw new Error('getaddrinfo ENOTFOUND api.openai.com');
       }),
     );
     const request = validateAiApiRequest({ action: 'chat', context: homepageContext, question: 'hi' });
@@ -107,7 +107,7 @@ describe('orchestrate: OpenRouter failures become safe API errors', () => {
   });
 
   it('an empty model response is treated as an upstream error, not silently returned', async () => {
-    mockOpenRouterOk('   ');
+    mockOpenAIOk('   ');
     const request = validateAiApiRequest({ action: 'chat', context: homepageContext, question: 'hi' });
     await expect(orchestrate(request, { config })).rejects.toMatchObject({ code: 'upstream_error' });
   });
@@ -115,7 +115,7 @@ describe('orchestrate: OpenRouter failures become safe API errors', () => {
 
 describe('orchestrate: the API key never appears in the response', () => {
   it('the success response contains no trace of the configured API key', async () => {
-    mockOpenRouterOk('answer text');
+    mockOpenAIOk('answer text');
     const request = validateAiApiRequest({ action: 'chat', context: homepageContext, question: 'hi' });
     const result = await orchestrate(request, { config });
     expect(JSON.stringify(result)).not.toContain(FAKE_KEY);
@@ -144,12 +144,12 @@ describe('orchestrate: provider response is normalized correctly', () => {
     const request = validateAiApiRequest({ action: 'chat', context: homepageContext, question: 'hi' });
     const result = await orchestrate(request, { config });
     expect(result.answer).toBe('first  \nsecond');
-    expect(result).toMatchObject({ ok: true, provider: 'openrouter', model: config.model });
+    expect(result).toMatchObject({ ok: true, provider: 'openai', model: config.model });
   });
 });
 
-describe('orchestrate: OpenRouter token usage (Layer 2C)', () => {
-  it('captures prompt/completion token counts when OpenRouter includes them', async () => {
+describe('orchestrate: OpenAI token usage (Layer 2C)', () => {
+  it('captures prompt/completion token counts when OpenAI includes them', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content: 'answer' } }], usage: { prompt_tokens: 123, completion_tokens: 45 } }) })),
@@ -159,8 +159,8 @@ describe('orchestrate: OpenRouter token usage (Layer 2C)', () => {
     expect(result.usage).toEqual({ promptTokens: 123, completionTokens: 45 });
   });
 
-  it('is null, not a thrown error, when OpenRouter omits usage metadata', async () => {
-    mockOpenRouterOk('answer');
+  it('is null, not a thrown error, when OpenAI omits usage metadata', async () => {
+    mockOpenAIOk('answer');
     const request = validateAiApiRequest({ action: 'chat', context: homepageContext, question: 'hi' });
     const result = await orchestrate(request, { config });
     expect(result.usage).toBeNull();
@@ -169,7 +169,7 @@ describe('orchestrate: OpenRouter token usage (Layer 2C)', () => {
 
 describe('orchestrate: usage extension point (no-op by default, Layer 2B implements it)', () => {
   it('calls onUsage exactly once per successful request when provided, with no persistence yet', async () => {
-    mockOpenRouterOk('answer');
+    mockOpenAIOk('answer');
     const onUsage = vi.fn();
     const request = validateAiApiRequest({ action: 'chat', context: homepageContext, question: 'hi' });
     await orchestrate(request, { config, onUsage });

@@ -17,7 +17,7 @@ import { limitsFor, resolvePlan } from './entitlements';
  * server/auth/service.ts's refresh() rotation already relies on).
  */
 
-/** Real OpenRouter calls finish in seconds; a 'reserved' row older than this is treated as abandoned (a crash between reserve and commit/release), not a live request. */
+/** Real OpenAI calls finish in seconds; a 'reserved' row older than this is treated as abandoned (a crash between reserve and commit/release), not a live request. */
 export const RESERVATION_STALE_MS = 2 * 60_000;
 
 export interface UsageStatusView {

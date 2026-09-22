@@ -69,7 +69,7 @@ export const PRIVACY: LegalDoc = {
     {
       heading: 'Who else is involved',
       body: [
-        'OpenRouter processes AI requests on our behalf and receives the moment context described above.',
+        'OpenAI processes AI requests on our behalf and receives the moment context described above.',
         'Razorpay processes payments and receives whatever you enter into its own payment form.',
         'Resend delivers verification emails and receives your email address.',
         'Railway hosts the service and stores our database.',

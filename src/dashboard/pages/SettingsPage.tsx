@@ -286,7 +286,7 @@ export function SettingsPage({ data }: { data: DashboardData }) {
               <li>On-device AI runs inside Chrome: nothing leaves your browser.</li>
               <li>
                 {usesHostedAi(settings.ai.endpointUrl) ? `${HOSTED_AI_LABEL} receives` : 'Your endpoint receives'} only the moment you ask about: video title and channel, timestamp, nearby outline items, your course position, your space's topic names, a short transcript excerpt and your question.
-                {usesHostedAi(settings.ai.endpointUrl) && ' Our AI provider, OpenRouter, processes it on our behalf. We don’t store your prompts or the answers.'}
+                {usesHostedAi(settings.ai.endpointUrl) && ' Our AI provider, OpenAI, processes it on our behalf. We don’t store your prompts or the answers.'}
               </li>
               <li>To answer about a moment, FocusSpace may ask YouTube's player to load the video's captions, then restores your caption setting.</li>
             </ul>

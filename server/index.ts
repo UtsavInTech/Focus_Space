@@ -1,11 +1,11 @@
 // FocusSpace API (Layer 2A) — the extension's real backend, replacing "extension
 // → OpenRouter directly" with "extension → FocusSpace API → AI Orchestrator →
-// OpenRouter". The key lives only in this process's environment.
+// OpenAI". The key lives only in this process's environment.
 //
-//   OPENROUTER_API_KEY=sk-or-... npm run ai-api
+//   OPENAI_API_KEY=sk-... npm run ai-api
 //   → FocusSpace Settings → Learning companion → My endpoint → http://127.0.0.1:8788/v1/ai/complete
 //
-// Env: PORT (8788), HOST (127.0.0.1), OPENROUTER_MODEL (openai/gpt-4o-mini), MAX_TOKENS (700).
+// Env: PORT (8788), HOST (127.0.0.1), OPENAI_MODEL (gpt-4o-mini), MAX_TOKENS (700).
 //
 // One route, not three (/v1/ai/chat, /v1/ai/action, /v1/ai/notes as sketched
 // in the design): the extension has exactly one configured endpoint URL
@@ -17,10 +17,10 @@
 //
 // scripts/ai-endpoint/server.mjs (the original reference relay) is untouched
 // and still works — it's the simpler, zero-orchestration option for anyone
-// who just wants a raw OpenRouter relay for local dev.
+// who just wants a raw OpenAI relay for local dev.
 import { createServer } from 'node:http';
 import { ApiError, clientIp, CORS_HEADERS, readJsonBody, readTextBody, sendJson, type ApiErrorResponse } from './http';
-import { loadOpenRouterConfig } from './openrouter';
+import { loadOpenAIConfig } from './openai';
 import { orchestrate } from './orchestrator';
 import { validateAiApiRequest } from './validate';
 import { getDb } from './auth/db';
@@ -122,7 +122,7 @@ function requireRazorpay() {
 
 let config;
 try {
-  config = loadOpenRouterConfig();
+  config = loadOpenAIConfig();
 } catch (err) {
   console.error(err instanceof Error ? err.message : String(err));
   process.exit(1);
@@ -146,7 +146,7 @@ const server = createServer(async (req, res) => {
   }
   try {
     // Unauthenticated on purpose (no secret, no config value) — just "is this process up and configured",
-    // for fast local diagnosis. Never reveals whether the OpenRouter key or auth secret is actually valid.
+    // for fast local diagnosis. Never reveals whether the OpenAI key or auth secret is actually valid.
     if (req.method === 'GET' && req.url === HEALTH_ROUTE) {
       sendJson(res, 200, { ok: true, status: 'ok', model: config.model, auth: authConfig ? 'enabled' : 'disabled' });
       return;
@@ -423,7 +423,7 @@ const server = createServer(async (req, res) => {
 // the single most likely reason "npm run ai-api" would appear to produce no listener.
 server.on('error', (err: NodeJS.ErrnoException) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Stop whatever is using it, or set PORT to something else, e.g.: PORT=8789 OPENROUTER_API_KEY=... npm run ai-api`);
+    console.error(`Port ${PORT} is already in use. Stop whatever is using it, or set PORT to something else, e.g.: PORT=8789 OPENAI_API_KEY=... npm run ai-api`);
   } else {
     console.error(`FocusSpace API failed to start: ${err.message}`);
   }

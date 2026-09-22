@@ -3,27 +3,27 @@
 // The extension never contains an API key. Run this on your machine or server;
 // it keeps the key in an environment variable and forwards only the compact
 // context of the current moment (title, timestamp, concept outline, a short
-// transcript excerpt, your question) to OpenRouter.
+// transcript excerpt, your question) to OpenAI.
 //
-//   OPENROUTER_API_KEY=sk-or-... node scripts/ai-endpoint/server.mjs
+//   OPENAI_API_KEY=sk-... node scripts/ai-endpoint/server.mjs
 //   → FocusSpace Settings → Learning companion → My endpoint → http://127.0.0.1:8787/v1/moment
 //
-// Env: PORT (8787), HOST (127.0.0.1), OPENROUTER_MODEL (openai/gpt-4o-mini), MAX_TOKENS (700).
+// Env: PORT (8787), HOST (127.0.0.1), OPENAI_MODEL (gpt-4o-mini), MAX_TOKENS (700).
 //
 // The FocusSpace endpoint contract is unchanged by which upstream this forwards
 // to: POST { prompt: { system, user }, ... } in, { answer: string } out. The
-// extension has no idea OpenRouter is involved — see docs/V5_CONTRACT.md §F.
+// extension has no idea OpenAI is involved — see docs/V5_CONTRACT.md §F.
 import { createServer } from 'node:http';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.HOST ?? '127.0.0.1';
-const MODEL = process.env.OPENROUTER_MODEL ?? 'openai/gpt-4o-mini';
+const MODEL = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
 const MAX_TOKENS = Number(process.env.MAX_TOKENS ?? 700);
-const KEY = process.env.OPENROUTER_API_KEY;
+const KEY = process.env.OPENAI_API_KEY;
 const MAX_BODY = 64 * 1024;
 
 if (!KEY) {
-  console.error('Set OPENROUTER_API_KEY (it stays on this server, never in the extension).');
+  console.error('Set OPENAI_API_KEY (it stays on this server, never in the extension).');
   process.exit(1);
 }
 
@@ -58,7 +58,7 @@ createServer(async (req, res) => {
     const user = body?.prompt?.user;
     if (typeof system !== 'string' || typeof user !== 'string' || user.length > 20_000) return send(res, 400, { error: 'Expected { prompt: { system, user } }' });
 
-    const upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { authorization: `Bearer ${KEY}`, 'content-type': 'application/json' },
       body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),

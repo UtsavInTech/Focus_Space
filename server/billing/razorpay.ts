@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { ApiError } from '../http';
 
 /**
- * Razorpay, over plain HTTP — no SDK, matching how `openrouter.ts` and the
+ * Razorpay, over plain HTTP — no SDK, matching how `openai.ts` and the
  * Resend sender already work. Razorpay's REST API is small enough that a
  * dependency would add supply-chain risk without adding capability.
  *

@@ -71,7 +71,7 @@ It shares the extension's design tokens (`src/ui/styles.css`) and its price book
 - **Your own endpoint** (keeps the API key on your machine):
 
 ```bash
-OPENROUTER_API_KEY=your-key npm run ai-endpoint
+OPENAI_API_KEY=your-key npm run ai-endpoint
 ```
 
 Then set *Settings → Learning companion → My endpoint* to `http://127.0.0.1:8787/v1/moment`.
@@ -115,7 +115,7 @@ FocusSpace works fully signed out. An account carries your AI allowance and spac
 - **Run the server:**
 
 ```bash
-OPENROUTER_API_KEY=your-key AUTH_TOKEN_SECRET=$(openssl rand -base64 32) AUTH_DEV_CODES=1 npm run ai-api
+OPENAI_API_KEY=your-key AUTH_TOKEN_SECRET=$(openssl rand -base64 32) AUTH_DEV_CODES=1 npm run ai-api
 ```
 
 Then set Settings → Account → FocusSpace server to `http://127.0.0.1:8788`. No email or SMS provider is configured by default: codes are printed by the server and shown in the UI as development codes. `AUTH_DEV_CODES=1` is refused in production — connect a real provider in `server/notify/sender.ts` before deploying. See [docs/LAYER_2B_IDENTITY.md](docs/LAYER_2B_IDENTITY.md).

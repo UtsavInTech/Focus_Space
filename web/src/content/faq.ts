@@ -25,7 +25,7 @@ export const FAQ: FaqItem[] = [
     a: `No. FocusSpace works fully signed out, with ${GUEST_SPACE_LIMIT} Spaces and ${GUEST_DAILY_AI_CREDITS} AI credits a day. A free account raises that to ${FREE_SPACE_LIMIT} Spaces and ${FREE_MONTHLY_AI_CREDITS} AI credits a month. Your Spaces, notes and history stay in the browser you use — an account carries your plan and allowance, not your data.`,
   },
   {
-    q: 'Do I need my own OpenAI or OpenRouter API key?',
+    q: 'Do I need my own OpenAI API key?',
     a: 'No. That is exactly what we did not want to build. The AI runs on our servers, on our key, metered against your plan. If you would rather nothing left your browser at all, Chrome’s built-in on-device model is still supported as an option — but it is never something you have to set up.',
   },
   {

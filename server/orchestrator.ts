@@ -4,7 +4,7 @@ import { buildChatPrompt } from '@/learning/ai/chat';
 import { isHomepageContext } from '@/learning/ai/homepage-context';
 import type { LearningContext } from '@/learning/context/context';
 import { ApiError } from './http';
-import { callOpenRouter, type OpenRouterConfig } from './openrouter';
+import { callOpenAI, type OpenAIConfig } from './openai';
 import type { AiApiRequest, AiApiSuccess } from './types';
 
 /**
@@ -17,9 +17,9 @@ import type { AiApiRequest, AiApiSuccess } from './types';
  *    `context`/`action`/`question`/`history` — the *exact same* functions
  *    (`buildPrompt`, `buildChatPrompt`) the extension itself calls, not a
  *    reimplementation.
- *  - model selection: the configured `OPENROUTER_MODEL` — a single seam
+ *  - model selection: the configured `OPENAI_MODEL` — a single seam
  *    (`OrchestratorDeps.config.model`) rather than per-request logic yet.
- *  - provider invocation: `callOpenRouter` (openrouter.ts).
+ *  - provider invocation: `callOpenAI` (openai.ts).
  *
  * Extension points left for later layers, deliberately not implemented here:
  *  - authentication: none of this validates *who* is calling.
@@ -35,7 +35,7 @@ export interface UsageEvent {
 }
 
 export interface OrchestratorDeps {
-  config: OpenRouterConfig;
+  config: OpenAIConfig;
   /** Layer 2B+ extension point (usage/entitlement) — not implemented in 2A. */
   onUsage?: (event: UsageEvent) => void;
   signal?: AbortSignal;
@@ -69,7 +69,7 @@ export const maxTokensFor = (action: string, configured: number): number => Math
 
 export async function orchestrate(request: AiApiRequest, deps: OrchestratorDeps): Promise<AiApiSuccess> {
   const prompt = promptFor(request);
-  const { answer, usage } = await callOpenRouter(prompt, { ...deps.config, maxTokens: maxTokensFor(request.action, deps.config.maxTokens) }, deps.signal);
+  const { answer, usage } = await callOpenAI(prompt, { ...deps.config, maxTokens: maxTokensFor(request.action, deps.config.maxTokens) }, deps.signal);
   deps.onUsage?.({ action: request.action, model: deps.config.model, at: Date.now() });
-  return { ok: true, answer, provider: 'openrouter', model: deps.config.model, usage };
+  return { ok: true, answer, provider: 'openai', model: deps.config.model, usage };
 }

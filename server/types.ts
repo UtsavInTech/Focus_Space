@@ -4,7 +4,7 @@ import type { AiAction, AiPrompt } from '@/learning/ai/actions';
 import type { HomepageContext } from '@/learning/ai/homepage-context';
 import type { ApiErrorResponse } from './http';
 import type { PublicUser } from './auth/service';
-import type { TokenUsage } from './openrouter';
+import type { TokenUsage } from './openai';
 
 /**
  * The FocusSpace API contract (Layer 2A). Deliberately reuses the extension's
@@ -44,9 +44,9 @@ export interface AiApiRequest {
 export interface AiApiSuccess {
   ok: true;
   answer: string;
-  provider: 'openrouter';
+  provider: 'openai';
   model: string;
-  /** Token counts from OpenRouter's own response, when present (Layer 2C usage accounting) — never a second call, never estimated. */
+  /** Token counts from OpenAI's response, when present (Layer 2C usage accounting) — never a second call, never estimated. */
   usage: TokenUsage | null;
 }
 
