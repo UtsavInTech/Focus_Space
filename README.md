@@ -145,3 +145,10 @@ No FocusSpace server, account or analytics; all data stays in `chrome.storage.lo
 ## Roadmap
 
 V1 Focused YouTube ✅ · V2 Relevance & subscription intelligence ✅ · V3 Spaces, discovery, series continuity, YouTube-native UX ✅ · V4 Learning path, Video Knowledge Map, moment-aware companion ✅ · Next: learning plans across videos, AI refinement of transcript-only outlines, more companion actions (notes, flashcards, interview questions).
+
+
+## Bugs that were found in the intial stage of deployment . 
+1 - In chrome after clicking in extension some buttoms are not working well.
+2 - website ui need clean ups more 
+3 - Focusspace AI needs to be removed when video is played in full mode 
+
