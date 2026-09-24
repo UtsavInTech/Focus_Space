@@ -180,7 +180,6 @@ function scoreOne(channel: YtChannel, terms: Term[], options: RankChannelsOption
     if (matched.length < 3) matched.push(t.label);
   }
 
-  const teaching = description ? TEACHING_CUES.some((p) => p.test(description)) : false;
   /*
    * Each side saturates on its own before they are combined, which is what makes a name *alone* weak: a
    * channel whose only evidence is its title tops out at TITLE_WEIGHT no matter how exactly the name
@@ -189,6 +188,15 @@ function scoreOne(channel: YtChannel, terms: Term[], options: RankChannelsOption
    */
   const titleScore = Math.min(1, titleEvidence);
   const descriptionScore = Math.min(1, descriptionEvidence);
+  const onTopic = titleScore > 0 || descriptionScore > 0;
+
+  /*
+   * TEACHING_CUES are subject-agnostic ("tutorial", "course", "explained"), so on their own they say
+   * nothing about *this* search — a coding bootcamp's blurb is full of them in a cooking search. They
+   * only count once something has already tied the channel to the topic, which is why this is gated on
+   * `onTopic`: teaching is corroboration, never evidence.
+   */
+  const teaching = onTopic && description ? TEACHING_CUES.some((p) => p.test(description)) : false;
   const relevance = Math.min(
     1,
     TITLE_WEIGHT * titleScore + DESCRIPTION_WEIGHT * descriptionScore + (titleScore > 0 && descriptionScore > 0 ? 0.1 : 0) + (teaching ? 0.1 : 0),
@@ -199,7 +207,12 @@ function scoreOne(channel: YtChannel, terms: Term[], options: RankChannelsOption
   const tiny = channel.subscribers !== null && channel.subscribers < SMALL_AUDIENCE;
   const echo = nameIsQueryEcho(channel.title, options.query);
 
-  // Nothing but a matching name: no blurb, no audience, no badge, never chosen before.
+  /*
+   * Nothing but a matching name: no blurb, no badge, never chosen before, and an audience that is either
+   * confirmed tiny or not reported at all. Both belong here — neither is evidence — but they are not the
+   * same claim, and `audienceWeight` deliberately does not treat a hidden count as a small one, so the
+   * reason shown to the learner must not either.
+   */
   const lowSignal = !known && !channel.verified && !hasDescription && (tiny || channel.subscribers === null);
 
   /*
@@ -218,12 +231,14 @@ function scoreOne(channel: YtChannel, terms: Term[], options: RankChannelsOption
   const reasons: string[] = [];
   if (known) reasons.push(channel.subscribed ? 'You’re subscribed' : 'Already in your Spaces');
   if (matched.length) reasons.push(`Matches ${matched.map((m) => `“${m}”`).join(', ')}`);
-  else if (relevance > 0) reasons.push('Name matches your search');
   if (teaching) reasons.push('Describes itself as teaching this');
   const subs = formatSubscribers(channel.subscribers);
   if (subs) reasons.push(subs);
   if (channel.verified) reasons.push('Verified');
-  if (lowSignal) reasons.push('Very small channel — little to go on');
+  if (lowSignal) reasons.push(tiny ? 'Very small channel — little to go on' : 'Nothing here but the name');
+  // Every row explains itself, so a channel FocusSpace can say nothing about still says that much,
+  // rather than rendering a blank line under its name.
+  if (!reasons.length) reasons.push('From YouTube’s results for your search');
 
   return { channel, score: Math.max(0, score), relevance, lowSignal, reasons };
 }

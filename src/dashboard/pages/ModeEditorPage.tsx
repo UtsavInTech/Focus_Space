@@ -34,6 +34,9 @@ export function ModeEditorPage({ data, modeId }: { data: DashboardData; modeId: 
   const [baseline, setBaseline] = useState(() => (mode ? JSON.stringify(toDraft(mode)) : ''));
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Referentially stable: ChannelPicker ranks its results in a useMemo keyed on this, so a fresh Set
+  // each render would re-rank every result on every keystroke elsewhere on the page.
+  const knownIds = useMemo(() => new Set(Object.keys(library?.channels ?? {})), [library?.channels]);
 
   // Adopt external changes (e.g. a channel allowed from YouTube) when there are no local edits.
   useEffect(() => {
@@ -55,7 +58,6 @@ export function ModeEditorPage({ data, modeId }: { data: DashboardData; modeId: 
   const dirty = JSON.stringify(draft) !== baseline;
   const patch = (p: Partial<Draft>) => setDraft((d) => (d ? { ...d, ...p } : d));
   const valid = draft.name.trim().length > 0;
-  const knownIds = new Set(Object.keys(library?.channels ?? {}));
   const picked: PickedChannel[] = draft.allowedChannels.map((c) => ({ id: c.id, title: c.title, handle: c.handle ?? null, thumbnail: library?.channels[c.id]?.thumbnail ?? null }));
 
   const save = async () => {
@@ -111,6 +113,8 @@ export function ModeEditorPage({ data, modeId }: { data: DashboardData; modeId: 
           knownIds={knownIds}
           onChange={(next) => patch({ allowedChannels: next.map((c) => ({ id: c.id, title: c.title, handle: c.handle ?? undefined })) })}
           suggestQuery={draft.searchHint || draft.name}
+          // The Space being edited is the best evidence there is for ranking its own creators.
+          mode={draft}
         />
         {draft.blockedChannels.length > 0 && (
           <div className="fs-stack-sm">

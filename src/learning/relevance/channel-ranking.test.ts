@@ -150,6 +150,48 @@ describe('rankChannels — across subjects', () => {
   });
 });
 
+describe('rankChannels — every row explains itself, honestly', () => {
+  it('does not call a channel relevant for using generic teaching words', () => {
+    // TEACHING_CUES are subject-agnostic, so a bootcamp ad in a cooking search must not score at all.
+    const [only] = rankChannels(
+      [channel({ id: 'UCoff', title: 'Devstart Bootcamp', description: 'A complete course: learn to code, step by step, explained for beginners.', subscribers: 700_000 })],
+      { query: 'cooking recipe', mode: modeFor('cooking') },
+    );
+    expect(only.relevance).toBe(0);
+    expect(only.reasons).not.toContain('Describes itself as teaching this');
+    expect(only.reasons.some((r) => /matches/i.test(r))).toBe(false);
+  });
+
+  it('still credits teaching once something ties the channel to the topic', () => {
+    const [only] = rankChannels(
+      [channel({ id: 'UCon', title: 'Pan & Plate', description: 'Cooking tutorials: a complete course in technique, explained step by step.', subscribers: 700_000 })],
+      { query: 'cooking recipe', mode: modeFor('cooking') },
+    );
+    expect(only.reasons).toContain('Describes itself as teaching this');
+  });
+
+  it('never leaves a row with a blank explanation', () => {
+    const ranked = rankChannels(
+      [
+        channel({ id: 'UCnone', title: 'Quiet Studio', description: 'A place for things we make, whenever we get round to making them.' }),
+        channel({ id: 'UCbare', title: 'Untitled' }),
+      ],
+      { query: 'photography tutorial', mode: modeFor('photography') },
+    );
+    expect(ranked.every((r) => r.reasons.length > 0 && r.reasons.every((reason) => reason.trim() !== ''))).toBe(true);
+  });
+
+  it('does not tell the learner a channel is small when the count is simply hidden', () => {
+    const [hidden] = rankChannels([channel({ id: 'UChidden', title: 'Someone' })], { query: 'photography tutorial' });
+    expect(hidden.lowSignal).toBe(true);
+    expect(hidden.reasons).not.toContain('Very small channel — little to go on');
+    expect(hidden.reasons).toContain('Nothing here but the name');
+
+    const [small] = rankChannels([channel({ id: 'UCsmall', title: 'Someone', subscribers: 12 })], { query: 'photography tutorial' });
+    expect(small.reasons).toContain('Very small channel — little to go on');
+  });
+});
+
 describe('audienceWeight / formatSubscribers', () => {
   it('rises with subscribers and saturates at a million', () => {
     expect(audienceWeight(1000)).toBeCloseTo(0.5, 2);
