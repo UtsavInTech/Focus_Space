@@ -24,7 +24,9 @@ const NAV = [
   { to: '/library', label: 'Library', icon: Library, match: (s: string[]) => s[0] === 'library' },
   { to: '/history', label: 'History', icon: History, match: (s: string[]) => s[0] === 'history' },
   { to: '/modes', label: 'Spaces', icon: Layers, match: (s: string[]) => s[0] === 'modes' || s[0] === 'welcome' },
-  { to: '/subscriptions', label: 'Subscriptions', icon: Users, match: (s: string[]) => s[0] === 'subscriptions' },
+  // "Subscribed channels", not "Subscriptions": FocusSpace ranks channels per Space (your subscriptions
+  // plus any you've added), which reads as a YouTube-account settings page under the bare word alone.
+  { to: '/subscriptions', label: 'Subscribed channels', icon: Users, match: (s: string[]) => s[0] === 'subscriptions' },
   { to: '/account', label: 'Account', icon: CircleUser, match: (s: string[]) => s[0] === 'account' },
   { to: '/settings', label: 'Settings', icon: SettingsIcon, match: (s: string[]) => s[0] === 'settings' },
 ];

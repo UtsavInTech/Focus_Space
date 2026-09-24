@@ -8,6 +8,7 @@ import { HOSTED_AI_LABEL, usesHostedAi } from '@/config';
 import { FREE_SPACE_LIMIT, GUEST_SPACE_LIMIT } from '@/billing/plans';
 import { sendMessage } from '@/messaging/runtime';
 import { accountIdentity, useAccountFlow } from '@/ui/account/flow';
+import { planLabel } from '@/billing/plans';
 import type { DashboardData } from '../DashboardApp';
 import { navigate } from '../router';
 import { Section, patch, isHttpUrl } from './section';
@@ -145,7 +146,7 @@ function AiSection({ settings }: { settings: Settings }) {
 export function SettingsPage({ data }: { data: DashboardData }) {
   const { settings, modes } = data;
   const flow = useAccountFlow();
-  const user = flow.user;
+  const { user, usage } = flow;
   const [confirmReset, setConfirmReset] = useState(false);
   const version = chrome.runtime.getManifest().version;
 
@@ -159,8 +160,11 @@ export function SettingsPage({ data }: { data: DashboardData }) {
       </div>
 
       <Section id="account" title="Account" description="Your plan, AI credits, payments and details live on their own page.">
-        <SettingRow title={user ? accountIdentity(flow) : 'Not signed in'} description={user ? 'Plan, AI credits, payments and your details.' : 'Sign in to raise your Space and AI allowance. Everything works signed out.'}>
-          <Button size="sm" variant="secondary" onClick={() => navigate('/account')}>
+        <SettingRow
+          title={user ? accountIdentity(flow) : 'Not signed in'}
+          description={user ? `${usage ? `${planLabel(usage.plan)} plan · ` : ''}Plan, AI credits, payments and your details.` : 'Sign in to raise your Space and AI allowance. Everything works signed out.'}
+        >
+          <Button size="sm" variant={user ? 'secondary' : 'primary'} onClick={() => navigate('/account')}>
             {user ? 'Open account' : 'Sign in'}
           </Button>
         </SettingRow>
@@ -217,7 +221,7 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         </SettingRow>
       </Section>
 
-      <Section id="subscriptions" title="Subscriptions" description="The channels FocusSpace ranks for each Space.">
+      <Section id="subscriptions" title="Subscribed channels" description="The channels FocusSpace ranks for each Space.">
         <SettingRow title="Refresh automatically" description="Check your channels for new uploads every 6 hours while Chrome is open.">
           <Switch label="Refresh automatically" checked={settings.autoSyncSubscriptions} onChange={(v) => patch({ autoSyncSubscriptions: v })} />
         </SettingRow>
@@ -255,7 +259,11 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         </SettingRow>
       </Section>
 
-      <Section id="privacy" title="Privacy" description="Exactly what stays here, and what leaves.">
+      <Section id="privacy" title="Your data" description="A plain-language summary. Nothing here is sold, and nothing is used for advertising.">
+        <p className="fs-hint" style={{ marginTop: -4 }}>
+          If you create an account, FocusSpace uses your name, email or phone number only to sign you in, recover your account, and identify your payments and
+          receipts. Everything else you do in FocusSpace — the Spaces you build, what you watch, your notes — stays in this browser.
+        </p>
         <div className="fs-privacy">
           <div className="fs-privacy-block">
             <span className="fs-h3">Stays in this browser</span>
@@ -269,7 +277,8 @@ export function SettingsPage({ data }: { data: DashboardData }) {
             <span className="fs-h3">Your account (only if you create one)</span>
             <ul className="fs-bullets">
               <li>Your email or phone number, and a securely hashed password — never the password itself. Verification codes are stored only as keyed hashes.</li>
-              <li>Your plan, AI usage count and the ids and names of your Spaces, so your plan’s limits apply wherever you sign in. Not their contents.</li>
+              <li>Your name and city, if you choose to add them in Account → Your details — optional, and shown only to you.</li>
+              <li>Your plan, AI usage count, payment history, and the ids and names of your Spaces, so your plan’s limits and receipts apply wherever you sign in. Not their contents.</li>
               <li>Nothing else: spaces' contents, history and notes stay in this browser.</li>
             </ul>
           </div>

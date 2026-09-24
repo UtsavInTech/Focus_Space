@@ -172,7 +172,7 @@ export function SubscriptionsPage({ data }: { data: DashboardData }) {
     <>
       <div className="fs-page-head">
         <div>
-          <h1 className="fs-h1">Subscriptions</h1>
+          <h1 className="fs-h1">Subscribed channels</h1>
           <p>Ranked for {modeName}: channels that consistently teach it come first, then channels that often cover it, then news. Your list comes from your signed-in YouTube session; videos from each channel's public feed.</p>
         </div>
         <div className="fs-row-wrap">

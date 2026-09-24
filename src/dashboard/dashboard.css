@@ -151,6 +151,22 @@
 .fs-account-form-rows { display: flex; flex-direction: column; gap: 12px; padding: 14px 0; border-top: 1px solid var(--fs-border); }
 .fs-account-form-rows:first-child { border-top: none; }
 .fs-form-error { font-size: 13px; color: var(--fs-danger); }
+
+/* Who's signed in, at a glance — identity only, not a stats tile: plan/usage stay their own rows below. */
+.fs-account-identity { display: flex; align-items: center; gap: 12px; padding: 12px 0 16px; }
+.fs-account-avatar-lg {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--fs-accent-soft);
+  color: var(--fs-accent-text);
+  font-size: 15px;
+  font-weight: 650;
+  flex: none;
+}
+.fs-account-identity strong { display: block; font-size: 15px; font-weight: 600; }
 .fs-privacy { display: flex; flex-direction: column; gap: 18px; padding-top: 14px; }
 
 /* ─── Home, Library, History ─────────────────────────────────────────────── */
