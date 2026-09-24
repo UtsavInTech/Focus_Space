@@ -133,9 +133,24 @@ body.fs-popup-body {
   max-width: 100%;
 }
 
+/*
+ * One focus ring, on whatever the person perceives as "the control".
+ *
+ * This rule is unscoped on purpose — every focusable thing should show focus. But a *composite* control
+ * (a composer with a mic and a send button, a tag field) is one control made of several elements, and
+ * the ring belongs to the whole thing, not to the bare input inside it. Without the opt-out below, such
+ * a control draws its own outline and then the input draws this one inside it, which is exactly the
+ * doubled ring that appeared in the FocusSpace AI composer.
+ *
+ * A composite control marks itself `.fs-focus-host` and styles its own :focus-within.
+ */
 :focus-visible {
   outline: none;
   box-shadow: var(--fs-ring);
+}
+
+.fs-focus-host :focus-visible {
+  box-shadow: none;
 }
 
 .fs-sr-only {
@@ -619,6 +634,7 @@ body.fs-popup-body {
 
 /* ------------------------------------------------------------ tag input */
 
+/* Composite: the border and ring are the field's, so its input opts out (see .fs-focus-host). */
 .fs-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 40px; padding: 5px 6px; border-radius: var(--fs-r-md); border: 1px solid var(--fs-border); background: var(--fs-surface); cursor: text; }
 .fs-tags:focus-within { border-color: var(--fs-accent); box-shadow: var(--fs-ring); }
 .fs-tag { display: inline-flex; align-items: center; gap: 2px; height: 26px; padding: 0 4px 0 9px; border-radius: 7px; background: var(--fs-surface-2); box-shadow: inset 0 0 0 1px var(--fs-border); font-size: 12.5px; }
@@ -748,3 +764,21 @@ body.fs-popup-body {
 /* Grouped built-in Spaces: the heading carries the category, the buttons stay plain. */
 .fs-template-group { display: flex; flex-direction: column; gap: 7px; }
 .fs-add-space { gap: 16px; padding-top: 4px; }
+
+/* ─── The FocusSpace mark ───────────────────────────────────────────────────
+ * The outer ring turns, slowly, only where the mark represents something
+ * active. Eight seconds a revolution is below the threshold at which motion
+ * pulls the eye — it reads as "attending", not as "loading" — and it stops
+ * dead for anyone who has asked for less motion.
+ */
+.fs-mark { flex: none; }
+.fs-mark-ring { transform-origin: 50% 50%; }
+.fs-mark.is-active .fs-mark-ring { animation: fs-mark-orbit 8s linear infinite; }
+
+@keyframes fs-mark-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-mark.is-active .fs-mark-ring { animation: none; }
+}

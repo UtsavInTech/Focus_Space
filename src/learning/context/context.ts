@@ -19,7 +19,8 @@ import type { LearningPath, PathSource } from '../path/path';
  * existing AI action still gets, unchanged.
  */
 
-export const CONTEXT_VERSION = 2;
+/** Bumped when the shape reaching the model changes, so cached answers built from the old one are dropped. */
+export const CONTEXT_VERSION = 3;
 
 export interface LearningContext {
   version: number;
@@ -48,6 +49,8 @@ export interface LearningContext {
   previousConcepts: string[];
   upcomingConcepts: string[];
   transcriptWindow: TranscriptWindow | null;
+  /** Null when there is no transcript window at all. See TranscriptSource. */
+  transcriptSource: TranscriptSource | null;
   /** 'en' unless the learner asked for Hindi/Hinglish output (notes only — every existing action stays English-prompted). */
   language: NoteLanguage;
   /** Set for a span-based context (notes); null for the point-in-time context every existing AI action uses. */
@@ -60,6 +63,14 @@ export interface TranscriptWindow {
   text: string;
 }
 
+/**
+ * Where the words came from. 'manual' is captions a human uploaded; 'asr' is YouTube's speech
+ * recognition, which is often the only thing a lecture has and which reliably mangles the technical
+ * terms the lecture is about. The model is told which it is reading so it can treat an odd-looking term
+ * as a mishearing rather than as something the instructor said.
+ */
+export type TranscriptSource = 'manual' | 'asr';
+
 export interface ContextInputs {
   video: { id: string; title: string; channelTitle: string };
   mode: LearningMode;
@@ -69,6 +80,8 @@ export interface ContextInputs {
   /** Precomputed from the map (reuse across ticks). */
   stops?: ConceptStop[];
   transcript: TranscriptSegment[] | null;
+  /** Defaults to 'manual' when a transcript is present and the caller does not say — the safer assumption. */
+  transcriptSource?: TranscriptSource | null;
   currentTime: number;
   /** Transcript window size for the action (see WINDOW_FOR). Ignored when `range` is set. */
   window?: { beforeSec?: number; afterSec?: number; maxChars?: number; minLeadSec?: number };
@@ -161,6 +174,7 @@ export function buildLearningContext(inputs: ContextInputs): LearningContext {
   const stops = inputs.stops ?? (map ? conceptStops(map) : []);
   const position = stops.length ? locateConcept(stops, currentTime) : null;
   const current = position?.current ?? null;
+  const window = transcriptWindow(inputs.transcript, currentTime, { ...inputs.window, conceptStartSec: current?.startSec ?? null, range: inputs.range ?? null });
 
   return {
     version: CONTEXT_VERSION,
@@ -189,7 +203,8 @@ export function buildLearningContext(inputs: ContextInputs): LearningContext {
     conceptSource: current?.source ?? null,
     previousConcepts: (position?.previous ?? []).map((n) => n.title),
     upcomingConcepts: (position?.upcoming ?? []).map((n) => n.title),
-    transcriptWindow: transcriptWindow(inputs.transcript, currentTime, { ...inputs.window, conceptStartSec: current?.startSec ?? null, range: inputs.range ?? null }),
+    transcriptWindow: window,
+    transcriptSource: window ? inputs.transcriptSource ?? 'manual' : null,
     language: inputs.language ?? 'en',
     range: inputs.range ?? null,
   };

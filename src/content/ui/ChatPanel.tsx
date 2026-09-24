@@ -1,16 +1,17 @@
-import { useRef, useState } from 'react';
-import { Check, Mic, NotebookPen, Send, Volume2, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Check, Mic, NotebookPen, Send, Square, Volume2, X } from 'lucide-react';
 import type { LearningMode } from '@/types/domain';
 import type { NoteLanguage } from '@/types/notes';
 import type { ChatMessage } from '@/types/chat';
 import type { KnowledgeMap, TranscriptSegment } from '@/learning/knowledge/types';
-import { buildLearningContext } from '@/learning/context/context';
+import { buildLearningContext, type TranscriptSource } from '@/learning/context/context';
 import { createChatMessage } from '@/learning/ai/chat';
 import type { HomepageContext } from '@/learning/ai/homepage-context';
 import { prepareForSpeech } from '@/learning/ai/voice';
 import type { LearningPath } from '@/learning/path/path';
 import { sendMessage } from '@/messaging/runtime';
 import { RichText } from '@/ui/components/RichText';
+import { FocusMark } from '@/ui/components/primitives';
 import { noteFromAnswer } from '@/learning/notes/from-answer';
 import { saveChatSession } from '@/storage/chat-store';
 
@@ -56,12 +57,6 @@ function speechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
 const speechSupported = typeof window !== 'undefined' && !!speechRecognitionCtor();
 const speakSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
 
-function speak(text: string) {
-  if (!speakSupported) return;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(new SpeechSynthesisUtterance(prepareForSpeech(text)));
-}
-
 export interface ChatPanelProps {
   /**
    * Video-moment mode (unchanged watch-page behaviour) when `homepage` is
@@ -76,13 +71,15 @@ export interface ChatPanelProps {
   path?: LearningPath | null;
   map?: KnowledgeMap | null;
   transcript?: TranscriptSegment[] | null;
+  /** Whether those segments are uploaded captions or speech recognition — see TranscriptSource. */
+  transcriptSource?: TranscriptSource | null;
   currentTime?: () => number;
   homepage?: HomepageContext | null;
   language: NoteLanguage;
   onClose: () => void;
 }
 
-export function ChatPanel({ video, mode, topicId, path, map, transcript, currentTime, homepage, language, onClose }: ChatPanelProps) {
+export function ChatPanel({ video, mode, topicId, path, map, transcript, transcriptSource, currentTime, homepage, language, onClose }: ChatPanelProps) {
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
@@ -101,10 +98,46 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, current
   questionRef.current = question;
   /** Answers already kept in the Library, so the button can say so. */
   const [saved, setSaved] = useState<string[]>([]);
+  /** The id of the answer being read aloud, or null. Speech is never started by anything but a press. */
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+
+  /*
+   * Reading an answer aloud is a toggle, and only ever a toggle.
+   *
+   * `speechSynthesis` is a single global queue shared with the whole page, so the old fire-and-forget
+   * version had two real problems: pressing the speaker twice stacked a second utterance behind the
+   * first (it read the answer again instead of stopping), and nothing on screen said it was speaking, so
+   * a stray press was invisible until sound came out. Now one answer speaks at a time, the button shows
+   * which, and pressing it again — or closing the panel, or asking something new — stops it at once.
+   */
+  const stopSpeaking = useCallback(() => {
+    if (!speakSupported) return;
+    window.speechSynthesis.cancel();
+    setSpeakingId(null);
+  }, []);
+
+  const toggleSpeak = useCallback(
+    (turn: ChatMessage) => {
+      if (!speakSupported) return;
+      // Always clear the queue first: pressing a different answer switches to it rather than queueing.
+      window.speechSynthesis.cancel();
+      if (speakingId === turn.id) return setSpeakingId(null);
+      const utterance = new SpeechSynthesisUtterance(prepareForSpeech(turn.text));
+      utterance.onend = () => setSpeakingId((id) => (id === turn.id ? null : id));
+      utterance.onerror = () => setSpeakingId((id) => (id === turn.id ? null : id));
+      setSpeakingId(turn.id);
+      window.speechSynthesis.speak(utterance);
+    },
+    [speakingId],
+  );
+
+  // Nothing should keep talking into a panel that is gone, or over the next question.
+  useEffect(() => () => stopSpeaking(), [stopSpeaking]);
 
   async function submit(text: string) {
     const q = text.trim();
     if (!q || loading) return;
+    stopSpeaking();
     const fromVoice = voiceOrigin;
     setError(null);
     setQuestion('');
@@ -118,7 +151,7 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, current
     setLoading(true);
     // Homepage/browse pages ground in HomepageContext, not the video pipeline — a video page keeps building
     // LearningContext exactly as before (buildLearningContext, untouched — see homepage-context.ts).
-    const context = homepage ?? buildLearningContext({ video: video ?? { id: '', title: '', channelTitle: '' }, mode: mode!, topicId: topicId ?? null, path: path ?? null, map: map ?? null, transcript: transcript ?? null, currentTime: at, language });
+    const context = homepage ?? buildLearningContext({ video: video ?? { id: '', title: '', channelTitle: '' }, mode: mode!, topicId: topicId ?? null, path: path ?? null, map: map ?? null, transcript: transcript ?? null, transcriptSource: transcriptSource ?? null, currentTime: at, language });
     const result = await sendMessage('chat/send', { context, history, question: q, voice: fromVoice }).catch(() => null);
     setLoading(false);
     if (!result || !result.ok) {
@@ -209,7 +242,10 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, current
   return (
     <div className="fs-ai-panel">
       <header className="fs-ai-panel-head">
-        <span className="fs-ai-panel-title">FocusSpace AI</span>
+        <span className="fs-ai-panel-title">
+          <FocusMark size={16} active />
+          FocusSpace AI
+        </span>
         <button type="button" className="fs-icon-plain" aria-label="Close" onClick={onClose}>
           <X size={16} aria-hidden />
         </button>
@@ -228,12 +264,19 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, current
               <p>{m.text}</p>
             </div>
           ) : (
-            <div key={m.id} className="fs-ai-turn fs-ai-turn-ai">
+            <div key={m.id} className={`fs-ai-turn fs-ai-turn-ai${speakingId === m.id ? ' is-speaking' : ''}`}>
               <RichText text={m.text} />
               <div className="fs-ai-turn-actions">
                 {speakSupported && (
-                  <button type="button" className="fs-icon-plain" aria-label="Read aloud" onClick={() => speak(m.text)}>
-                    <Volume2 size={14} aria-hidden />
+                  <button
+                    type="button"
+                    className={`fs-icon-plain${speakingId === m.id ? ' is-speaking' : ''}`}
+                    aria-label={speakingId === m.id ? 'Stop reading aloud' : 'Read this answer aloud'}
+                    title={speakingId === m.id ? 'Stop reading' : 'Read aloud'}
+                    aria-pressed={speakingId === m.id}
+                    onClick={() => toggleSpeak(m)}
+                  >
+                    {speakingId === m.id ? <Square size={13} aria-hidden /> : <Volume2 size={14} aria-hidden />}
                   </button>
                 )}
                 {!!video?.id && (
@@ -279,7 +322,7 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, current
        * and borderless, so focus moves a single ring rather than lighting up a box within a box.
        */}
       <form
-        className={`fs-ai-composer${listening ? ' is-listening' : ''}`}
+        className={`fs-ai-composer fs-focus-host${listening ? ' is-listening' : ''}`}
         onSubmit={(event) => {
           event.preventDefault();
           void submit(question);

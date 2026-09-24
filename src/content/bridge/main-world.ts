@@ -1,4 +1,5 @@
 import { compactSegments, parseTimedText } from '@/integrations/youtube/transcript-parse';
+import { pickTrack, type CaptionTrack } from './caption-track';
 
 /**
  * FocusSpace ↔ YouTube bridge. Runs in the page's MAIN world (manifest
@@ -104,11 +105,6 @@ const CAPTIONS_STATUS = 'focusspace:captions-status';
 /** YouTube's "remember captions on/off" preference; restored after an explicit load. */
 const CAPTION_PERSISTENCE = 'yt-player-caption-persistence';
 
-interface CaptionTrack {
-  languageCode?: string;
-  kind?: string;
-}
-
 interface Player extends HTMLElement {
   getOption?(module: string, option: string, arg?: unknown): unknown;
   setOption?(module: string, option: string, value: unknown): void;
@@ -208,9 +204,8 @@ async function loadCaptions(videoId: string): Promise<string> {
       tracks = (player.getOption('captions', 'tracklist', { includeAsr: true }) as CaptionTrack[] | undefined) ?? [];
     }
     if (!tracks.length) return 'none';
-    const lang = (root.lang || navigator.language || 'en').slice(0, 2);
-    const uploaded = tracks.filter((t) => t.kind !== 'asr');
-    const pick = uploaded.find((t) => t.languageCode?.startsWith(lang)) ?? uploaded.find((t) => t.languageCode?.startsWith('en')) ?? tracks.find((t) => t.kind === 'asr') ?? tracks[0];
+    const pick = pickTrack(tracks, (root.lang || navigator.language || 'en').slice(0, 2));
+    if (!pick) return 'none';
     player.setOption('captions', 'track', { languageCode: pick.languageCode, kind: pick.kind });
     for (let i = 0; i < 50 && !captured.has(videoId); i++) await sleep(150);
     return captured.has(videoId) ? 'captured' : 'none';

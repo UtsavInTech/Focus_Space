@@ -197,7 +197,19 @@ export function NowLearning({
     const id = ++runId.current;
     const at = currentTime();
     const contextWith = (segments: NonNullable<typeof knowledge.transcript>['segments'] | null) =>
-      buildLearningContext({ video, mode, topicId, path, map, stops: knowledge.stops, transcript: segments, currentTime: at, window: WINDOW_FOR[action] });
+      buildLearningContext({
+        video,
+        mode,
+        topicId,
+        path,
+        map,
+        stops: knowledge.stops,
+        transcript: segments,
+        // Auto-generated captions are a real source but a lossy one; the model is told which it has.
+        transcriptSource: knowledge.transcript?.kind ?? null,
+        currentTime: at,
+        window: WINDOW_FOR[action],
+      });
 
     if (action === 'what') {
       setAnswer({ kind: 'local', action, at, context: contextWith(knowledge.transcript?.segments ?? null), now: null, aiLoading: status?.availability === 'available', provider: null });
@@ -244,7 +256,7 @@ export function NowLearning({
           </button>
         </div>
         <form
-          className="fs-ask"
+          className="fs-ask fs-focus-host"
           onSubmit={(event) => {
             event.preventDefault();
             if (question.trim()) void run('ask', question.trim());
@@ -278,6 +290,7 @@ export function NowLearning({
             path={path}
             map={map}
             transcript={knowledge.transcript?.segments ?? null}
+            transcriptSource={knowledge.transcript?.kind ?? null}
             currentTime={currentTime}
             language={ai.language}
             onClose={() => setPanel(null)}

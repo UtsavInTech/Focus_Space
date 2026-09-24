@@ -38,7 +38,8 @@
   --fs-danger: #c5221f;
   --fs-danger-soft: rgba(197, 34, 31, 0.08);
   --fs-shadow-pop: 0 4px 32px rgba(0, 0, 0, 0.16);
-  --fs-ring: 0 0 0 2px #ffffff, 0 0 0 4px #065fd4;
+  /* FocusSpace's own accent, softly — a focused FocusSpace control should not look like a YouTube link. */
+  --fs-ring: 0 0 0 3px rgba(109, 93, 252, 0.32);
   --fs-ease: cubic-bezier(0.2, 0, 0, 1);
   /* spacing scale */
   --fs-s1: 4px;
@@ -81,7 +82,7 @@
   --fs-danger: #ff8a80;
   --fs-danger-soft: rgba(255, 138, 128, 0.12);
   --fs-shadow-pop: 0 8px 40px rgba(0, 0, 0, 0.6);
-  --fs-ring: 0 0 0 2px #0f0f0f, 0 0 0 4px #3ea6ff;
+  --fs-ring: 0 0 0 3px rgba(169, 157, 255, 0.34);
   color-scheme: dark;
 }
 
@@ -329,9 +330,10 @@ a.fs-path-name:hover { color: var(--fs-text); }
 .fs-ai-chip:disabled { opacity: 0.5; cursor: default; transform: none; }
 .fs-ai-chip.is-active { background: var(--fs-active); color: var(--fs-on-active); }
 .fs-ai-chip.is-active svg { color: inherit; }
-.fs-ask { display: flex; align-items: center; gap: var(--fs-s2); height: 36px; padding: 0 var(--fs-s1) 0 var(--fs-s3); border-radius: 18px; box-shadow: inset 0 0 0 1px var(--fs-border-strong); transition: box-shadow 150ms ease; }
+/* Same composite shape, same single-ring rule as .fs-ai-composer above. */
+.fs-ask { display: flex; align-items: center; gap: var(--fs-s2); height: 36px; padding: 0 var(--fs-s1) 0 var(--fs-s3); border-radius: 18px; box-shadow: inset 0 0 0 1px var(--fs-border); background: var(--fs-surface-2); transition: box-shadow 150ms ease, background 150ms ease; }
 .fs-ask > svg { flex: none; color: var(--fs-text-3); }
-.fs-ask:focus-within { box-shadow: inset 0 0 0 1px var(--fs-link); }
+.fs-ask:focus-within { background: var(--fs-surface); box-shadow: inset 0 0 0 1px var(--fs-border-strong); }
 .fs-ask input { flex: 1; min-width: 0; height: 100%; border: none; outline: none; background: transparent; font-size: 14px; color: var(--fs-text); }
 .fs-ask input::placeholder { color: var(--fs-text-3); }
 .fs-ask .fs-icon-plain { width: 28px; height: 28px; }
@@ -585,8 +587,13 @@ a.fs-path-name:hover { color: var(--fs-text); }
   box-shadow: inset 0 0 0 1px transparent;
   transition: box-shadow 150ms var(--fs-ease), background 150ms var(--fs-ease);
 }
-.fs-ai-composer:focus-within { background: var(--fs-surface); box-shadow: inset 0 0 0 1px var(--fs-accent); }
-.fs-ai-composer.is-listening { box-shadow: inset 0 0 0 1px var(--fs-accent); }
+/*
+ * Focus is a filled surface and a hairline, not a ring: inside a panel that is itself one flat surface,
+ * a glowing outline reads as a second container. The input inside opts out of the global ring entirely
+ * (.fs-focus-host in ui/styles.css) — that, plus this, is the whole focus state.
+ */
+.fs-ai-composer:focus-within { background: var(--fs-surface); box-shadow: inset 0 0 0 1px var(--fs-border-strong); }
+.fs-ai-composer.is-listening { background: var(--fs-surface); box-shadow: inset 0 0 0 1px var(--fs-accent); }
 .fs-ai-composer input {
   flex: 1;
   min-width: 0;
@@ -752,3 +759,22 @@ a.fs-path-name:hover { color: var(--fs-text); }
   color: var(--fs-text-3);
 }
 .fs-first-run-label small { font-size: 12.5px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--fs-text-3); }
+
+/* ─── The switch's mark ─────────────────────────────────────────────────────
+ * The state is carried by the mark itself, so the pill needs no badge or
+ * label to say which way it is set: accent and turning when focus is on,
+ * quiet neutral and still when it is off. Requirement, stated plainly — off
+ * must never draw the eye.
+ */
+.fs-off-pill .fs-mark, .fs-off-mini .fs-mark { color: var(--fs-text-3); transition: color 200ms var(--fs-ease); }
+.fs-off-pill[data-on='true'] .fs-mark, .fs-off-mini[data-on='true'] .fs-mark { color: var(--fs-accent); }
+
+/* The panel's identity sits with its name, at text size, on the same baseline. */
+.fs-ai-panel-title { display: inline-flex; align-items: center; gap: 7px; }
+.fs-ai-panel-title .fs-mark { color: var(--fs-accent); }
+.fs-ai-bubble .fs-mark { color: var(--fs-accent); }
+
+/* Speaking and listening both have to be obvious — they make sound, and sound with no visible cause
+   is alarming. Same accent treatment as the mic, so the two read as one family. */
+.fs-ai-turn-ai.is-speaking .fs-ai-turn-actions { opacity: 1; }
+.fs-yt .fs-icon-plain.is-speaking { color: var(--fs-accent); background: var(--fs-accent-softer); }

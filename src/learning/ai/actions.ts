@@ -118,7 +118,9 @@ export function contextBlock(ctx: LearningContext): string {
   const now = [
     `Timestamp: ${ctx.timestamp}`,
     ctx.conceptPath.length ? `Current concept: ${ctx.conceptPath.join(' › ')}` : 'Current concept: unknown',
-    ctx.transcriptWindow ? `Transcript ${formatTimestamp(ctx.transcriptWindow.startSec)}–${formatTimestamp(ctx.transcriptWindow.endSec)}:\n"""${ctx.transcriptWindow.text}"""` : 'Transcript: not available for this moment',
+    ctx.transcriptWindow
+      ? `${ctx.transcriptSource === 'asr' ? 'Auto-generated captions (speech recognition — technical terms and names may be misheard)' : 'Transcript'} ${formatTimestamp(ctx.transcriptWindow.startSec)}–${formatTimestamp(ctx.transcriptWindow.endSec)}:\n"""${ctx.transcriptWindow.text}"""`
+      : 'Transcript: not available for this moment',
   ];
   return ['[Orientation — context only, not subject matter]', ...orientation.filter(Boolean), '', '[Being taught now]', ...now].join('\n');
 }

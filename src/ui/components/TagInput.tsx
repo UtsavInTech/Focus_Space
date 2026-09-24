@@ -14,7 +14,7 @@ export function TagInput({ values, onChange, placeholder, tone, label }: { value
   };
 
   return (
-    <div className={cx('fs-tags', tone === 'danger' && 'fs-tags-danger')} onClick={() => inputRef.current?.focus()}>
+    <div className={cx('fs-tags', 'fs-focus-host', tone === 'danger' && 'fs-tags-danger')} onClick={() => inputRef.current?.focus()}>
       {values.map((v) => (
         <span className="fs-tag" key={v}>
           {v}

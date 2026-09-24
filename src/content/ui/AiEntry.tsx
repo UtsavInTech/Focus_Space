@@ -1,9 +1,10 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { LearningMode, Settings } from '@/types/domain';
 import type { PageType } from '@/integrations/youtube/urls';
 import { OverlayRootContext } from '@/ui/components/Modal';
+import { FocusMark } from '@/ui/components/primitives';
 import { buildHomepageContext } from '@/learning/ai/homepage-context';
 import { HOME_CHIPS, queryAll } from '../youtube/selectors';
 import { useFeedView } from '../data/hooks';
@@ -60,6 +61,8 @@ export function AiEntry({ settings, mode, pageType }: { settings: Settings; mode
    * leaving the button behind.
    */
   const drag = useDraggable({ key: 'focusspace.ai.pos', anchor: 'right', initial: { x: 20, y: 20 } });
+  const panelRef = useRef<HTMLDivElement>(null);
+  const launcherRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => setSeen(readSeen()), []);
 
@@ -80,11 +83,32 @@ export function AiEntry({ settings, mode, pageType }: { settings: Settings; mode
     setPageVideos(readVisibleYouTubeVideos());
   }, [open]);
 
+  /*
+   * Ordinary popover dismissal: Escape, or a click anywhere that is not the panel or the launcher.
+   *
+   * `composedPath()` rather than `contains()` because both live in a shadow root — a plain `contains`
+   * check against an event target retargeted at the host would treat every click inside the panel as an
+   * outside click and close it on the first keystroke. The listener is passive and never calls
+   * preventDefault or stopPropagation, so YouTube's own clicks and navigation are untouched: it only
+   * ever decides whether to close FocusSpace's own panel.
+   */
   useEffect(() => {
     if (!open) return;
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    const outside = (e: Event) => {
+      const path = e.composedPath();
+      const inPanel = panelRef.current && path.includes(panelRef.current);
+      const onLauncher = launcherRef.current && path.includes(launcherRef.current);
+      if (!inPanel && !onLauncher) setOpen(false);
+    };
     document.addEventListener('keydown', esc);
-    return () => document.removeEventListener('keydown', esc);
+    // pointerdown, not click: a click that starts inside and ends outside (selecting an answer's text
+    // and releasing past the edge) must not count as clicking away.
+    document.addEventListener('pointerdown', outside, true);
+    return () => {
+      document.removeEventListener('keydown', esc);
+      document.removeEventListener('pointerdown', outside, true);
+    };
   }, [open]);
 
   function toggle() {
@@ -116,11 +140,12 @@ export function AiEntry({ settings, mode, pageType }: { settings: Settings; mode
   return createPortal(
     <>
       {open && (
-        <div className="fs-ai-dock" role="dialog" aria-label="FocusSpace AI" style={{ right: drag.offset.x, bottom: drag.offset.y + 62 }}>
+        <div ref={panelRef} className="fs-ai-dock" role="dialog" aria-label="FocusSpace AI" style={{ right: drag.offset.x, bottom: drag.offset.y + 62 }}>
           <ChatPanel homepage={homepage} language={settings.ai.language} onClose={() => setOpen(false)} />
         </div>
       )}
       <button
+        ref={launcherRef}
         type="button"
         className={`fs-ai-bubble${seen ? '' : ' is-pulsing'}${open ? ' is-open' : ''}${drag.dragging ? ' is-dragging' : ''}`}
         style={{ right: drag.offset.x, bottom: drag.offset.y }}
@@ -131,7 +156,7 @@ export function AiEntry({ settings, mode, pageType }: { settings: Settings; mode
         aria-label={open ? 'Close FocusSpace AI' : 'Ask FocusSpace AI'}
         onClick={toggle}
       >
-        {open ? <X size={18} aria-hidden /> : <Sparkles size={18} aria-hidden />}
+        {open ? <X size={18} aria-hidden /> : <FocusMark size={20} active />}
         <span className="fs-ai-bubble-label">{open ? 'Close' : 'FocusSpace AI'}</span>
         {!seen && !open && <span className="fs-ai-bubble-dot" aria-hidden />}
       </button>

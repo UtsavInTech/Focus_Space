@@ -169,6 +169,34 @@ export function LogoMark({ size = 26 }: { size?: number }) {
   );
 }
 
+/**
+ * FocusSpace's mark: the target ring with the play triangle at its centre — "aim at one thing, then
+ * watch it". It is the identity FocusSpace AI uses, and the switch on YouTube, because a mark that
+ * means *focus* says more in 20px than a generic sparkle does.
+ *
+ * Drawn from `currentColor` rather than a fixed palette, so one component serves the accent-coloured
+ * "on" state and the quiet neutral "off" state without a second copy. `ring={false}` leaves only the
+ * play triangle, for the places where the surface around it is already the target.
+ *
+ * `active` adds the animation: the outer ring's dash rotates slowly, once every eight seconds. It is
+ * deliberately not a spinner — nothing is loading, and a mark that implies waiting would be a lie. It
+ * stops entirely under prefers-reduced-motion (see .fs-mark-ring in ui/styles.css).
+ */
+export function FocusMark({ size = 20, active = false, ring = true }: { size?: number; active?: boolean; ring?: boolean }) {
+  return (
+    <svg className={`fs-mark${active ? ' is-active' : ''}`} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
+      {ring && (
+        <>
+          <circle className="fs-mark-ring" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.6" strokeOpacity="0.55" strokeLinecap="round" strokeDasharray="3.6 4.4" />
+          <circle cx="12" cy="12" r="6.6" stroke="currentColor" strokeWidth="1.6" strokeOpacity="0.9" />
+        </>
+      )}
+      {/* The play triangle — the part that stays when the ring is dropped. */}
+      <path d="M10.4 9.3v5.4a.6.6 0 0 0 .92.5l4.1-2.7a.6.6 0 0 0 0-1l-4.1-2.7a.6.6 0 0 0-.92.5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function Logo({ size = 26, word = true }: { size?: number; word?: boolean }) {
   return (
     <span className="fs-logo">
