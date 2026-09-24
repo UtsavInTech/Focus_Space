@@ -88,14 +88,24 @@ export function Hero() {
  */
 function HeroProductPreview() {
   const [activeMode, setActiveMode] = useState(0);
+  // Auto-rotation is an introduction, not a loop the visitor has to fight: the moment someone picks a
+  // mode themselves, their choice is what stays on screen. Auto-advancing over a deliberate click is the
+  // kind of thing that makes a page feel like a generic template rather than a product paying attention.
+  const [autoplay, setAutoplay] = useState(true);
 
   useEffect(() => {
+    if (!autoplay) return;
     const timer = window.setInterval(() => {
       setActiveMode((current) => (current + 1) % HERO_MODES.length);
-    }, 4500);
+    }, 5000);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [autoplay]);
+
+  const pick = (index: number) => {
+    setAutoplay(false);
+    setActiveMode(index);
+  };
 
   const mode = HERO_MODES[activeMode];
 
@@ -113,7 +123,7 @@ function HeroProductPreview() {
             role="tab"
             aria-selected={index === activeMode}
             className={index === activeMode ? 'is-active' : ''}
-            onClick={() => setActiveMode(index)}
+            onClick={() => pick(index)}
           >
             {item.name}
           </button>

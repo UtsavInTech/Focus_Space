@@ -4,10 +4,12 @@ import type { LearningMode } from '@/types/domain';
 import type { DashboardData } from '../DashboardApp';
 import { openYouTube } from '../DashboardApp';
 import { navigate } from '../router';
-import { addTemplate, deleteMode, missingTemplates, selectMode, SpaceLimitError } from '@/modes/service';
+import { addTemplateWithChannels, deleteMode, missingTemplates, selectMode, SpaceLimitError } from '@/modes/service';
 import { Alert, Badge, Button, IconButton } from '@/ui/components/primitives';
 import { Modal } from '@/ui/components/Modal';
 import { CreateSpace } from '@/ui/components/CreateSpace';
+import { TemplateCreators } from '@/ui/components/TemplateCreators';
+import type { PickedChannel } from '@/ui/components/ChannelPicker';
 import { SpaceIcon } from '@/ui/icons';
 
 export const KIND_LABEL = { learning: 'Learning', media: 'Music & video', general: 'General' } as const;
@@ -19,7 +21,25 @@ export function ModesPage({ data, openCreate }: { data: DashboardData; openCreat
   const [error, setError] = useState<string | null>(null);
   /** The plan's Space allowance (server-enforced) — a product explanation, not a failure. */
   const [limit, setLimit] = useState<string | null>(null);
+  /** A template the learner picked but hasn't finished personalizing yet — see TemplateCreators. */
+  const [pendingTemplate, setPendingTemplate] = useState<LearningMode | null>(null);
+  const [creatingSpace, setCreatingSpace] = useState(false);
   const templates = missingTemplates(modes);
+
+  const finishTemplate = async (channels: PickedChannel[]) => {
+    if (!pendingTemplate) return;
+    setCreatingSpace(true);
+    setLimit(null);
+    try {
+      await addTemplateWithChannels(pendingTemplate.id, channels.map((c) => ({ id: c.id, title: c.title, handle: c.handle ?? undefined })));
+      setPendingTemplate(null);
+    } catch (err) {
+      if (err instanceof SpaceLimitError) setLimit(err.message);
+      else throw err;
+    } finally {
+      setCreatingSpace(false);
+    }
+  };
 
   useEffect(() => setCreating(openCreate), [openCreate]);
 
@@ -90,21 +110,7 @@ export function ModesPage({ data, openCreate }: { data: DashboardData; openCreat
           <span className="fs-eyebrow">Restore a built-in space</span>
           <div className="fs-row-wrap">
             {templates.map((t) => (
-              <Button
-                key={t.id}
-                size="sm"
-                variant="secondary"
-                icon={<SpaceIcon name={t.icon} size={14} />}
-                onClick={async () => {
-                  setLimit(null);
-                  try {
-                    await addTemplate(t.id);
-                  } catch (err) {
-                    if (err instanceof SpaceLimitError) setLimit(err.message);
-                    else throw err;
-                  }
-                }}
-              >
+              <Button key={t.id} size="sm" variant="secondary" icon={<SpaceIcon name={t.icon} size={14} />} onClick={() => setPendingTemplate(t)}>
                 {t.name}
               </Button>
             ))}
@@ -121,6 +127,12 @@ export function ModesPage({ data, openCreate }: { data: DashboardData; openCreat
             navigate(`/modes/${mode.id}`);
           }}
         />
+      </Modal>
+
+      <Modal open={!!pendingTemplate} onClose={() => setPendingTemplate(null)} title={pendingTemplate ? `Personalize ${pendingTemplate.name}` : 'Personalize'} width={580}>
+        {pendingTemplate && (
+          <TemplateCreators template={pendingTemplate} busy={creatingSpace} onSkip={() => void finishTemplate([])} onContinue={(channels) => void finishTemplate(channels)} />
+        )}
       </Modal>
 
       <Modal

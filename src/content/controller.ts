@@ -232,11 +232,11 @@ export function createController(store: Store<ContentState>, slots: Slots) {
       guide = true;
     } else slots.guide.detach();
 
-    // The AI entry point is deliberately independent of `active`/Focus Mode (see docs — it must stay
-    // available regardless). It is now a floating bubble that portals into the overlay shadow root
-    // (ui/AiEntry.tsx), so it mounts on `body` and never touches YouTube's masthead or chip row:
-    // nothing YouTube does to its own header can clip, reorder or hide it, and it is present on every
-    // page type for free rather than depending on a selector that has to be re-found per layout.
+    // The slot container itself is always attached to `body` (never touches YouTube's masthead or chip
+    // row, so nothing YouTube does to its own header can clip, reorder or hide it) — but it stays empty
+    // unless FocusSpace is active: ContentApp.tsx only portals the AI bubble into it when `showAiEntry`
+    // is true, which requires Focus Mode to be on. Attaching an empty container here costs nothing and
+    // avoids re-finding a DOM anchor per page type; visibility is decided entirely by React state.
     slots.aiEntry.place(document.body, null);
     const aiEntry = true;
 

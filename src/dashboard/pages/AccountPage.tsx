@@ -1,24 +1,30 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink, Pencil } from 'lucide-react';
+import { ExternalLink, LogOut, Pencil } from 'lucide-react';
 import type { ApiSettings, Settings } from '@/types/domain';
 import type { AuthUser } from '@/types/auth';
 import type { PaymentRecord } from '@/types/account';
 import type { DashboardData } from '../DashboardApp';
+import { navigate } from '../router';
 import { Meter, Section, patch, isHttpUrl } from './section';
 import { API_URL, PHONE_SIGN_IN } from '@/config';
 import { isPaidPlan, PlanName } from '@/ui/components/PlanName';
 import { planLabel } from '@/billing/plans';
 import { sendMessage } from '@/messaging/runtime';
-import { accountIdentity, CLAIM_COPY, useAccountFlow } from '@/ui/account/flow';
+import { accountIdentity, CLAIM_COPY, useAccountFlow, type AccountFlow } from '@/ui/account/flow';
 import { Button, Segmented, SettingRow, TextInput } from '@/ui/components/primitives';
 
 /**
  * FocusSpace's own account page: signing in, the plan and its allowances, what the learner paid, and the
  * details they gave. All of it used to live on the website, which meant leaving the product to see it.
+ *
+ * One `useAccountFlow()` call for the whole page (not one per section) — SignInSection and PaymentsSection
+ * both need to know whether someone is signed in before they can tell "no payments yet" apart from
+ * "nothing to show because nobody's signed in", and a single hook instance is what keeps that answer
+ * consistent between them without a second round trip.
  */
-
 export function AccountPage({ data }: { data: DashboardData }) {
   const { settings } = data;
+  const flow = useAccountFlow();
   return (
     <div className="fs-stack fs-page-narrow fs-settings" style={{ width: '100%', margin: '0 auto' }}>
       <div className="fs-page-head">
@@ -27,9 +33,10 @@ export function AccountPage({ data }: { data: DashboardData }) {
           <p>Your plan, what you have paid, and the details you gave us. Your Spaces, notes and history stay in this browser.</p>
         </div>
       </div>
-      <SignInSection settings={settings} />
+      <SignInSection settings={settings} flow={flow} />
       <ProfileSection />
-      <PaymentsSection />
+      <PaymentsSection signedIn={!!flow.user} />
+      <DataNote />
     </div>
   );
 }
@@ -126,7 +133,7 @@ function ProfileSection() {
 const money = (currency: string, minor: number) => `${currency === 'INR' ? '₹' : '$'}${(minor / 100).toLocaleString(undefined, { minimumFractionDigits: currency === 'INR' ? 0 : 2 })}`;
 
 /** What the learner actually paid — the receipts, in the product rather than only on the website. */
-function PaymentsSection() {
+function PaymentsSection({ signedIn }: { signedIn: boolean }) {
   const [payments, setPayments] = useState<PaymentRecord[] | null>(null);
   useEffect(() => {
     let alive = true;
@@ -138,29 +145,62 @@ function PaymentsSection() {
     };
   }, []);
 
-  if (!payments?.length) return null;
+  // Signed out, `payments` is always `[]` (background/account.ts never calls the server without a
+  // session) — showing "no payments" there would just be a confusing echo of the sign-in prompt above.
+  if (!signedIn || payments === null) return null;
   return (
     <Section id="payments" title="Payments" description="Every charge on this account.">
-      {payments.map((p) => (
-        <SettingRow
-          key={p.id}
-          title={`${planLabel(p.plan)} · ${p.period === 'annual' ? '12 months' : '1 month'}`}
-          description={`${new Date(p.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}${p.status === 'paid' ? '' : ` · ${p.status}`}`}
-        >
-          <span className="fs-label">{money(p.currency, p.amount_minor)}</span>
-        </SettingRow>
-      ))}
-      <SettingRow title="Invoices and refunds" description="Handled on the FocusSpace website.">
-        <Button size="sm" variant="ghost" icon={<ExternalLink />} onClick={() => void sendMessage('site/open', { path: '/account' }).catch(() => undefined)}>
-          Open on the web
+      {payments.length ? (
+        <>
+          {payments.map((p) => (
+            <SettingRow
+              key={p.id}
+              title={`${planLabel(p.plan)} · ${p.period === 'annual' ? '12 months' : '1 month'}`}
+              description={`${new Date(p.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}${p.status === 'paid' ? '' : ` · ${p.status}`}`}
+            >
+              <span className="fs-label">{money(p.currency, p.amount_minor)}</span>
+            </SettingRow>
+          ))}
+          <SettingRow title="Invoices and receipts" description="View or print a receipt for any charge above, on the FocusSpace website.">
+            <Button size="sm" variant="ghost" icon={<ExternalLink />} onClick={() => void sendMessage('site/open', { path: '/account' }).catch(() => undefined)}>
+              Open on the web
+            </Button>
+          </SettingRow>
+        </>
+      ) : (
+        <p className="fs-hint" style={{ padding: '10px 0' }}>No payments yet — FocusSpace's free plan needs no card.</p>
+      )}
+    </Section>
+  );
+}
+
+/**
+ * A short, honest answer to "what does FocusSpace do with my information", pointing at the fuller version
+ * (Settings → Your data) rather than repeating it — this page is where name/email/phone are actually
+ * entered, so it's the place a learner is most likely to wonder.
+ */
+function DataNote() {
+  return (
+    <Section id="data" title="Your data">
+      <p className="fs-hint" style={{ padding: '10px 0' }}>
+        If you create an account, FocusSpace uses your name, email or phone number only to sign you in, recover your account, and identify your payments and
+        receipts. Everything else — your Spaces, what you watch, your notes — stays in this browser, account or not.
+      </p>
+      <SettingRow title="Full details" description="What's stored, what's sent to youtube.com, and what the learning companion sends when you ask it something.">
+        <Button size="sm" variant="ghost" onClick={() => navigate('/settings')}>
+          See in Settings
         </Button>
       </SettingRow>
     </Section>
   );
 }
 
-export function SignInSection({ settings }: { settings: Settings }) {
-  const flow = useAccountFlow();
+export function SignInSection({ settings, flow: flowProp }: { settings: Settings; flow?: AccountFlow }) {
+  const ownFlow = useAccountFlow();
+  // Accepts an already-instantiated flow (AccountPage passes its own so PaymentsSection can share it),
+  // but still works standalone with its own — nothing else in this codebase renders SignInSection without
+  // a flow today, but there's no reason to make that a hard requirement.
+  const flow = flowProp ?? ownFlow;
   const { user, usage, spaces, claim, step, go, fields, set, busy, error, devCode, actions } = flow;
   const [baseUrl, setBaseUrl] = useState(settings.api.baseUrl);
   useEffect(() => setBaseUrl(settings.api.baseUrl), [settings.api.baseUrl]);
@@ -175,16 +215,27 @@ export function SignInSection({ settings }: { settings: Settings }) {
   return (
     <Section
       id="signin"
-      title={user ? 'Signed in' : 'Sign in'}
-      description={user ? undefined : 'Optional. FocusSpace works fully signed out; an account raises your Space and AI allowance.'}
+      title={user ? 'Account' : 'Sign in to FocusSpace'}
+      description={user ? undefined : 'A free account raises your Space and AI allowance, and keeps your plan, payments and receipts in one place — wherever you sign in.'}
     >
       {user ? (
         <>
-          <SettingRow title={accountIdentity(flow)} description={user.email && user.emailVerified === false ? 'Email not verified' : 'Signed in'}>
-            <Button size="sm" variant="secondary" disabled={busy} onClick={() => void actions.signOut()}>
+          {/*
+            One glance: who's signed in, and the way out. Everything actionable (plan, usage, spaces) is
+            still its own row below — this is identity, not a dashboard tile.
+          */}
+          <div className="fs-account-identity">
+            <span className="fs-account-avatar-lg" aria-hidden>
+              {(accountIdentity(flow)[0] ?? '?').toUpperCase()}
+            </span>
+            <div className="fs-grow">
+              <strong>{accountIdentity(flow)}</strong>
+              <span className="fs-caption">{user.email && user.emailVerified === false ? 'Email not verified' : 'Signed in'}</span>
+            </div>
+            <Button size="sm" variant="ghost" icon={<LogOut size={14} />} disabled={busy} onClick={() => void actions.signOut()}>
               Sign out
             </Button>
-          </SettingRow>
+          </div>
           {claim && (
             <SettingRow title={CLAIM_COPY.title} description={CLAIM_COPY.body}>
               <div className="fs-row">
@@ -229,7 +280,7 @@ export function SignInSection({ settings }: { settings: Settings }) {
                 <div className="fs-row-wrap">
                   <TextInput value={fields.email} onChange={(e) => set({ email: e.target.value })} placeholder="you@example.com" type="email" autoComplete="username" aria-label="Email" style={{ width: 220 }} />
                   <TextInput value={fields.password} onChange={(e) => set({ password: e.target.value })} placeholder="Password" type="password" autoComplete="current-password" aria-label="Password" style={{ width: 180 }} />
-                  <Button size="sm" loading={busy} disabled={!fields.email.trim() || fields.password.length < 8} onClick={() => void actions.signIn()}>
+                  <Button size="sm" variant="primary" loading={busy} disabled={!fields.email.trim() || fields.password.length < 8} onClick={() => void actions.signIn()}>
                     Sign in
                   </Button>
                 </div>
@@ -241,7 +292,7 @@ export function SignInSection({ settings }: { settings: Settings }) {
                   {step.step === 'email' && (
                     <div className="fs-row-wrap">
                       <TextInput value={fields.email} onChange={(e) => set({ email: e.target.value })} placeholder="you@example.com" type="email" autoComplete="username" aria-label="Email" style={{ width: 220 }} />
-                      <Button size="sm" loading={busy} disabled={!fields.email.trim()} onClick={() => void actions.sendSignupCode()}>
+                      <Button size="sm" variant="primary" loading={busy} disabled={!fields.email.trim()} onClick={() => void actions.sendSignupCode()}>
                         Send code
                       </Button>
                     </div>
@@ -249,7 +300,7 @@ export function SignInSection({ settings }: { settings: Settings }) {
                   {step.step === 'code' && (
                     <div className="fs-row-wrap">
                       <TextInput value={fields.code} onChange={(e) => set({ code: e.target.value })} placeholder="6-digit code" inputMode="numeric" maxLength={6} aria-label="Verification code" style={{ width: 140 }} />
-                      <Button size="sm" loading={busy} disabled={fields.code.trim().length !== 6} onClick={() => void actions.verifySignupCode(step.email)}>
+                      <Button size="sm" variant="primary" loading={busy} disabled={fields.code.trim().length !== 6} onClick={() => void actions.verifySignupCode(step.email)}>
                         Verify
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => void actions.sendSignupCode(step.email)}>
@@ -260,7 +311,7 @@ export function SignInSection({ settings }: { settings: Settings }) {
                   {step.step === 'password' && (
                     <div className="fs-row-wrap">
                       <TextInput value={fields.password} onChange={(e) => set({ password: e.target.value })} placeholder="At least 8 characters" type="password" autoComplete="new-password" aria-label="Password" style={{ width: 220 }} />
-                      <Button size="sm" loading={busy} disabled={fields.password.length < 8 || !step.ticket} onClick={() => void actions.completeSignup(step.ticket ?? '')}>
+                      <Button size="sm" variant="primary" loading={busy} disabled={fields.password.length < 8 || !step.ticket} onClick={() => void actions.completeSignup(step.ticket ?? '')}>
                         Create account
                       </Button>
                     </div>
@@ -273,14 +324,14 @@ export function SignInSection({ settings }: { settings: Settings }) {
                   {step.step === 'phone' ? (
                     <>
                       <TextInput value={fields.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 98765 43210" type="tel" autoComplete="tel" aria-label="Phone number" style={{ width: 220 }} />
-                      <Button size="sm" loading={busy} disabled={fields.phone.replace(/\D/g, '').length < 8} onClick={() => void actions.sendPhoneCode()}>
+                      <Button size="sm" variant="primary" loading={busy} disabled={fields.phone.replace(/\D/g, '').length < 8} onClick={() => void actions.sendPhoneCode()}>
                         Send code
                       </Button>
                     </>
                   ) : (
                     <>
                       <TextInput value={fields.code} onChange={(e) => set({ code: e.target.value })} placeholder="6-digit code" inputMode="numeric" maxLength={6} aria-label="Verification code" style={{ width: 140 }} />
-                      <Button size="sm" loading={busy} disabled={fields.code.trim().length !== 6} onClick={() => void actions.verifyPhoneCode(step.phone)}>
+                      <Button size="sm" variant="primary" loading={busy} disabled={fields.code.trim().length !== 6} onClick={() => void actions.verifyPhoneCode(step.phone)}>
                         Continue
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => void actions.sendPhoneCode(step.phone)}>
@@ -320,4 +371,3 @@ export function SignInSection({ settings }: { settings: Settings }) {
     </Section>
   );
 }
-

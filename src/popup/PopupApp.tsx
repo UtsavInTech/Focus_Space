@@ -1,29 +1,65 @@
+import { useState } from 'react';
 import { ExternalLink, Home, Plus, Settings as SettingsIcon } from 'lucide-react';
 import { useDocumentTheme, useStorage } from '@/ui/hooks';
-import { Button, IconButton, Logo, Skeleton, Switch } from '@/ui/components/primitives';
+import { Alert, Button, IconButton, Logo, Skeleton, Switch } from '@/ui/components/primitives';
 import { ModePicker } from '@/ui/components/ModeChips';
 import { activeModeOf, selectMode, setFocusEnabled } from '@/modes/service';
-import { sendMessage } from '@/messaging/runtime';
+import { extensionAlive, sendMessage } from '@/messaging/runtime';
+
+/**
+ * Every popup action below used to fire the message and close the popup unconditionally, whether or not
+ * the message actually succeeded (`{ ok: false, error }` responses and outright rejections — e.g. the
+ * service worker being asleep and slow to wake, or the message channel already gone — were both
+ * discarded). That made a real failure indistinguishable from "this button does nothing": the popup
+ * closed either way, taking any error with it, and nothing on screen ever told the user what happened.
+ * `runAction` is the one place every action now goes through: it keeps the popup open and shows the
+ * problem when something goes wrong, and only closes it once the background has actually confirmed
+ * success.
+ */
+function usePopupAction() {
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const run = (action: () => Promise<{ ok: boolean; error?: string }>) => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    void action()
+      .then((result) => {
+        if (result.ok) {
+          window.close();
+        } else {
+          setBusy(false);
+          setError(result.error || 'That action did not go through. Try again.');
+        }
+      })
+      .catch((err: unknown) => {
+        setBusy(false);
+        setError(err instanceof Error ? err.message : 'That action did not go through. Try again.');
+      });
+  };
+  return { run, error, busy };
+}
 
 async function openDashboard(route = '/') {
-  await sendMessage('dashboard/open', { route });
-  window.close();
+  if (!extensionAlive()) return { ok: false, error: 'FocusSpace needs to be reloaded. Reopen this popup and try again.' };
+  return sendMessage('dashboard/open', { route });
 }
 
 async function openSite(path = '/') {
-  await sendMessage('site/open', { path });
-  window.close();
+  if (!extensionAlive()) return { ok: false, error: 'FocusSpace needs to be reloaded. Reopen this popup and try again.' };
+  return sendMessage('site/open', { path });
 }
 
 async function openYouTube() {
-  await sendMessage('youtube/open', { url: 'https://www.youtube.com/' });
-  window.close();
+  if (!extensionAlive()) return { ok: false, error: 'FocusSpace needs to be reloaded. Reopen this popup and try again.' };
+  return sendMessage('youtube/open', { url: 'https://www.youtube.com/' });
 }
 
 /** Quick controls: Focus Mode on/off and which space. */
 export function PopupApp() {
   const data = useStorage(['settings', 'modes'] as const);
   useDocumentTheme(data?.settings.theme, data?.settings.density);
+  const { run, error, busy } = usePopupAction();
 
   if (!data) {
     return (
@@ -43,7 +79,7 @@ export function PopupApp() {
     <div className="fs-popup">
       <header className="fs-popup-head">
         <Logo size={24} />
-        <IconButton label="Settings" icon={<SettingsIcon />} onClick={() => openDashboard('/settings')} />
+        <IconButton label="Settings" icon={<SettingsIcon />} disabled={busy} onClick={() => run(() => openDashboard('/settings'))} />
       </header>
 
       <section className="fs-card fs-popup-focus" data-on={on}>
@@ -65,24 +101,26 @@ export function PopupApp() {
       </div>
 
       <div className="fs-popup-foot">
-        <Button variant="primary" icon={<ExternalLink />} onClick={openYouTube}>
+        <Button variant="primary" icon={<ExternalLink />} loading={busy} onClick={() => run(openYouTube)}>
           Open YouTube
         </Button>
-        <Button variant="secondary" icon={<Plus />} onClick={() => openDashboard('/modes?new=1')}>
+        <Button variant="secondary" icon={<Plus />} disabled={busy} onClick={() => run(() => openDashboard('/modes?new=1'))}>
           New space
         </Button>
       </div>
       <nav className="fs-popup-links">
-        <Button size="sm" variant="ghost" onClick={() => openDashboard('/modes')}>
+        <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(() => openDashboard('/modes'))}>
           Manage spaces
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => openDashboard('/subscriptions')}>
+        <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(() => openDashboard('/subscriptions'))}>
           Subscriptions
         </Button>
-        <Button size="sm" variant="ghost" icon={<Home />} onClick={() => openSite('/')}>
+        <Button size="sm" variant="ghost" icon={<Home />} disabled={busy} onClick={() => run(() => openSite('/'))}>
           FocusSpace home
         </Button>
       </nav>
+
+      {error && <Alert tone="danger">{error}</Alert>}
     </div>
   );
 }

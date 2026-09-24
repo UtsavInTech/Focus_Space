@@ -72,7 +72,7 @@ export function AccountPage() {
 
       <PlanRow status={status} error={usageError} />
 
-      <PaymentsPanel payments={payments} />
+      <PaymentsPanel payments={payments} getToken={auth.token} />
 
       {ext.status === 'connected' && ext.state ? (
         <>
@@ -282,13 +282,45 @@ function PlanRow({ status, error }: { status: UsageStatus | null; error: string 
 }
 
 /** Receipts. Anyone who pays will eventually want to see what they were charged and when. */
-function PaymentsPanel({ payments }: { payments: Payment[] | null }) {
+function PaymentsPanel({ payments, getToken }: { payments: Payment[] | null; getToken: () => Promise<string | null> }) {
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
   if (payments === null) return null;
 
   const money = (amountMinor: number, currency: string) => {
     const value = amountMinor / 100;
     // Both currencies use a 100:1 minor unit; INR is written with Indian grouping.
     return currency === 'INR' ? `₹${value.toLocaleString('en-IN')}` : `$${value.toFixed(2)}`;
+  };
+
+  /**
+   * Opens the receipt as a normal browser tab, without ever putting the access token in a URL (a bare
+   * link to the API would be either unauthenticated — and so not private — or would have to carry the
+   * token in the query string, which is exactly the "publicly accessible receipt URL" this deliberately
+   * avoids). The receipt is fetched with the same Bearer-token request every other account call uses, and
+   * only the resulting HTML — never the token — reaches a Blob URL, which is local to this browser tab
+   * and not reachable by anyone it isn't shown to.
+   */
+  const openReceipt = async (payment: Payment) => {
+    setReceiptError(null);
+    setOpeningId(payment.id);
+    // Opened synchronously (before the async fetch) so Safari/iOS don't treat the eventual `window.open`
+    // as an unrequested popup — the tab is created now and filled in once the receipt arrives.
+    const tab = window.open('', '_blank');
+    try {
+      const token = await getToken();
+      if (!token) throw new api.ApiError('You are signed out.', 'unauthorized', 401);
+      const result = await api.paymentReceipt(token, payment.id);
+      if (tab) {
+        tab.document.write(result.html);
+        tab.document.close();
+      }
+    } catch (err) {
+      tab?.close();
+      setReceiptError(err instanceof api.ApiError ? err.message : 'Could not load that receipt. Try again.');
+    } finally {
+      setOpeningId(null);
+    }
   };
 
   return (
@@ -311,12 +343,16 @@ function PaymentsPanel({ payments }: { payments: Payment[] | null }) {
                 </span>
               </div>
               <em>{money(payment.amount_minor, payment.currency)}</em>
+              <button type="button" className="fsw-link fsw-payment-receipt" disabled={openingId === payment.id} onClick={() => void openReceipt(payment)}>
+                {openingId === payment.id ? 'Opening…' : 'View receipt'}
+              </button>
             </li>
           ))}
         </ul>
       ) : (
         <p className="fsw-account-note">No payments yet. The free plan needs no card.</p>
       )}
+      {receiptError && <p className="fsw-auth-error" style={{ marginTop: 12 }}>{receiptError}</p>}
     </article>
   );
 }
