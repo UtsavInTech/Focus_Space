@@ -22,6 +22,7 @@ export function Footer() {
 
         <nav aria-label="Legal">
           <h4>Legal</h4>
+          <a href="/privacy#your-data" onClick={onLinkClick('/privacy#your-data')}>Your data</a>
           <a href="/privacy" onClick={onLinkClick('/privacy')}>Privacy</a>
           <a href="/terms" onClick={onLinkClick('/terms')}>Terms</a>
           <a href="/refunds" onClick={onLinkClick('/refunds')}>Refunds</a>

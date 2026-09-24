@@ -72,6 +72,21 @@ describe('channel search', () => {
     }
     expect(channels.some((c) => /subscriber/i.test(c.subscribersText))).toBe(true);
   });
+
+  /** The ranking signals (learning/relevance/channel-ranking.ts) are only as good as what is parsed here. */
+  it('reads the ranking signals: subscriber count, description snippet and verified badge', () => {
+    const channels = parseChannels(fixture('channels'));
+    const karan = channels.find((c) => /karan/i.test(c.title))!;
+    expect(karan.subscribers).toBe(5_850_000);
+    expect(karan.description).toContain('Official YouTube Channel');
+    expect(karan.verified).toBe(true);
+    // Every channel parses to the full shape, whether or not YouTube reported each field.
+    for (const c of channels) {
+      expect(c.subscribers === null || c.subscribers > 0).toBe(true);
+      expect(typeof c.description).toBe('string');
+      expect(typeof c.verified).toBe('boolean');
+    }
+  });
 });
 
 describe('watch next', () => {

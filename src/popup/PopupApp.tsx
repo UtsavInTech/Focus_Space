@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ExternalLink, Home, Plus, Settings as SettingsIcon } from 'lucide-react';
+import { ExternalLink, Plus, Settings as SettingsIcon } from 'lucide-react';
 import { useDocumentTheme, useStorage } from '@/ui/hooks';
 import { Alert, Button, IconButton, Logo, Skeleton, Switch } from '@/ui/components/primitives';
 import { ModePicker } from '@/ui/components/ModeChips';
 import { activeModeOf, selectMode, setFocusEnabled } from '@/modes/service';
 import { extensionAlive, sendMessage } from '@/messaging/runtime';
+import { POPUP_LINKS, type PopupLink } from './links';
 
 /**
  * Every popup action below used to fire the message and close the popup unconditionally, whether or not
@@ -50,9 +51,16 @@ async function openSite(path = '/') {
   return sendMessage('site/open', { path });
 }
 
-async function openYouTube() {
+async function openYouTube(url = 'https://www.youtube.com/') {
   if (!extensionAlive()) return { ok: false, error: 'FocusSpace needs to be reloaded. Reopen this popup and try again.' };
-  return sendMessage('youtube/open', { url: 'https://www.youtube.com/' });
+  return sendMessage('youtube/open', { url });
+}
+
+/** One place turns a link's declared surface into the message that opens it — see ./links.ts. */
+function followLink(link: PopupLink) {
+  if (link.surface === 'site') return openSite(link.target);
+  if (link.surface === 'youtube') return openYouTube(link.target);
+  return openDashboard(link.target);
 }
 
 /** Quick controls: Focus Mode on/off and which space. */
@@ -108,16 +116,12 @@ export function PopupApp() {
           New space
         </Button>
       </div>
-      <nav className="fs-popup-links">
-        <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(() => openDashboard('/modes'))}>
-          Manage spaces
-        </Button>
-        <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(() => openDashboard('/subscriptions'))}>
-          Subscriptions
-        </Button>
-        <Button size="sm" variant="ghost" icon={<Home />} disabled={busy} onClick={() => run(() => openSite('/'))}>
-          FocusSpace home
-        </Button>
+      <nav className="fs-popup-links" aria-label="FocusSpace">
+        {POPUP_LINKS.map((link) => (
+          <Button key={link.id} size="sm" variant="ghost" disabled={busy} onClick={() => run(() => followLink(link))}>
+            {link.label}
+          </Button>
+        ))}
       </nav>
 
       {error && <Alert tone="danger">{error}</Alert>}

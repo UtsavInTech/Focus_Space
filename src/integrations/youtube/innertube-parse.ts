@@ -48,6 +48,12 @@ export interface YtChannel {
   handle: string | null;
   thumbnail: string | null;
   subscribersText: string;
+  /** Parsed from `subscribersText`; null when YouTube didn't report one (hidden counts, or a layout we don't recognise). */
+  subscribers: number | null;
+  /** YouTube's own one-line blurb for the channel. The single most useful relevance signal search returns. */
+  description: string;
+  /** A verified or Official Artist badge. Weak evidence of an established channel, never a requirement. */
+  verified: boolean;
   subscribed: boolean;
 }
 
@@ -267,6 +273,12 @@ export function parseContinuation(root: unknown): string | null {
   return token;
 }
 
+/** `ownerBadges` badge style strings ("BADGE_STYLE_TYPE_VERIFIED", "…VERIFIED_ARTIST"). */
+function badgeStyles(badges: unknown): string[] {
+  if (!Array.isArray(badges)) return [];
+  return badges.map((b) => get(b, 'metadataBadgeRenderer', 'style')).filter((s): s is string => typeof s === 'string');
+}
+
 export function parseChannels(root: unknown): YtChannel[] {
   const out = new Map<string, YtChannel>();
   const visit = (node: unknown, depth: number) => {
@@ -280,13 +292,17 @@ export function parseChannels(root: unknown): YtChannel[] {
       const count = textOf(r.videoCountText);
       const thumbs = get(r.thumbnail, 'thumbnails') as { url?: string }[] | undefined;
       const url = thumbs?.[thumbs.length - 1]?.url ?? null;
+      // YouTube moved the subscriber count into videoCountText for handle-first channels.
+      const subscribersText = /subscriber/i.test(count) ? count : /subscriber/i.test(sub) ? sub : '';
       out.set(r.channelId, {
         id: r.channelId,
         title: textOf(r.title),
         handle: typeof canonical === 'string' && canonical.startsWith('/@') ? decodeURIComponent(canonical.slice(1)) : sub.startsWith('@') ? sub : null,
         thumbnail: url ? (url.startsWith('//') ? `https:${url}` : url) : null,
-        // YouTube moved the subscriber count into videoCountText for handle-first channels.
-        subscribersText: /subscriber/i.test(count) ? count : /subscriber/i.test(sub) ? sub : '',
+        subscribersText,
+        subscribers: subscribersText ? parseCount(subscribersText) : null,
+        description: textOf(r.descriptionSnippet),
+        verified: badgeStyles(r.ownerBadges).some((style) => /VERIFIED/i.test(style)),
         subscribed: get(r.subscriptionButton, 'subscribed') === true,
       });
       return;

@@ -5,6 +5,7 @@ import type { DashboardData } from '../DashboardApp';
 import { openYouTube } from '../DashboardApp';
 import { navigate } from '../router';
 import { addTemplateWithChannels, deleteMode, missingTemplates, selectMode, SpaceLimitError } from '@/modes/service';
+import { groupByCategory } from '@/modes/categories';
 import { Alert, Badge, Button, IconButton } from '@/ui/components/primitives';
 import { Modal } from '@/ui/components/Modal';
 import { CreateSpace } from '@/ui/components/CreateSpace';
@@ -106,16 +107,27 @@ export function ModesPage({ data, openCreate }: { data: DashboardData; openCreat
       {limit && <Alert tone="info">{limit}</Alert>}
 
       {templates.length > 0 && (
-        <div className="fs-stack-sm">
-          <span className="fs-eyebrow">Restore a built-in space</span>
-          <div className="fs-row-wrap">
-            {templates.map((t) => (
-              <Button key={t.id} size="sm" variant="secondary" icon={<SpaceIcon name={t.icon} size={14} />} onClick={() => setPendingTemplate(t)}>
-                {t.name}
-              </Button>
-            ))}
+        <section className="fs-stack-sm fs-add-space" aria-labelledby="add-space">
+          <div>
+            <h2 id="add-space" className="fs-h3">
+              Add a built-in space
+            </h2>
+            <p className="fs-caption">Each one comes with topics and keywords already set up. Nothing is created until you pick one.</p>
           </div>
-        </div>
+          {/* Grouped so the list reads as a range of subjects rather than sixteen unrelated buttons. */}
+          {groupByCategory(templates).map(({ category, modes: group }) => (
+            <div key={category.id} className="fs-template-group">
+              <span className="fs-label">{category.name}</span>
+              <div className="fs-row-wrap">
+                {group.map((t) => (
+                  <Button key={t.id} size="sm" variant="secondary" icon={<SpaceIcon name={t.icon} size={14} />} onClick={() => setPendingTemplate(t)}>
+                    {t.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
       )}
 
       <Modal open={creating} onClose={closeCreate} title="New space" width={580}>
@@ -129,7 +141,13 @@ export function ModesPage({ data, openCreate }: { data: DashboardData; openCreat
         />
       </Modal>
 
-      <Modal open={!!pendingTemplate} onClose={() => setPendingTemplate(null)} title={pendingTemplate ? `Personalize ${pendingTemplate.name}` : 'Personalize'} width={580}>
+      <Modal
+        open={!!pendingTemplate}
+        onClose={() => setPendingTemplate(null)}
+        title={pendingTemplate ? `Creators for ${pendingTemplate.name}` : 'Creators'}
+        subtitle="Optional — you can skip this and change it later."
+        width={580}
+      >
         {pendingTemplate && (
           <TemplateCreators template={pendingTemplate} busy={creatingSpace} onSkip={() => void finishTemplate([])} onContinue={(channels) => void finishTemplate(channels)} />
         )}

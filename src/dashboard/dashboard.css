@@ -87,9 +87,6 @@
 .fs-welcome-hero { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 12px; }
 .fs-step { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 14px; padding: 22px; }
 .fs-step-num { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--fs-accent-soft); color: var(--fs-accent-text); font-weight: 650; font-size: 13px; }
-.fs-bullets { margin: 0; padding-left: 18px; color: var(--fs-text-2); font-size: 13.5px; display: flex; flex-direction: column; gap: 6px; }
-
-.fs-privacy-block { padding: 16px 18px; border-radius: 12px; background: var(--fs-surface-2); display: flex; flex-direction: column; gap: 8px; }
 
 .fs-classify-result { padding: 14px; border-radius: 12px; background: var(--fs-surface-2); display: flex; flex-direction: column; gap: 8px; }
 
@@ -167,7 +164,6 @@
   flex: none;
 }
 .fs-account-identity strong { display: block; font-size: 15px; font-weight: 600; }
-.fs-privacy { display: flex; flex-direction: column; gap: 18px; padding-top: 14px; }
 
 /* ─── Home, Library, History ─────────────────────────────────────────────── */
 

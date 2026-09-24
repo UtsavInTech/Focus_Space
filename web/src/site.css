@@ -2093,3 +2093,114 @@ button {
     animation: none;
   }
 }
+/* ─── "Your data", above the privacy policy ─────────────────────────────────
+ * The policy is written to be quoted; this is written to be read. Two columns
+ * of short groups inside the same reading column, so the whole picture is taken
+ * in at a glance — which is the entire point of putting it first.
+ */
+.fsw-data {
+  margin: 40px 0 8px;
+  padding: 28px 0 32px;
+  border-top: 1px solid var(--fs-border);
+  border-bottom: 1px solid var(--fs-border);
+}
+
+.fsw-data h2 {
+  font-size: 22px;
+  letter-spacing: -0.015em;
+}
+
+.fsw-data-lead {
+  margin-top: 10px;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--fs-text-2);
+}
+
+.fsw-data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px 32px;
+  margin-top: 28px;
+}
+
+.fsw-data-card h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+/* A hairline rather than a card: four boxes would read as a pricing table. */
+.fsw-data-card h3::before {
+  content: '';
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  flex: none;
+  background: var(--fs-text-3);
+}
+.fsw-data-card[data-tone='local'] h3::before { background: var(--fs-accent); }
+
+.fsw-data-card p {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--fs-text-2);
+}
+
+.fsw-data-card ul,
+.fsw-data-never ul {
+  margin-top: 12px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fsw-data-card li,
+.fsw-data-never li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--fs-text-2);
+}
+
+.fsw-data-card li::before,
+.fsw-data-never li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--fs-text-3);
+}
+
+.fsw-data-never {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--fs-border);
+}
+
+.fsw-data-never h3 {
+  font-size: 15px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.fsw-data-never ul {
+  columns: 2;
+  column-gap: 32px;
+  display: block;
+}
+.fsw-data-never li { break-inside: avoid; margin-top: 8px; }
+
+@media (max-width: 720px) {
+  .fsw-data-never ul { columns: 1; }
+}

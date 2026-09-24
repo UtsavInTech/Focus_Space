@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Download, Keyboard, Monitor, Moon, RotateCcw, Sun } from 'lucide-react';
+import { Download, ExternalLink, Keyboard, Monitor, Moon, RotateCcw, Sun } from 'lucide-react';
 import type { AiSettings, Settings } from '@/types/domain';
 import type { NoteLanguage } from '@/types/notes';
 import type { AiStatus } from '@/learning/ai/service';
@@ -259,48 +259,28 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         </SettingRow>
       </Section>
 
-      <Section id="privacy" title="Your data" description="A plain-language summary. Nothing here is sold, and nothing is used for advertising.">
-        <p className="fs-hint" style={{ marginTop: -4 }}>
-          If you create an account, FocusSpace uses your name, email or phone number only to sign you in, recover your account, and identify your payments and
-          receipts. Everything else you do in FocusSpace — the Spaces you build, what you watch, your notes — stays in this browser.
-        </p>
-        <div className="fs-privacy">
-          <div className="fs-privacy-block">
-            <span className="fs-h3">Stays in this browser</span>
-            <ul className="fs-bullets">
-              <li>Spaces, topics, playlists, notes, channel choices and settings</li>
-              <li>What you watch with Focus Mode on (for Continue watching and course progress)</li>
-              <li>Your channel library and discovery results</li>
-            </ul>
-          </div>
-          <div className="fs-privacy-block">
-            <span className="fs-h3">Your account (only if you create one)</span>
-            <ul className="fs-bullets">
-              <li>Your email or phone number, and a securely hashed password — never the password itself. Verification codes are stored only as keyed hashes.</li>
-              <li>Your name and city, if you choose to add them in Account → Your details — optional, and shown only to you.</li>
-              <li>Your plan, AI usage count, payment history, and the ids and names of your Spaces, so your plan’s limits and receipts apply wherever you sign in. Not their contents.</li>
-              <li>Nothing else: spaces' contents, history and notes stay in this browser.</li>
-            </ul>
-          </div>
-          <div className="fs-privacy-block">
-            <span className="fs-h3">Requests to youtube.com</span>
-            <ul className="fs-bullets">
-              <li>The same requests the page itself makes, with your existing session: searches for your space, the current video's details and playlist, the course playlist its description links to, the first comments of learning videos without detailed chapters, your subscriptions (when you import) and, signed in, your YouTube history and recommendations.</li>
-              <li>In the background, anonymous requests for your channels' public uploads and channel search.</li>
-            </ul>
-          </div>
-          <div className="fs-privacy-block">
-            <span className="fs-h3">Learning companion (only when you ask)</span>
-            <ul className="fs-bullets">
-              <li>On-device AI runs inside Chrome: nothing leaves your browser.</li>
-              <li>
-                {usesHostedAi(settings.ai.endpointUrl) ? `${HOSTED_AI_LABEL} receives` : 'Your endpoint receives'} only the moment you ask about: video title and channel, timestamp, nearby outline items, your course position, your space's topic names, a short transcript excerpt and your question.
-                {usesHostedAi(settings.ai.endpointUrl) && ' Our AI provider, OpenAI, processes it on our behalf. We don’t store your prompts or the answers.'}
-              </li>
-              <li>To answer about a moment, FocusSpace may ask YouTube's player to load the video's captions, then restores your caption setting.</li>
-            </ul>
-          </div>
-        </div>
+      {/*
+        Four blocks of bullets used to live here — the complete account of what FocusSpace stores and
+        sends, in the middle of a settings page. It was accurate and nobody read it. The full version now
+        lives on the website (web/src/content/data-summary.ts), where someone deciding whether to trust
+        FocusSpace can find it, and where it is one document rather than two that can drift apart. What
+        stays here is the part that answers the question a learner asks *in settings*: is my stuff safe,
+        and what did I agree to.
+      */}
+      <Section id="privacy" title="Your data" description="Nothing is sold, and there is no advertising or tracking.">
+        <SettingRow
+          title="Your Spaces, notes and history stay in this browser"
+          description="FocusSpace cannot read them — they are never uploaded. An account stores only your email, your plan, your AI usage count and your Space names."
+        />
+        <SettingRow
+          title={`${usesHostedAi(settings.ai.endpointUrl) ? HOSTED_AI_LABEL : 'Your endpoint'} sees one moment, only when you ask`}
+          description="The video, your timestamp, the nearby outline, your topic names and a short transcript excerpt. Never your history, and never the whole transcript."
+        />
+        <SettingRow title="The full explanation" description="What is collected, what stays here, what goes to YouTube and what goes to the AI — in plain language.">
+          <Button size="sm" variant="secondary" icon={<ExternalLink />} onClick={() => void sendMessage('site/open', { path: '/privacy#your-data' }).catch(() => undefined)}>
+            Read it
+          </Button>
+        </SettingRow>
       </Section>
 
       <Section id="about" title="About">

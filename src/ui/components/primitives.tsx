@@ -105,14 +105,15 @@ export const TextInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLIn
   return <input ref={ref} className={cx('fs-input', small && 'fs-input-sm', className)} {...rest} />;
 });
 
-export function SettingRow({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
+/** `children` is the control. A row with none is a statement of fact, which some settings genuinely are. */
+export function SettingRow({ title, description, children }: { title: string; description?: ReactNode; children?: ReactNode }) {
   return (
     <div className="fs-setting">
       <div className="fs-setting-text">
         <span className="fs-label">{title}</span>
         {description && <span className="fs-hint">{description}</span>}
       </div>
-      <div className="fs-setting-control">{children}</div>
+      {children !== undefined && <div className="fs-setting-control">{children}</div>}
     </div>
   );
 }

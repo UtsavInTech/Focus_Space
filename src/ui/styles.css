@@ -698,3 +698,53 @@ body.fs-popup-body {
 .fs-mm-controls span { min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
 .fs-mm-frame { overflow: auto; }
 .fs-mm-frame .fs-mindmap { overflow: visible; max-width: none; }
+
+/* ─── Creator picker ────────────────────────────────────────────────────────
+ * Shared by the dashboard, the popup and the in-YouTube panels: one row shape,
+ * one "why this creator" line. The row carries a name and a reason, so the two
+ * need different weight — the reason is support, never competition.
+ */
+.fs-channel-name { display: block; font-weight: 560; line-height: 1.3; }
+.fs-channel-why { display: block; margin-top: 1px; line-height: 1.35; }
+/* A result with nothing behind it but a matching name. Present, legible, clearly secondary. */
+.fs-channel-result[data-weak] { opacity: 0.62; }
+.fs-channel-result[data-weak]:hover { opacity: 1; }
+
+.fs-picked-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fs-picked {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 9px 0 4px;
+  border: none;
+  border-radius: 999px;
+  max-width: 220px;
+  background: var(--fs-surface-2);
+  box-shadow: inset 0 0 0 1px var(--fs-border);
+  color: var(--fs-text);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.fs-picked:hover { box-shadow: inset 0 0 0 1px var(--fs-border-strong); }
+.fs-picked img, .fs-picked-initial {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex: none;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  background: var(--fs-surface-3);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fs-text-2);
+}
+.fs-picked svg { flex: none; color: var(--fs-text-3); }
+
+.fs-creators { gap: 14px; }
+.fs-creators-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 2px; }
+
+/* Grouped built-in Spaces: the heading carries the category, the buttons stay plain. */
+.fs-template-group { display: flex; flex-direction: column; gap: 7px; }
+.fs-add-space { gap: 16px; padding-top: 4px; }

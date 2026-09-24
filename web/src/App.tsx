@@ -12,6 +12,7 @@ import { ChatLauncher } from './components/ChatLauncher';
 import { AuthPage } from './components/AuthPage';
 import { AccountPage } from './components/AccountPage';
 import { LegalPage } from './components/LegalPage';
+import { DataSummary } from './components/DataSummary';
 import { LEGAL_DOCS } from './content/legal';
 import { AuthProvider } from './auth';
 
@@ -53,7 +54,7 @@ export function App() {
       <SiteNav />
       <main id="main">
         {legal ? (
-          <LegalPage doc={legal} />
+          <LegalPage doc={legal} lead={legal.slug === '/privacy' ? <DataSummary /> : undefined} />
         ) : isAuth ? (
           <AuthPage mode={path === '/signup' ? 'signup' : path === '/reset' ? 'reset' : 'signin'} />
         ) : isAccount ? (

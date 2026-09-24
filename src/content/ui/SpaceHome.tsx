@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Check, ChevronDown, Pencil, Plus, Power, RefreshCw, X } from 'lucide-react';
 import type { LearningMode, Settings, Topic } from '@/types/domain';
 import { activeModeOf, addTemplateWithChannels, missingTemplates, selectMode, setChannelRule, setFocusEnabled, SpaceLimitError } from '@/modes/service';
+import { groupByCategory } from '@/modes/categories';
 import { parseVideoInput, removeFromTopic, saveToTopic } from '@/modes/playlists';
 import { updateItem } from '@/storage/storage';
 import { sendMessage } from '@/messaging/runtime';
@@ -77,17 +78,50 @@ function FirstRun({ modes, onCreate }: { modes: LearningMode[]; onCreate: () => 
       setError(err instanceof SpaceLimitError ? err.message : 'FocusSpace couldn’t create that Space. Try again.');
     }
   };
+  /*
+   * The learner's own Spaces come first and uncategorised — they already know what those are. Only the
+   * suggestions are grouped, because that is where the list is long enough to need shape and where the
+   * grouping does real work: it answers "what else is FocusSpace for?" without turning into a catalogue.
+   */
+  const groups = groupByCategory(suggestions);
+
   return (
     <div className="fs-first-run fs-animate-in">
       <h1>What do you want to focus on?</h1>
       <p>FocusSpace organises YouTube around it — your subscriptions first, then the best matches from the rest of YouTube. You can switch anytime.</p>
+
+      {modes.length > 0 && (
+        <div className="fs-first-run-group">
+          <span className="fs-first-run-label">Your spaces</span>
+          <div className="fs-chips fs-chips-wrap">
+            {modes.map((m) => (
+              <button key={m.id} type="button" className="fs-chip fs-chip-lg" onClick={() => void choose(m, false)}>
+                <SpaceIcon name={m.icon} size={18} />
+                {m.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {groups.map(({ category, modes: templates }) => (
+        <div key={category.id} className="fs-first-run-group">
+          <span className="fs-first-run-label">
+            {category.name}
+            <small>{category.description}</small>
+          </span>
+          <div className="fs-chips fs-chips-wrap">
+            {templates.map((m) => (
+              <button key={m.id} type="button" className="fs-chip fs-chip-lg" onClick={() => void choose(m, true)}>
+                <SpaceIcon name={m.icon} size={18} />
+                {m.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+
       <div className="fs-chips fs-chips-wrap">
-        {[...modes.map((m) => ({ m, isSuggestion: false })), ...suggestions.map((m) => ({ m, isSuggestion: true }))].map(({ m, isSuggestion }) => (
-          <button key={m.id} type="button" className="fs-chip fs-chip-lg" onClick={() => void choose(m, isSuggestion)}>
-            <SpaceIcon name={m.icon} size={18} />
-            {m.name}
-          </button>
-        ))}
         <button type="button" className="fs-chip fs-chip-lg fs-chip-outline" onClick={onCreate}>
           <Plus size={18} aria-hidden />
           Something else
@@ -109,7 +143,13 @@ function FirstRun({ modes, onCreate }: { modes: LearningMode[]; onCreate: () => 
         <span className="fs-caption">FocusSpace turns off. Nothing is hidden, nothing is reordered — turn it back on whenever you want.</span>
       </div>
 
-      <Modal open={!!pendingTemplate} onClose={() => setPendingTemplate(null)} title={pendingTemplate ? `Personalize ${pendingTemplate.name}` : 'Personalize'} width={560}>
+      <Modal
+        open={!!pendingTemplate}
+        onClose={() => setPendingTemplate(null)}
+        title={pendingTemplate ? `Creators for ${pendingTemplate.name}` : 'Creators'}
+        subtitle="Optional — you can skip this and change it later."
+        width={560}
+      >
         {pendingTemplate && (
           <TemplateCreators
             template={pendingTemplate}

@@ -138,8 +138,8 @@ export function CreateSpace({ modes, onCreated, onCancel }: { modes: LearningMod
       </div>
 
       <div className="fs-stack-sm">
-        <span className="fs-eyebrow">Channels you like (optional)</span>
-        <ChannelPicker selected={channels} onChange={setChannels} suggestQuery={draft.searchHint || draft.name} />
+        <span className="fs-eyebrow">Creators (optional)</span>
+        <ChannelPicker selected={channels} onChange={setChannels} suggestQuery={draft.searchHint || draft.name} mode={draft} />
       </div>
 
       <label className="fs-spread fs-body-sm">
