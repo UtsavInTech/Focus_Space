@@ -51,6 +51,7 @@ import { registerSpace, spaceAllowance, unregisterSpace } from './usage/spaces';
 import { resolvePlan } from './usage/entitlements';
 import { loadRazorpayConfig, verifyWebhookSignature } from './billing/razorpay';
 import { applyWebhook, cancelPlan, confirmPayment, confirmSubscription, startCheckout, startSubscription } from './billing/service';
+import { buildReceipt } from './billing/receipt';
 
 const PORT = Number(process.env.PORT ?? 8788);
 const HOST = process.env.HOST ?? '127.0.0.1';
@@ -76,6 +77,12 @@ const BILLING_CANCEL_ROUTE = '/v1/billing/cancel';
 const BILLING_CONFIRM_ROUTE = '/v1/billing/confirm';
 const BILLING_WEBHOOK_ROUTE = '/v1/billing/webhook';
 const ME_PAYMENTS_ROUTE = '/v1/me/payments';
+/** `/v1/me/payments/:id/receipt` — a dynamic segment, matched by prefix/suffix below rather than added to AUTH_ROUTES (which only does exact matches). */
+const receiptPath = (path: string): string | null => {
+  if (!path.startsWith(`${ME_PAYMENTS_ROUTE}/`) || !path.endsWith('/receipt')) return null;
+  const id = path.slice(ME_PAYMENTS_ROUTE.length + 1, -'/receipt'.length);
+  return id ? decodeURIComponent(id) : null;
+};
 
 const SIGNUP_START_ROUTE = '/v1/auth/signup/start';
 const SIGNUP_VERIFY_ROUTE = '/v1/auth/signup/verify';
@@ -219,7 +226,8 @@ const server = createServer(async (req, res) => {
     // ── Auth (Layer 2B) — every route below 503s with a clear message if AUTH_TOKEN_SECRET isn't set,
     // rather than the process refusing to start (see the authConfig load above). ──
     const path = (req.url ?? '').split('?')[0];
-    if (AUTH_ROUTES.has(path) || path === ME_SPACES_ROUTE) {
+    const paymentReceiptId = req.method === 'GET' ? receiptPath(path) : null;
+    if (AUTH_ROUTES.has(path) || path === ME_SPACES_ROUTE || paymentReceiptId !== null) {
       if (!authConfig) throw new ApiError(503, 'internal_error', 'Authentication is not configured on this server.');
       const db = getDb();
       const userAgent = req.headers['user-agent'] ?? null;
@@ -315,6 +323,16 @@ const server = createServer(async (req, res) => {
       if (req.method === 'GET' && path === ME_PAYMENTS_ROUTE) {
         const { user } = authenticate(db, authConfig, req.headers.authorization);
         sendJson(res, 200, { ok: true, payments: getUsageDb().listPayments(user.id) });
+        return;
+      }
+
+      // Authenticated receipt for one of *this* user's own payments — see billing/receipt.ts for why this
+      // is a self-hosted document rather than a Razorpay-hosted invoice link, and for the ownership check
+      // that makes a payment id belonging to someone else 404 exactly like one that doesn't exist at all.
+      if (req.method === 'GET' && paymentReceiptId !== null) {
+        const { user } = authenticate(db, authConfig, req.headers.authorization);
+        const receipt = buildReceipt(getUsageDb(), user, paymentReceiptId);
+        sendJson(res, 200, { ok: true, ...receipt });
         return;
       }
 

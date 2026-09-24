@@ -44,6 +44,22 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
     setPassword('');
   }
 
+  /**
+   * Returns to the email step within the *same* mode (sign-up or reset) — the control the flow was
+   * missing: previously the only way back to the email field was `switchMode`, which also changes what
+   * kind of flow you're in. `code` and `ticket` are discarded here because they are single-use and tied
+   * to the email that was just left; the server would reject them for a different address anyway, so
+   * there is nothing to preserve by keeping them around.
+   */
+  function backToEmail() {
+    setStep('email');
+    setError(null);
+    setCode('');
+    setPassword('');
+    setTicket('');
+    setDevCode(null);
+  }
+
   /** One place to run a request: it owns the busy flag and turns any failure into a sentence. */
   async function run(action: () => Promise<void>) {
     setBusy(true);
@@ -149,6 +165,15 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
                   ? 'Tell us your email and we will send a code to set a new password.'
                   : `Free: ${FREE_SPACE_LIMIT} Spaces and a monthly AI allowance. No card needed.`}
         </p>
+
+        {/* Only the email step is a dead end otherwise: once you've moved past it, `switchMode` (below,
+            "Sign in" / "Create one, free") changed what flow you were in as a side effect of the only way
+            back. This is the direct, same-flow way back that was missing. */}
+        {mode !== 'signin' && (step === 'code' || step === 'password') && (
+          <button type="button" className="fsw-link fsw-auth-back" onClick={backToEmail} disabled={busy}>
+            ← {step === 'code' ? `Not ${email}? Change it` : 'Back to email'}
+          </button>
+        )}
 
         {!api.apiConfigured && (
           <p className="fsw-auth-error">

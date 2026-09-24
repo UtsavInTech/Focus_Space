@@ -137,6 +137,23 @@ export async function addTemplate(templateId: string): Promise<LearningMode | nu
   return mode;
 }
 
+/**
+ * Creates a template Space and, optionally, seeds its allowed channels — the same write `CreateSpace.tsx`
+ * already does for a custom Space (`setChannelRule` + a best-effort `channel/add` so the channel is added
+ * to the library, not just the Space's rule). `channels` is deliberately optional and defaults to none:
+ * skipping creator preference is a first-class choice, not an incomplete one — FocusSpace still discovers
+ * relevant channels on its own (src/learning/discovery.ts).
+ */
+export async function addTemplateWithChannels(templateId: string, channels: ChannelRef[] = []): Promise<LearningMode | null> {
+  const created = await addTemplate(templateId);
+  if (!created) return null;
+  for (const channel of channels) {
+    await setChannelRule(created.id, channel, 'allowed');
+    void sendMessage('channel/add', { input: channel.id }).catch(() => undefined);
+  }
+  return created;
+}
+
 const sameChannel = (a: ChannelRef, b: ChannelRef) =>
   (!!a.id && a.id === b.id) || (!!a.handle && !!b.handle && a.handle.toLowerCase() === b.handle.toLowerCase());
 

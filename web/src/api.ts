@@ -158,4 +158,8 @@ export interface Payment {
 
 export const payments = (token: string) => request<{ ok: true; payments: Payment[] }>('/v1/me/payments', { headers: { Authorization: `Bearer ${token}` } });
 
+/** An authenticated, self-contained HTML receipt for one of the caller's own payments (server/billing/receipt.ts). */
+export const paymentReceipt = (token: string, paymentId: string) =>
+  request<{ ok: true; paymentId: string; html: string }>(`/v1/me/payments/${encodeURIComponent(paymentId)}/receipt`, { headers: { Authorization: `Bearer ${token}` } });
+
 export const usage = (token: string) => request<{ ok: true } & UsageStatus>('/v1/me/usage', { headers: { Authorization: `Bearer ${token}` } });

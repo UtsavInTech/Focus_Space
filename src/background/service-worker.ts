@@ -145,8 +145,12 @@ listen({
     }
   },
   'youtube/open': async ({ url }) => {
-    await openYouTube(url);
-    return { ok: true };
+    try {
+      await openYouTube(url);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Could not open YouTube.' };
+    }
   },
   'ai/status': () => aiService.status(),
   'ai/run': (request) => aiService.run(request),
@@ -159,12 +163,20 @@ listen({
   },
   'chat/send': (request) => aiService.chat(request),
   'dashboard/open': async ({ route }) => {
-    await openDashboard(route);
-    return { ok: true };
+    try {
+      await openDashboard(route);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Could not open the dashboard.' };
+    }
   },
   'site/open': async ({ path }) => {
-    await openSite(path);
-    return { ok: true };
+    try {
+      await openSite(path);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Could not open FocusSpace.' };
+    }
   },
   'auth/status': () => auth.status(),
   'auth/login': ({ email, password }) => auth.login(email, password),

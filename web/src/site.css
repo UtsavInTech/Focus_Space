@@ -654,9 +654,12 @@ button {
   background: var(--fs-surface);
 }
 
+/* One accent outline, not two stacked on top of each other (a border-color change plus a matching
+   box-shadow ring drew the same line twice) — the shadow alone reads as "this one" without looking like
+   a glitch at the corners where a 1px border and a 1px shadow ring didn't quite align. */
 .fsw-plan.is-featured {
-  border-color: var(--fs-accent);
-  box-shadow: 0 0 0 1px var(--fs-accent), var(--fs-shadow-md);
+  border-color: transparent;
+  box-shadow: 0 0 0 1.5px var(--fs-accent), var(--fs-shadow-md);
 }
 
 .fsw-plan-flag {
@@ -1248,6 +1251,12 @@ button {
   font-size: 24px;
 }
 
+.fsw-auth-back {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
 .fsw-auth-sub {
   margin-top: 8px;
   font-size: 14px;
@@ -1800,6 +1809,12 @@ button {
   font-style: normal;
   font-size: 15px;
   font-weight: 600;
+}
+
+.fsw-payment-receipt {
+  flex: none;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 /* ── Legal pages ─────────────────────────────────────────────────────── */

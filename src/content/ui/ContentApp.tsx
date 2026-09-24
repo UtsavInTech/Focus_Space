@@ -17,6 +17,7 @@ import { GuideSpaces } from './GuideSpaces';
 import { ExploreGate, OffTrackNudge } from './Overlays';
 import { AiEntry } from './AiEntry';
 import { FocusPill } from './FocusPill';
+import { shouldShowAiEntry } from './ai-entry-visibility';
 
 const navigator = { go: spaNavigate };
 
@@ -46,8 +47,9 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
   const exploreGate = active && config.filters.hideExplore && s.page.type === 'explore' && !s.exploreAllowed.includes(s.page.path);
   const openCreate = () => setCreating(true);
 
-  // A persistent AI entry point everywhere except where "Learn with AI" already sits at the top of the watch rail.
-  const showAiEntry = !!mode && !(active && s.page.type === 'watch');
+  // The AI entry point follows Focus Mode exactly like every other FocusSpace surface: FocusSpace OFF means
+  // no FocusSpace UI at all, AI included. See ai-entry-visibility.ts for the (independently tested) rule.
+  const showAiEntry = shouldShowAiEntry(active, s.page.type);
 
   return (
     <NavigatorContext.Provider value={navigator}>

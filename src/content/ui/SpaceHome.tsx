@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Check, ChevronDown, Pencil, Plus, Power, RefreshCw, X } from 'lucide-react';
 import type { LearningMode, Settings, Topic } from '@/types/domain';
-import { activeModeOf, addTemplate, missingTemplates, selectMode, setChannelRule, setFocusEnabled, SpaceLimitError } from '@/modes/service';
+import { activeModeOf, addTemplateWithChannels, missingTemplates, selectMode, setChannelRule, setFocusEnabled, SpaceLimitError } from '@/modes/service';
 import { parseVideoInput, removeFromTopic, saveToTopic } from '@/modes/playlists';
 import { updateItem } from '@/storage/storage';
 import { sendMessage } from '@/messaging/runtime';
@@ -14,6 +14,9 @@ import { useStorage } from '@/ui/hooks';
 import { SpaceIcon } from '@/ui/icons';
 import { YtLink } from '@/ui/nav';
 import { Button } from '@/ui/components/primitives';
+import { Modal } from '@/ui/components/Modal';
+import { TemplateCreators } from '@/ui/components/TemplateCreators';
+import type { PickedChannel } from '@/ui/components/ChannelPicker';
 import { useContinueWatching, useDiscovery, useFeedView } from '../data/hooks';
 import { continueToVisible, discoveredToVisible, libraryToVisible, publishContinueWatching, publishFeedVideos } from '../data/visible-feed';
 import { CardSkeletons, ContinueCard, FeedCard, SpotlightCard, type CardData } from './FeedCard';
@@ -44,11 +47,30 @@ export function SpaceHome({ settings, modes, onCreateSpace }: { settings: Settin
  */
 function FirstRun({ modes, onCreate }: { modes: LearningMode[]; onCreate: () => void }) {
   const [error, setError] = useState<string | null>(null);
+  const [pendingTemplate, setPendingTemplate] = useState<LearningMode | null>(null);
+  const [busy, setBusy] = useState(false);
   const suggestions = missingTemplates(modes);
+
+  const finish = async (mode: LearningMode, channels: PickedChannel[]) => {
+    setError(null);
+    setBusy(true);
+    try {
+      await addTemplateWithChannels(mode.id, channels.map((c) => ({ id: c.id, title: c.title, handle: c.handle ?? undefined })));
+      await selectMode(mode.id);
+      await updateItem('settings', (s) => ({ ...s, onboarded: true, defaultModeId: s.defaultModeId ?? mode.id }));
+      setPendingTemplate(null);
+    } catch (err) {
+      setError(err instanceof SpaceLimitError ? err.message : 'FocusSpace couldn’t create that Space. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** An already-created Space is just switched to; a template opens the (skippable) creator step first. */
   const choose = async (mode: LearningMode, isSuggestion: boolean) => {
+    if (isSuggestion) return setPendingTemplate(mode);
     setError(null);
     try {
-      if (isSuggestion) await addTemplate(mode.id);
       await selectMode(mode.id);
       await updateItem('settings', (s) => ({ ...s, onboarded: true, defaultModeId: s.defaultModeId ?? mode.id }));
     } catch (err) {
@@ -86,6 +108,17 @@ function FirstRun({ modes, onCreate }: { modes: LearningMode[]; onCreate: () => 
         </button>
         <span className="fs-caption">FocusSpace turns off. Nothing is hidden, nothing is reordered — turn it back on whenever you want.</span>
       </div>
+
+      <Modal open={!!pendingTemplate} onClose={() => setPendingTemplate(null)} title={pendingTemplate ? `Personalize ${pendingTemplate.name}` : 'Personalize'} width={560}>
+        {pendingTemplate && (
+          <TemplateCreators
+            template={pendingTemplate}
+            busy={busy}
+            onSkip={() => void finish(pendingTemplate, [])}
+            onContinue={(channels) => void finish(pendingTemplate, channels)}
+          />
+        )}
+      </Modal>
     </div>
   );
 }

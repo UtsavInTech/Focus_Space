@@ -24,7 +24,7 @@ export interface MessageMap {
   /** extension pages → background: search YouTube channels (anonymous). */
   'youtube/search-channels': { req: { query: string }; res: { ok: true; channels: YtChannel[] } | { ok: false; error: string } };
   /** extension pages → background: show a YouTube URL, reusing an open YouTube tab. */
-  'youtube/open': { req: { url: string }; res: { ok: true } };
+  'youtube/open': { req: { url: string }; res: { ok: true } | { ok: false; error: string } };
   /** any → background: which AI provider would answer, and whether it's ready. */
   'ai/status': { req: Record<string, never>; res: AiStatus };
   /** YouTube page → background: run a learner-requested AI action on the current moment. */
@@ -40,7 +40,7 @@ export interface MessageMap {
   /** YouTube page → background: one turn of the learning-companion chat (text or voice — same pipeline, see src/learning/ai/chat.ts). */
   'chat/send': { req: ChatRequest; res: ChatResult };
   /** any → background: open the dashboard at a route. */
-  'dashboard/open': { req: { route?: string }; res: { ok: true } };
+  'dashboard/open': { req: { route?: string }; res: { ok: true } | { ok: false; error: string } };
   /** any → background: current FocusSpace account state (null user = anonymous). Refreshes an about-to-expire access token first. */
   'auth/status': { req: Record<string, never>; res: AuthState };
   /** ui → background: create a FocusSpace account and sign in. */
@@ -79,7 +79,7 @@ export interface MessageMap {
   /** background → content: liveness check. */
   'content/ping': { req: Record<string, never>; res: { ok: true } };
   /** any → background: open a page of the public site (src/config.ts) in a new tab, reusing one if it is already open. */
-  'site/open': { req: { path?: string }; res: { ok: true } };
+  'site/open': { req: { path?: string }; res: { ok: true } | { ok: false; error: string } };
 }
 
 export type MessageType = keyof MessageMap;
