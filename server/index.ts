@@ -42,6 +42,9 @@ import {
   verifyPhoneSignIn,
   type AuthConfig,
 } from './auth/service';
+import { signInWithGoogle } from './auth/service';
+import { createHandoff, redeemHandoff } from './auth/handoff';
+import { authorizeUrl, createState, exchangeCode, loadGoogleConfig, verifyState } from './auth/google';
 import { validateCredentials, validateEmailCode, validateEmailOnly, validatePhoneCode, validatePhoneOnly, validateRefreshRequest, validateSignupCompletion, validateSpaceRequest } from './auth/validate';
 import { RateLimiter } from './auth/rate-limit';
 import { loadSenders } from './notify/sender';
@@ -92,7 +95,38 @@ const RESET_VERIFY_ROUTE = '/v1/auth/reset/verify';
 const RESET_COMPLETE_ROUTE = '/v1/auth/reset/complete';
 const PHONE_START_ROUTE = '/v1/auth/phone/start';
 const PHONE_VERIFY_ROUTE = '/v1/auth/phone/verify';
-const AUTH_ROUTES = new Set([ME_PROFILE_ROUTE, BILLING_SUBSCRIBE_ROUTE, BILLING_SUBSCRIBE_CONFIRM_ROUTE, BILLING_CANCEL_ROUTE, BILLING_CHECKOUT_ROUTE, BILLING_CONFIRM_ROUTE, ME_PAYMENTS_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, RESET_START_ROUTE, RESET_VERIFY_ROUTE, RESET_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
+const HANDOFF_CREATE_ROUTE = '/v1/auth/handoff/create';
+const HANDOFF_REDEEM_ROUTE = '/v1/auth/handoff/redeem';
+/** Both are plain browser navigations, not API calls: they redirect rather than return JSON. */
+const GOOGLE_START_ROUTE = '/v1/auth/google/start';
+const GOOGLE_CALLBACK_ROUTE = '/v1/auth/google/callback';
+
+/**
+ * Where a finished Google sign-in is allowed to send the browser back to. An allow-list, because
+ * `returnTo` arrives from the query string: an open redirect here would let anyone bounce a victim off
+ * FocusSpace's own domain, and the handoff code in the fragment would go with them.
+ */
+const WEB_ORIGINS = (process.env.WEB_ORIGINS ?? 'https://focusspace.xyz,http://localhost:5174')
+  .split(',')
+  .map((o) => o.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
+/** Resolves `returnTo` against the allow-list, falling back to the first configured site origin. */
+function safeReturnTo(returnTo: string): string {
+  const fallback = `${WEB_ORIGINS[0] ?? ''}/signin`;
+  if (!returnTo) return fallback;
+  try {
+    const url = new URL(returnTo);
+    return WEB_ORIGINS.includes(url.origin) ? url.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+const google = loadGoogleConfig();
+if (!google) console.warn('[FocusSpace API] Google sign-in is not configured (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REDIRECT_URI) — every other sign-in method is unaffected.');
+
+const AUTH_ROUTES = new Set([HANDOFF_CREATE_ROUTE, HANDOFF_REDEEM_ROUTE, ME_PROFILE_ROUTE, BILLING_SUBSCRIBE_ROUTE, BILLING_SUBSCRIBE_CONFIRM_ROUTE, BILLING_CANCEL_ROUTE, BILLING_CHECKOUT_ROUTE, BILLING_CONFIRM_ROUTE, ME_PAYMENTS_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, RESET_START_ROUTE, RESET_VERIFY_ROUTE, RESET_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
 
 // Layer 2C — a burst/abuse safety net for the anonymous half of /v1/ai/complete, structurally separate
 // from the persisted, user_id-keyed usage/entitlement system below (see docs/LAYER_2C_USAGE_ENTITLEMENTS.md,
@@ -223,9 +257,66 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    const path = (req.url ?? '').split('?')[0];
+
+    /*
+     * ── Google sign-in ──────────────────────────────────────────────────────
+     *
+     * Two browser navigations, not API calls, so they redirect rather than answer JSON — and they sit
+     * ahead of the JSON auth block for that reason. The client secret never leaves this process: the
+     * browser only ever sees Google's own consent screen and, at the end, a FocusSpace handoff code.
+     *
+     * The code comes back in the URL *fragment*, which is never sent to a server and never lands in
+     * server logs or a Referer header. It is single-use and dies in a minute (auth/handoff.ts), and the
+     * page that receives it exchanges it immediately and strips it from the address bar.
+     */
+    if (req.method === 'GET' && (path === GOOGLE_START_ROUTE || path === GOOGLE_CALLBACK_ROUTE)) {
+      const query = new URL(req.url ?? '/', 'http://localhost').searchParams;
+      const redirect = (to: string) => {
+        res.writeHead(302, { ...CORS_HEADERS, Location: to });
+        res.end();
+      };
+
+      if (!authConfig || !google) {
+        // Nothing to sign in *with* — say so on the page the learner came from rather than in raw JSON.
+        redirect(`${safeReturnTo(query.get('returnTo') ?? '')}#error=google_unavailable`);
+        return;
+      }
+
+      if (path === GOOGLE_START_ROUTE) {
+        redirect(authorizeUrl(google, createState(authConfig.tokenSecret, safeReturnTo(query.get('returnTo') ?? ''))));
+        return;
+      }
+
+      // ── callback ──
+      // Cancelling at Google's screen is an ordinary outcome, not a failure: it comes back as
+      // ?error=access_denied and the learner simply returns to where they were.
+      let returnTo = safeReturnTo('');
+      try {
+        returnTo = verifyState(query.get('state'), authConfig.tokenSecret).returnTo;
+      } catch {
+        redirect(`${returnTo}#error=google_state`);
+        return;
+      }
+      if (query.get('error') || !query.get('code')) {
+        redirect(`${returnTo}#error=${query.get('error') === 'access_denied' ? 'google_cancelled' : 'google_failed'}`);
+        return;
+      }
+      try {
+        const profile = await exchangeCode(google, String(query.get('code')));
+        const result = signInWithGoogle(getDb(), authConfig, profile, req.headers['user-agent'] ?? null);
+        const { code } = createHandoff(getDb(), result.user.id, 'google');
+        redirect(`${returnTo}#handoff=${encodeURIComponent(code)}`);
+      } catch (err) {
+        // The real reason is for the operator's log; the learner gets one sentence and a way to retry.
+        console.warn('[FocusSpace API] Google sign-in failed:', err instanceof Error ? err.message : err);
+        redirect(`${returnTo}#error=google_failed`);
+      }
+      return;
+    }
+
     // ── Auth (Layer 2B) — every route below 503s with a clear message if AUTH_TOKEN_SECRET isn't set,
     // rather than the process refusing to start (see the authConfig load above). ──
-    const path = (req.url ?? '').split('?')[0];
     const paymentReceiptId = req.method === 'GET' ? receiptPath(path) : null;
     if (AUTH_ROUTES.has(path) || path === ME_SPACES_ROUTE || paymentReceiptId !== null) {
       if (!authConfig) throw new ApiError(503, 'internal_error', 'Authentication is not configured on this server.');
@@ -288,6 +379,23 @@ const server = createServer(async (req, res) => {
       if (req.method === 'POST' && path === AUTH_REFRESH_ROUTE) {
         const { refreshToken } = validateRefreshRequest(await readJsonBody(req, AUTH_MAX_BODY_BYTES));
         sendJson(res, 200, { ok: true, ...refresh(db, authConfig, refreshToken) });
+        return;
+      }
+      /*
+       * One FocusSpace account across three clients. `create` needs a real session — possession of the
+       * code it returns is possession of the account — and `redeem` needs nothing but the code, because
+       * the code *is* the proof. See auth/handoff.ts for why this is a code and not the session itself.
+       */
+      if (req.method === 'POST' && path === HANDOFF_CREATE_ROUTE) {
+        const { user } = authenticate(db, authConfig, req.headers.authorization);
+        const body = (await readJsonBody(req, AUTH_MAX_BODY_BYTES)) as { origin?: unknown };
+        const origin = typeof body?.origin === 'string' && body.origin.length <= 32 ? body.origin : 'website';
+        sendJson(res, 200, { ok: true, ...createHandoff(db, user.id, origin) });
+        return;
+      }
+      if (req.method === 'POST' && path === HANDOFF_REDEEM_ROUTE) {
+        const body = (await readJsonBody(req, AUTH_MAX_BODY_BYTES)) as { code?: unknown };
+        sendJson(res, 200, { ok: true, ...redeemHandoff(db, authConfig, String(body?.code ?? ''), userAgent) });
         return;
       }
       if (req.method === 'POST' && path === AUTH_LOGOUT_ROUTE) {

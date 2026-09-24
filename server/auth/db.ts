@@ -38,6 +38,8 @@ export interface UserRow {
   name: string | null;
   /** Free text, for regional pricing and support context. Never validated against a list. */
   city: string | null;
+  /** Google's stable subject id, once this account has signed in with Google. Null for everyone else. */
+  google_sub: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -52,6 +54,24 @@ export interface VerificationRow {
   target: string;
   code_hash: string;
   attempts: number;
+  expires_at: number;
+  consumed_at: number | null;
+  created_at: number;
+}
+
+/**
+ * A one-time, short-lived code that moves an already-proven identity to another FocusSpace surface —
+ * the website handing a signed-in session to the extension, or the Google callback handing one back to
+ * the website. Only the hash is stored, exactly like a refresh token, and redeeming it issues a *new*
+ * session rather than sharing the existing one: each surface ends up with its own refresh token, so
+ * signing out of one never signs out the other.
+ */
+export interface HandoffRow {
+  id: string;
+  code_hash: string;
+  user_id: string;
+  /** Free-text label for where it was made ('website', 'google'), for nothing but diagnosis. */
+  origin: string;
   expires_at: number;
   consumed_at: number | null;
   created_at: number;
@@ -81,9 +101,22 @@ CREATE TABLE IF NOT EXISTS users (
   status         TEXT NOT NULL DEFAULT 'active',
   name           TEXT,
   city           TEXT,
+  google_sub     TEXT UNIQUE,
   created_at     INTEGER NOT NULL,
   updated_at     INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS handoffs (
+  id          TEXT PRIMARY KEY,
+  code_hash   TEXT NOT NULL UNIQUE,
+  user_id     TEXT NOT NULL REFERENCES users(id),
+  origin      TEXT NOT NULL,
+  expires_at  INTEGER NOT NULL,
+  consumed_at INTEGER,
+  created_at  INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS handoffs_expires_idx ON handoffs(expires_at);
 
 CREATE TABLE IF NOT EXISTS verifications (
   id          TEXT PRIMARY KEY,
@@ -144,6 +177,13 @@ export class IdentityDb {
     const names = new Set(columns.map((c) => c.name));
     if (columns.length && !names.has('name')) this.db.exec('ALTER TABLE users ADD COLUMN name TEXT');
     if (columns.length && !names.has('city')) this.db.exec('ALTER TABLE users ADD COLUMN city TEXT');
+    // Google sign-in, added after accounts already existed. Nullable and backfilled with nothing: every
+    // existing account keeps its password and keeps working exactly as it did, and links to Google only
+    // if its owner chooses to. SQLite cannot ALTER in a UNIQUE constraint, hence the partial index.
+    if (columns.length && !names.has('google_sub')) {
+      this.db.exec('ALTER TABLE users ADD COLUMN google_sub TEXT');
+      this.db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_google_sub_idx ON users(google_sub) WHERE google_sub IS NOT NULL');
+    }
 
     if (!columns.length || names.has('phone')) return;
     this.db.exec(`
@@ -162,6 +202,8 @@ export class IdentityDb {
       );
       INSERT INTO users (id, email, phone, password_hash, email_verified, status, created_at, updated_at)
         SELECT id, email, NULL, password_hash, 1, status, created_at, updated_at FROM users_pre_phone;
+      -- name, city and google_sub are left NULL: the rebuilt table declares them, and the pre-phone
+      -- table this copies from predates all three, so there is nothing to carry across.
       DROP TABLE users_pre_phone;
       COMMIT;
       PRAGMA foreign_keys = ON;
@@ -176,8 +218,8 @@ export class IdentityDb {
 
   insertUser(user: UserRow): void {
     this.db
-      .prepare('INSERT INTO users (id, email, phone, password_hash, email_verified, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(user.id, user.email, user.phone, user.password_hash, user.email_verified, user.status, user.created_at, user.updated_at);
+      .prepare('INSERT INTO users (id, email, phone, password_hash, email_verified, status, name, city, google_sub, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(user.id, user.email, user.phone, user.password_hash, user.email_verified, user.status, user.name, user.city, user.google_sub, user.created_at, user.updated_at);
   }
 
   findUserByEmail(email: string): UserRow | undefined {
@@ -190,6 +232,19 @@ export class IdentityDb {
 
   findUserById(id: string): UserRow | undefined {
     return this.db.prepare('SELECT * FROM users WHERE id = ?').get(id) as UserRow | undefined;
+  }
+
+  findUserByGoogleSub(sub: string): UserRow | undefined {
+    return this.db.prepare('SELECT * FROM users WHERE google_sub = ?').get(sub) as UserRow | undefined;
+  }
+
+  /**
+   * Links an existing account to a Google identity. Deliberately narrow: it sets `google_sub` and can
+   * mark an address verified (Google has just proven it), and touches nothing else — not the password,
+   * which keeps working, and not the plan, payments or Spaces, which are keyed by user id and never move.
+   */
+  linkGoogle(userId: string, sub: string, now: number): void {
+    this.db.prepare('UPDATE users SET google_sub = ?, email_verified = 1, updated_at = ? WHERE id = ?').run(sub, now, userId);
   }
 
   /**
@@ -291,6 +346,33 @@ export class IdentityDb {
   /** "Log out everywhere" — used by a password reset, which must not leave a thief signed in. */
   revokeAllSessionsForUser(userId: string, at: number): void {
     this.db.prepare('UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL').run(at, userId);
+  }
+
+  // ── handoffs ───────────────────────────────────────────────────────────
+
+  insertHandoff(row: HandoffRow): void {
+    this.db
+      .prepare('INSERT INTO handoffs (id, code_hash, user_id, origin, expires_at, consumed_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(row.id, row.code_hash, row.user_id, row.origin, row.expires_at, row.consumed_at, row.created_at);
+  }
+
+  findHandoffByCodeHash(hash: string): HandoffRow | undefined {
+    return this.db.prepare('SELECT * FROM handoffs WHERE code_hash = ?').get(hash) as HandoffRow | undefined;
+  }
+
+  /**
+   * Marks the code used, and reports whether *this* call is the one that did it. The UPDATE's own
+   * WHERE clause is the check, so two simultaneous redemptions of the same code cannot both win —
+   * SQLite serialises the writes and the loser changes no rows.
+   */
+  consumeHandoff(id: string, at: number): boolean {
+    const result = this.db.prepare('UPDATE handoffs SET consumed_at = ? WHERE id = ? AND consumed_at IS NULL').run(at, id);
+    return Number(result.changes) === 1;
+  }
+
+  /** Housekeeping: a code that was never redeemed is worthless once expired. */
+  deleteExpiredHandoffs(before: number): void {
+    this.db.prepare('DELETE FROM handoffs WHERE expires_at < ?').run(before);
   }
 }
 

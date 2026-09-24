@@ -10,6 +10,7 @@ import { Faq } from './components/Faq';
 import { Footer } from './components/Footer';
 import { ChatLauncher } from './components/ChatLauncher';
 import { AuthPage } from './components/AuthPage';
+import { ConnectPage } from './components/ConnectPage';
 import { AccountPage } from './components/AccountPage';
 import { LegalPage } from './components/LegalPage';
 import { DataSummary } from './components/DataSummary';
@@ -37,6 +38,8 @@ export function App() {
         ? 'Pricing — FocusSpace'
         : path === '/signin' || path === '/signup' || path === '/reset'
           ? 'Sign in — FocusSpace'
+          : path === '/connect'
+          ? 'Connecting FocusSpace'
           : path === '/account'
             ? 'Your account — FocusSpace'
             : LEGAL_DOCS[path]
@@ -46,6 +49,8 @@ export function App() {
 
   const isPricing = path === '/pricing';
   const isAuth = path === '/signin' || path === '/signup' || path === '/reset';
+  // Where the extension sends someone to finish signing in — see web/src/connect.ts.
+  const isConnect = path === '/connect';
   const isAccount = path === '/account';
   const legal = LEGAL_DOCS[path] ?? null;
 
@@ -55,6 +60,8 @@ export function App() {
       <main id="main">
         {legal ? (
           <LegalPage doc={legal} lead={legal.slug === '/privacy' ? <DataSummary /> : undefined} />
+        ) : isConnect ? (
+          <ConnectPage />
         ) : isAuth ? (
           <AuthPage mode={path === '/signup' ? 'signup' : path === '/reset' ? 'reset' : 'signin'} />
         ) : isAccount ? (
@@ -80,7 +87,7 @@ export function App() {
           </>
         )}
       </main>
-      {!isAuth && <Footer />}
+      {!isAuth && !isConnect && <Footer />}
       <ChatLauncher />
     </AuthProvider>
   );

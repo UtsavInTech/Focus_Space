@@ -31,7 +31,7 @@ import { Modal } from '@/ui/components/Modal';
 
 
 
-/* ─── Learning companion ───────────────────────────────────────────────────── */
+/* ─── FocusSpace AI ────────────────────────────────────────────────────────── */
 
 const LANGUAGE_OPTIONS: { value: NoteLanguage; label: string }[] = [
   { value: 'en', label: 'English' },
@@ -79,7 +79,7 @@ function AiSection({ settings }: { settings: Settings }) {
                   : 'Not available: this browser has no on-device model, and no endpoint is set.';
 
   return (
-    <Section id="ai" title="Learning companion" description="Explain, give an example, quiz you, take notes, or answer a question about the moment you're watching. It runs only when you ask.">
+    <Section id="ai" title="FocusSpace AI" description="Ask anything about the video or page you're on. It can also explain, give an example, quiz you or take notes — and it runs only when you ask.">
       <SettingRow
         title="Provider"
         description={

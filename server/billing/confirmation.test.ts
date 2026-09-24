@@ -26,7 +26,7 @@ let remoteSubscriptionPlan: string | undefined;
 
 const newUser = () => {
   const id = randomUUID();
-  identityDb.insertUser({ id, email: `${id}@example.com`, phone: null, password_hash: 'x', email_verified: 1, status: 'active', name: null, city: null, created_at: Date.now(), updated_at: Date.now() });
+  identityDb.insertUser({ id, email: `${id}@example.com`, phone: null, password_hash: 'x', email_verified: 1, status: 'active', name: null, city: null, google_sub: null, created_at: Date.now(), updated_at: Date.now() });
   return id;
 };
 

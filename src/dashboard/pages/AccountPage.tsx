@@ -197,6 +197,28 @@ function DataNote({ signedIn }: { signedIn: boolean }) {
   );
 }
 
+/**
+ * Sends the learner to the website to finish signing in, and lets that page hand the session back.
+ *
+ * Deliberately not a second implementation of anything: `/connect` is the website's own page, it uses
+ * the website's own sign-in (Google included), and it returns a one-time handoff code over
+ * `externally_connectable`. The extension holds no OAuth client id, no client secret, and never sees a
+ * Google token — see server/auth/google.ts for why the whole exchange lives on the server.
+ */
+const openConnect = () => sendMessage('site/open', { path: '/connect' }).catch(() => undefined);
+
+/** Google's mark. Inline so the extension fetches nothing from Google to draw a button. */
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 18 18" aria-hidden focusable="false">
+      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62Z" />
+      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18Z" />
+      <path fill="#FBBC05" d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33Z" />
+      <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.9 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z" />
+    </svg>
+  );
+}
+
 export function SignInSection({ settings, flow: flowProp }: { settings: Settings; flow?: AccountFlow }) {
   const ownFlow = useAccountFlow();
   // Accepts an already-instantiated flow (AccountPage passes its own so PaymentsSection can share it),
@@ -269,6 +291,23 @@ export function SignInSection({ settings, flow: flowProp }: { settings: Settings
           )}
           {hasServer && (
             <div className="fs-account-form-rows">
+              {/*
+                One FocusSpace account. Both of these finish on focusspace.xyz and hand the result back
+                over the extension's existing message channel as a single-use code (web/src/connect.ts) —
+                which is what lets the extension offer Google without shipping an OAuth credential, and
+                what stops someone who just signed in on the website being asked to sign in again here.
+              */}
+              <div className="fs-signin-primary">
+                <Button variant="secondary" icon={<GoogleMark />} onClick={() => void openConnect()}>
+                  Continue with Google
+                </Button>
+                <Button variant="ghost" onClick={() => void openConnect()}>
+                  Already signed in on focusspace.xyz? Connect this browser
+                </Button>
+              </div>
+              <div className="fs-or">
+                <span>or use your email</span>
+              </div>
               <Segmented
                 label="Sign-in method"
                 value={method}
@@ -347,6 +386,13 @@ export function SignInSection({ settings, flow: flowProp }: { settings: Settings
                     </>
                   )}
                 </div>
+              )}
+
+              {/* Reset lives on the website (the server has the routes; the extension never had a way in). */}
+              {(step.view === 'email-signin' || step.view === 'menu') && (
+                <button type="button" className="fs-link" onClick={() => void sendMessage('site/open', { path: '/reset' }).catch(() => undefined)}>
+                  Forgot your password?
+                </button>
               )}
 
               {devCode && (

@@ -120,8 +120,10 @@ describe('authenticate', () => {
     const { accessToken } = register(db, config, uniqueEmail(), 'password one', null);
     const { user } = authenticate(db, config, `Bearer ${accessToken}`);
     // An exact key set, not a subset: this is what catches password_hash (or any other
-    // internal column) being handed out by a future change to toPublicUser.
-    expect(Object.keys(user).sort()).toEqual(['city', 'createdAt', 'email', 'emailVerified', 'id', 'name', 'phone']);
+    // internal column) being handed out by a future change to toPublicUser. `google` is a boolean
+    // ("can this account sign in with Google?"), never google_sub itself.
+    expect(Object.keys(user).sort()).toEqual(['city', 'createdAt', 'email', 'emailVerified', 'google', 'id', 'name', 'phone']);
+    expect(user.google).toBe(false);
   });
 });
 

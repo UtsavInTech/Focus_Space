@@ -14,7 +14,7 @@ let usageDb: UsageDb;
 
 const makeUser = (): string => {
   const id = randomUUID();
-  identityDb.insertUser({ id, email: `${randomUUID()}@example.com`, phone: null, password_hash: 'x', email_verified: 1, status: 'active', name: null, city: null, created_at: Date.now(), updated_at: Date.now() });
+  identityDb.insertUser({ id, email: `${randomUUID()}@example.com`, phone: null, password_hash: 'x', email_verified: 1, status: 'active', name: null, city: null, google_sub: null, created_at: Date.now(), updated_at: Date.now() });
   return id;
 };
 

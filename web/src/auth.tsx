@@ -29,6 +29,8 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   completeSignup: (ticket: string, password: string) => Promise<void>;
   completeReset: (ticket: string, password: string) => Promise<void>;
+  /** Exchanges a one-time handoff code for a session — how a Google sign-in lands back here. */
+  signInWithHandoff: (code: string) => Promise<void>;
   signOut: () => Promise<void>;
   /** Re-reads the account from the server — after a purchase, or a profile edit. */
   reload: () => Promise<void>;
@@ -121,6 +123,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [apply],
   );
 
+  /**
+   * The end of a Google sign-in: the server already proved who this is, and the code is the receipt.
+   * Identical in effect to signing in with a password — a normal session, refreshed the normal way.
+   */
+  const signInWithHandoff = useCallback(
+    async (code: string) => {
+      const result = await api.handoffRedeem(code);
+      apply({ user: result.user, accessToken: result.accessToken, accessTokenExpiresAt: result.accessTokenExpiresAt, refreshToken: result.refreshToken });
+    },
+    [apply],
+  );
+
   const signOut = useCallback(async () => {
     const current = readSession();
     setPlan('free');
@@ -165,8 +179,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthState>(
-    () => ({ user: session?.user ?? null, plan, planExpiresAt, autoRenew, ready, signIn, completeSignup, completeReset, signOut, token, reload, setProfile }),
-    [session, plan, planExpiresAt, autoRenew, ready, signIn, completeSignup, completeReset, signOut, token, reload, setProfile],
+    () => ({ user: session?.user ?? null, plan, planExpiresAt, autoRenew, ready, signIn, completeSignup, completeReset, signInWithHandoff, signOut, token, reload, setProfile }),
+    [session, plan, planExpiresAt, autoRenew, ready, signIn, completeSignup, completeReset, signInWithHandoff, signOut, token, reload, setProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

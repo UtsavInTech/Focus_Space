@@ -15,7 +15,7 @@ import { noteFromAnswer } from '@/learning/notes/from-answer';
 import { saveChatSession } from '@/storage/chat-store';
 
 /**
- * "Ask AI…": a genuine back-and-forth conversation, distinct from the
+ * FocusSpace AI's conversation: a genuine back-and-forth, distinct from the
  * single-shot "Ask about this moment". Every turn rebuilds the
  * LearningContext at the *current* playback time (buildLearningContext —
  * the same function every other AI surface uses), so the conversation stays
@@ -198,53 +198,72 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, current
     recognition.start();
   }
 
+  const empty = history.length === 0;
+
+  /*
+   * Three parts, and only three: a header, a thread that scrolls, and a composer that does not. The
+   * composer used to live *inside* the scrolling body, which is why it floated in the middle of an
+   * empty panel and drifted as answers arrived. Each part is a plain region on one surface — the panel
+   * itself is the only thing with a border, so there is no container-inside-a-container outline.
+   */
   return (
-    <div className="fs-answer" role="region" aria-label="Ask AI">
-      <div className="fs-answer-head">
-        <span>Ask AI</span>
+    <div className="fs-ai-panel">
+      <header className="fs-ai-panel-head">
+        <span className="fs-ai-panel-title">FocusSpace AI</span>
         <button type="button" className="fs-icon-plain" aria-label="Close" onClick={onClose}>
           <X size={16} aria-hidden />
         </button>
-      </div>
-      <div className="fs-answer-body">
-        {history.length === 0 && <p className="fs-answer-note">{homepage ? 'What do you want to learn or watch? Ask about this YouTube page.' : 'Ask anything about what you’re watching — FocusSpace keeps track of where you are in the video.'}</p>}
-        {history.map((m) => (
-          <div key={m.id} style={{ marginBottom: 10 }}>
-            <div className="fs-answer-note">{m.role === 'learner' ? 'You' : 'FocusSpace'}</div>
-            {m.role === 'assistant' ? (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                <div style={{ flex: 1 }}>
-                  <RichText text={m.text} />
-                </div>
-                <div className="fs-turn-actions">
-                  {speakSupported && (
-                    <button type="button" className="fs-icon-plain" aria-label="Read aloud" onClick={() => speak(m.text)}>
-                      <Volume2 size={14} aria-hidden />
-                    </button>
-                  )}
-                  {!!video?.id && (
-                    <button
-                      type="button"
-                      className="fs-icon-plain"
-                      aria-label={saved.includes(m.id) ? 'Saved to your notes' : 'Save this answer to your notes'}
-                      title={saved.includes(m.id) ? 'Saved to your notes' : 'Save to notes'}
-                      disabled={saved.includes(m.id)}
-                      onClick={() => void saveAnswer(m)}
-                    >
-                      {saved.includes(m.id) ? <Check size={14} aria-hidden /> : <NotebookPen size={14} aria-hidden />}
-                    </button>
-                  )}
-                </div>
-              </div>
-            ) : (
+      </header>
+
+      <div className="fs-ai-thread">
+        {empty && (
+          <p className="fs-ai-empty">
+            {homepage ? 'Ask anything about this page — what to watch, or what to learn next.' : 'Ask anything about this video. FocusSpace knows where you are in it.'}
+          </p>
+        )}
+
+        {history.map((m) =>
+          m.role === 'learner' ? (
+            <div key={m.id} className="fs-ai-turn fs-ai-turn-you">
               <p>{m.text}</p>
-            )}
-          </div>
-        ))}
-        {loading && <p className="fs-answer-note" aria-busy="true">Thinking…</p>}
+            </div>
+          ) : (
+            <div key={m.id} className="fs-ai-turn fs-ai-turn-ai">
+              <RichText text={m.text} />
+              <div className="fs-ai-turn-actions">
+                {speakSupported && (
+                  <button type="button" className="fs-icon-plain" aria-label="Read aloud" onClick={() => speak(m.text)}>
+                    <Volume2 size={14} aria-hidden />
+                  </button>
+                )}
+                {!!video?.id && (
+                  <button
+                    type="button"
+                    className="fs-icon-plain"
+                    aria-label={saved.includes(m.id) ? 'Saved to your notes' : 'Save this answer to your notes'}
+                    title={saved.includes(m.id) ? 'Saved to your notes' : 'Save to notes'}
+                    disabled={saved.includes(m.id)}
+                    onClick={() => void saveAnswer(m)}
+                  >
+                    {saved.includes(m.id) ? <Check size={14} aria-hidden /> : <NotebookPen size={14} aria-hidden />}
+                  </button>
+                )}
+              </div>
+            </div>
+          ),
+        )}
+
+        {loading && (
+          <p className="fs-ai-thinking" aria-busy="true">
+            <span />
+            <span />
+            <span />
+          </p>
+        )}
+
         {/* A monthly-allowance message (Layer 2C) is an expected, calm state, not a failure — it gets the plain note style, never the red "danger" tint. */}
         {error && (
-          <p className={`fs-answer-note${error.code === 'quota_exceeded' ? '' : ' fs-error'}`}>
+          <p className={`fs-ai-note${error.code === 'quota_exceeded' ? '' : ' fs-error'}`}>
             {error.text}
             {error.code === 'quota_exceeded' && (
               <button type="button" className="fs-link" onClick={() => void sendMessage('site/open', { path: '/pricing' })}>
@@ -253,34 +272,38 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, current
             )}
           </p>
         )}
-
-        <form
-          className="fs-ask"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submit(question);
-          }}
-        >
-          <input
-            value={question}
-            onChange={(e) => {
-              setQuestion(e.target.value);
-              setVoiceOrigin(false);
-            }}
-            placeholder={listening ? 'Listening…' : 'Ask AI…'}
-            aria-label="Ask AI"
-            maxLength={500}
-          />
-          {speechSupported && (
-            <button type="button" className={`fs-icon-plain${listening ? ' is-listening' : ''}`} aria-label={listening ? 'Stop listening' : 'Ask by voice'} aria-pressed={listening} onClick={toggleMic}>
-              <Mic size={16} aria-hidden />
-            </button>
-          )}
-          <button type="submit" className="fs-icon-plain" aria-label="Send" disabled={!question.trim() || loading}>
-            <Send size={16} aria-hidden />
-          </button>
-        </form>
       </div>
+
+      {/*
+       * One composer, one outline. The border belongs to the form; the input inside it is transparent
+       * and borderless, so focus moves a single ring rather than lighting up a box within a box.
+       */}
+      <form
+        className={`fs-ai-composer${listening ? ' is-listening' : ''}`}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit(question);
+        }}
+      >
+        <input
+          value={question}
+          onChange={(e) => {
+            setQuestion(e.target.value);
+            setVoiceOrigin(false);
+          }}
+          placeholder={listening ? 'Listening…' : homepage ? 'Ask about this page…' : 'Ask about this video…'}
+          aria-label="Ask FocusSpace AI"
+          maxLength={500}
+        />
+        {speechSupported && (
+          <button type="button" className={`fs-ai-mic${listening ? ' is-listening' : ''}`} aria-label={listening ? 'Stop listening' : 'Ask by voice'} aria-pressed={listening} onClick={toggleMic}>
+            <Mic size={16} aria-hidden />
+          </button>
+        )}
+        <button type="submit" className="fs-ai-send" aria-label="Send" disabled={!question.trim() || loading}>
+          <Send size={15} aria-hidden />
+        </button>
+      </form>
     </div>
   );
 }

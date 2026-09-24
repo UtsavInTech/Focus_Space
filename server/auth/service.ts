@@ -41,6 +41,8 @@ export interface PublicUser {
   email: string | null;
   phone: string | null;
   emailVerified: boolean;
+  /** True once this account can be signed into with Google. Never the Google id itself. */
+  google: boolean;
   /** Profile. Both null until the learner fills them in; neither is ever required. */
   name: string | null;
   city: string | null;
@@ -48,7 +50,7 @@ export interface PublicUser {
 }
 
 function toPublicUser(row: UserRow): PublicUser {
-  return { id: row.id, email: row.email, phone: row.phone, emailVerified: row.email_verified === 1, name: row.name ?? null, city: row.city ?? null, createdAt: row.created_at };
+  return { id: row.id, email: row.email, phone: row.phone, emailVerified: row.email_verified === 1, google: !!row.google_sub, name: row.name ?? null, city: row.city ?? null, createdAt: row.created_at };
 }
 
 export interface SessionTokens {
@@ -66,6 +68,11 @@ export interface AuthResult extends SessionTokens {
 // specifically a credential-stuffing guard on one account, not a general abuse limiter.
 const loginLimiter = new RateLimiter(10, 15 * 60 * 1000);
 const registerLimiter = new RateLimiter(5, 60 * 60 * 1000);
+
+/** A session plus the public user, for the paths that already hold the row — handoff and Google. */
+export function issueSessionFor(db: IdentityDb, config: AuthConfig, user: UserRow, userAgent: string | null, now = Date.now()): AuthResult {
+  return { ...issueSession(db, config, user.id, userAgent, now), user: toPublicUser(user) };
+}
 
 function issueSession(db: IdentityDb, config: AuthConfig, userId: string, userAgent: string | null, now = Date.now()): SessionTokens {
   const sessionId = randomUUID();
@@ -107,6 +114,7 @@ export function register(db: IdentityDb, config: AuthConfig, email: string, pass
     status: 'active',
     name: null,
     city: null,
+    google_sub: null,
     created_at: now,
     updated_at: now,
   };
@@ -279,7 +287,7 @@ export function completeEmailSignup(db: IdentityDb, config: AuthConfig, ticket: 
   const email = payload.sub.slice('signup:'.length);
   if (db.findUserByEmail(email)?.password_hash) throw new ApiError(409, 'conflict', 'An account with that email already exists. Sign in instead.');
 
-  const user: UserRow = { id: randomUUID(), email, phone: null, password_hash: hashPassword(password), email_verified: 1, status: 'active', name: null, city: null, created_at: now, updated_at: now };
+  const user: UserRow = { id: randomUUID(), email, phone: null, password_hash: hashPassword(password), email_verified: 1, status: 'active', name: null, city: null, google_sub: null, created_at: now, updated_at: now };
   db.insertUser(user);
   return { ...issueSession(db, config, user.id, userAgent, now), user: toPublicUser(user) };
 }
@@ -366,6 +374,70 @@ export function updateProfile(db: IdentityDb, userId: string, patch: { name?: un
 }
 
 
+/* ─── Google sign-in ───────────────────────────────────────────────────────── */
+
+/**
+ * Signs in with a Google identity this server has just verified (auth/google.ts), creating the account
+ * only if there is none.
+ *
+ * Three cases, in order, and the order is the whole policy:
+ *
+ * 1. **This Google account has signed in before.** Matched on `google_sub`, Google's stable id — not on
+ *    the email address, which a person can change at Google without becoming someone else.
+ * 2. **The verified address already has a FocusSpace account.** It is linked, not duplicated. This is
+ *    the case that matters most: someone who signed up with a password months ago and now clicks
+ *    "Continue with Google" must land in *their* account — same id, so same plan, same payment history,
+ *    same AI allowance, same registered Spaces — and their password keeps working afterwards. Linking is
+ *    only safe because google.ts refuses an unverified Google address; without that check this would be
+ *    account takeover by registering someone else's address with Google.
+ * 3. **Neither.** A new account, verified from the start, with no password — exactly like phone sign-in,
+ *    where the external identity *is* the credential.
+ *
+ * Entitlements are untouched throughout: nothing here reads or writes a plan, a payment or a space. An
+ * account reached through Google is the same row it always was.
+ */
+export function signInWithGoogle(
+  db: IdentityDb,
+  config: AuthConfig,
+  profile: { sub: string; email: string; name: string | null },
+  userAgent: string | null,
+  now = Date.now(),
+): AuthResult & { created: boolean } {
+  const disabled = new ApiError(403, 'forbidden', 'This account is disabled.');
+
+  const linked = db.findUserByGoogleSub(profile.sub);
+  if (linked) {
+    if (linked.status !== 'active') throw disabled;
+    return { ...issueSessionFor(db, config, linked, userAgent, now), created: false };
+  }
+
+  const existing = db.findUserByEmail(profile.email);
+  if (existing) {
+    if (existing.status !== 'active') throw disabled;
+    db.linkGoogle(existing.id, profile.sub, now);
+    // Re-read so the response carries the linked state rather than the row as it was a moment ago.
+    return { ...issueSessionFor(db, config, db.findUserById(existing.id) ?? existing, userAgent, now), created: false };
+  }
+
+  const user: UserRow = {
+    id: randomUUID(),
+    email: profile.email,
+    phone: null,
+    // No password: Google is the credential. One can be set later through the ordinary reset flow,
+    // which proves control of the same mailbox.
+    password_hash: null,
+    email_verified: 1,
+    status: 'active',
+    name: profile.name,
+    city: null,
+    google_sub: profile.sub,
+    created_at: now,
+    updated_at: now,
+  };
+  db.insertUser(user);
+  return { ...issueSessionFor(db, config, user, userAgent, now), created: true };
+}
+
 export const PHONE_UNAVAILABLE = 'Phone sign-in isn’t available yet. Sign in or create an account with your email.';
 
 export async function startPhoneSignIn(db: IdentityDb, config: AuthConfig, senders: Senders, phone: string): Promise<CodeSent> {
@@ -386,7 +458,7 @@ export function verifyPhoneSignIn(db: IdentityDb, config: AuthConfig, phone: str
   let user = db.findUserByPhone(phone);
   const created = !user;
   if (!user) {
-    user = { id: randomUUID(), email: null, phone, password_hash: null, email_verified: 0, status: 'active', name: null, city: null, created_at: now, updated_at: now };
+    user = { id: randomUUID(), email: null, phone, password_hash: null, email_verified: 0, status: 'active', name: null, city: null, google_sub: null, created_at: now, updated_at: now };
     db.insertUser(user);
   }
   if (user.status !== 'active') throw new ApiError(403, 'forbidden', 'This account is disabled.');

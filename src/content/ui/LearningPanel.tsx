@@ -230,7 +230,7 @@ export function NowLearning({
           <span>Learn with AI</span>
           {aiState && <span className="fs-sec-meta">{aiState}</span>}
         </div>
-        <div className="fs-ai-actions" role="toolbar" aria-label="Learning companion">
+        <div className="fs-ai-actions" role="toolbar" aria-label="FocusSpace AI">
           {ACTIONS.map((a) => (
             <button key={a.id} type="button" className={`fs-ai-chip${!panel && answer?.action === a.id ? ' is-active' : ''}`} aria-pressed={!panel && answer?.action === a.id} onClick={() => void run(a.id)}>
               {a.icon} {a.label}
@@ -240,7 +240,7 @@ export function NowLearning({
             <NotebookPen size={14} aria-hidden /> Make Notes
           </button>
           <button type="button" className={`fs-ai-chip${panel === 'chat' ? ' is-active' : ''}`} aria-pressed={panel === 'chat'} onClick={() => { setAnswer(null); setPanel((p) => (p === 'chat' ? null : 'chat')); }}>
-            <MessageCircle size={14} aria-hidden /> Ask AI…
+            <MessageCircle size={14} aria-hidden /> Ask FocusSpace AI
           </button>
         </div>
         <form
@@ -467,7 +467,7 @@ function AnswerView({ answer, providerLabel, onSeek, onClose }: { answer: Answer
           <>
             <p className="fs-answer-note">
               <CircleHelp size={14} aria-hidden />{' '}
-              {answer.setup === 'off' ? 'AI is turned off — turn it back on in Settings → Learning companion.' : answer.setup === 'download' ? 'The on-device AI model needs a one-time download — Settings → Learning companion.' : 'FocusSpace couldn’t reach its AI just now. Try again in a moment.'}
+              {answer.setup === 'off' ? 'AI is turned off — turn it back on in Settings → FocusSpace AI.' : answer.setup === 'download' ? 'The on-device AI model needs a one-time download — Settings → FocusSpace AI.' : 'FocusSpace couldn’t reach its AI just now. Try again in a moment.'}
             </p>
             {answer.excerpt && (
               <>

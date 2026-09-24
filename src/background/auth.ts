@@ -129,6 +129,25 @@ export async function verifyPhoneSignIn(phone: string, code: string): Promise<{ 
   return { ok: true, state: await persist(result), created: result.created === true };
 }
 
+/**
+ * Finishes a sign-in that happened on focusspace.xyz.
+ *
+ * The website cannot give the extension its session — different origins, no shared storage — so it asks
+ * the server for a one-time code and passes that instead (web/src/connect.ts, server/auth/handoff.ts).
+ * Redeeming it here mints a session that belongs to *this* extension: its own refresh token, its own
+ * row, so signing out here does not sign out the website and vice versa.
+ *
+ * This is also what makes "Continue with Google" work in the extension without any OAuth credential
+ * ever being shipped in the extension: the whole Google exchange happened on the server.
+ */
+export async function redeemHandoff(code: string): Promise<{ ok: true; state: AuthState } | { ok: false; error: string }> {
+  const base = await apiBaseUrl();
+  if (!base) return { ok: false, error: NO_SERVER };
+  const result = await postJson<ServerAuthSuccess>(`${base}/v1/auth/handoff/redeem`, { code });
+  if (!result.ok) return result;
+  return { ok: true, state: await persist(result) };
+}
+
 export async function logout(): Promise<{ ok: true }> {
   const [base, current] = await Promise.all([apiBaseUrl(), getItem('auth')]);
   // Best-effort revocation — local sign-out must succeed even if the server is unreachable or the

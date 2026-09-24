@@ -222,3 +222,16 @@
 .fs-history-progress { display: flex; align-items: center; gap: 8px; flex: none; }
 .fs-link { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 0; color: var(--fs-accent-text); font: inherit; font-size: 13px; font-weight: 540; cursor: pointer; }
 .fs-link:hover { text-decoration: underline; }
+
+/* ─── Sign-in ───────────────────────────────────────────────────────────────
+ * The primary ways in, stacked and full width, above the email form — the
+ * same hierarchy the website's sign-in page uses, so the two read as one
+ * product rather than two different front doors.
+ */
+.fs-signin-primary { display: flex; flex-direction: column; gap: 8px; }
+.fs-signin-primary .fs-btn { width: 100%; justify-content: center; }
+.fs-signin-primary svg { width: 16px; height: 16px; flex: none; }
+
+.fs-or { position: relative; margin: 4px 0; text-align: center; }
+.fs-or::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--fs-border); }
+.fs-or span { position: relative; padding: 0 10px; background: var(--fs-bg); font-size: 12px; color: var(--fs-text-3); }

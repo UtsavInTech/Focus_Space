@@ -10,7 +10,7 @@ import { installId } from './install-id';
 const AI_ROUTE = '/v1/ai/complete';
 
 /**
- * AI providers for the learning companion. Neither holds a secret:
+ * AI providers for FocusSpace AI. Neither holds a secret:
  *
  * - chrome: Chrome's built-in on-device model. Nothing leaves the browser.
  * - endpoint: the learner's own server (reference: scripts/ai-endpoint). It

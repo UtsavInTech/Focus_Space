@@ -129,7 +129,7 @@ export interface Settings {
   onboarded: boolean;
   /** Developer aid: show why each video got its relevance score. */
   debugRelevance: boolean;
-  /** Learning companion (only runs when the learner asks). */
+  /** FocusSpace AI (only runs when the learner asks). */
   ai: AiSettings;
   /** The FocusSpace account/identity server (Layer 2B). Optional — see ApiSettings. */
   api: ApiSettings;

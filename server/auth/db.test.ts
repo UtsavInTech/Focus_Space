@@ -13,6 +13,7 @@ const makeUser = (overrides: Partial<UserRow> = {}): UserRow => ({
   status: 'active',
   name: null,
   city: null,
+  google_sub: null,
   created_at: Date.now(),
   updated_at: Date.now(),
   ...overrides,

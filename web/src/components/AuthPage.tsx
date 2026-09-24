@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { navigate, onLinkClick } from '../router';
 import { useAuth } from '../auth';
 import * as api from '../api';
+import { AUTH_FRAGMENT_MESSAGE, takeAuthFragment } from '../connect';
+import { GoogleButton } from './GoogleButton';
 import { Logo } from './Logo';
 import { FREE_SPACE_LIMIT } from '../content/plans';
 
@@ -22,6 +24,12 @@ import { FREE_SPACE_LIMIT } from '../content/plans';
 type Mode = 'signin' | 'signup' | 'reset';
 type Step = 'email' | 'code' | 'password';
 
+/** Where to go once signed in. `?next=` is only ever honoured for a path on this site. */
+function nextPath(): string {
+  const raw = new URLSearchParams(location.search).get('next');
+  return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/account';
+}
+
 export function AuthPage({ mode: initialMode }: { mode: Mode }) {
   const auth = useAuth();
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -35,6 +43,27 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /*
+   * Coming back from Google. The server put a single-use handoff code in the URL fragment — never in the
+   * query string, so it was never sent to any server or written to a log — and `takeAuthFragment` strips
+   * it from the address bar as it reads it. Redeeming it here is what turns it into a session.
+   */
+  useEffect(() => {
+    const { handoff, error: failure } = takeAuthFragment();
+    if (failure) {
+      setError(AUTH_FRAGMENT_MESSAGE[failure] ?? 'That sign-in could not be completed. Try again.');
+      return;
+    }
+    if (!handoff) return;
+    setBusy(true);
+    void auth
+      .signInWithHandoff(handoff)
+      .then(() => navigate(nextPath()))
+      .catch((err: unknown) => setError(err instanceof api.ApiError ? err.message : 'That sign-in link has expired. Try again.'))
+      .finally(() => setBusy(false));
+    // Once, on mount: the fragment is consumed by the first read.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function switchMode(next: Mode) {
     setMode(next);
@@ -103,7 +132,7 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
     if (mode === 'signin') {
       return void run(async () => {
         await auth.signIn(email.trim(), password);
-        navigate('/account');
+        navigate(nextPath());
       });
     }
 
@@ -127,7 +156,7 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
 
     return void run(async () => {
       await auth.completeSignup(ticket, password);
-      navigate('/account');
+      navigate(nextPath());
     });
   };
 
@@ -179,6 +208,16 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
           <p className="fsw-auth-error">
             This build has no API configured, so accounts are unavailable. The extension still works fully signed out.
           </p>
+        )}
+
+        {/* Only on the first screen: offering another way in halfway through entering a code is noise. */}
+        {api.apiConfigured && (mode === 'signin' || step === 'email') && mode !== 'reset' && (
+          <>
+            <GoogleButton disabled={busy} returnTo={`${location.origin}${location.pathname}${location.search}`} />
+            <div className="fsw-auth-or">
+              <span>or</span>
+            </div>
+          </>
         )}
 
         <form onSubmit={submit} className="fsw-auth-form">

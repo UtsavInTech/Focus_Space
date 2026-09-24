@@ -484,39 +484,141 @@ a.fs-path-name:hover { color: var(--fs-text); }
   .fs-ai-bubble.is-pulsing::after, .fs-ai-bubble-dot { animation: none; }
 }
 
+/*
+ * The dock *is* the panel: one surface, one radius, one shadow, one hairline.
+ *
+ * It used to be a rounded, clipping container with a second rounded card inside it, each with its own
+ * outline — which is where the doubled borders in the panel came from. Everything below is now a plain
+ * region on this single surface.
+ */
 .fs-ai-dock {
   position: fixed;
   /* right/bottom are set inline — the panel remembers where it was dragged to. */
   right: 20px;
   bottom: 84px;
-  width: min(380px, calc(100vw - 40px));
-  max-height: min(560px, calc(100vh - 140px));
+  width: min(392px, calc(100vw - 32px));
+  max-height: min(600px, calc(100vh - 140px));
   display: flex;
-  border-radius: 14px;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 16px;
+  background: var(--fs-elevated);
+  box-shadow: 0 0 0 1px var(--fs-border), var(--fs-shadow-pop);
   overflow: hidden;
-  box-shadow: var(--fs-shadow-pop);
   animation: fs-rise 160ms var(--fs-ease) both;
   z-index: 2147483000;
 }
-.fs-ai-dock > .fs-answer { flex: 1; min-width: 0; }
+
+.fs-ai-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; }
+
+.fs-ai-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--fs-s2);
+  flex: none;
+  padding: 10px 8px 10px 16px;
+}
+.fs-ai-panel-title { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; color: var(--fs-text); }
+.fs-ai-panel-head .fs-icon-plain { width: 30px; height: 30px; }
+
+/* The one part that scrolls. No border of its own — the space around it is the separation. */
+.fs-ai-thread {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 2px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--fs-text);
+  overflow-wrap: anywhere;
+}
+.fs-ai-empty { margin: 4px 0 0; font-size: 13.5px; line-height: 20px; color: var(--fs-text-2); }
+
+/* The learner's turn reads as something they said; the answer reads as the document it is. */
+.fs-ai-turn { min-width: 0; }
+.fs-ai-turn p { margin: 0; }
+.fs-ai-turn-you {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--fs-accent-soft);
+  color: var(--fs-text);
+  font-size: 13.5px;
+  line-height: 20px;
+}
+.fs-ai-turn-ai { align-self: stretch; }
+.fs-ai-turn-actions { display: flex; align-items: center; gap: 2px; margin-top: 4px; opacity: 0; transition: opacity 140ms ease; }
+.fs-ai-turn-ai:hover .fs-ai-turn-actions, .fs-ai-turn-actions:focus-within { opacity: 1; }
+.fs-ai-turn-actions .fs-icon-plain { width: 26px; height: 26px; }
+
+.fs-ai-note { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0; font-size: 13px; line-height: 18px; color: var(--fs-text-2); }
+
+/* Three dots, rather than the word "Thinking…" — quieter, and it reads as activity at a glance. */
+.fs-ai-thinking { display: flex; align-items: center; gap: 4px; margin: 0; height: 20px; }
+.fs-ai-thinking span { width: 5px; height: 5px; border-radius: 50%; background: var(--fs-text-3); animation: fs-ai-dots 1.2s var(--fs-ease) infinite; }
+.fs-ai-thinking span:nth-child(2) { animation-delay: 0.15s; }
+.fs-ai-thinking span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes fs-ai-dots { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .fs-ai-thinking span { animation: none; opacity: 0.6; } }
 
 /*
- * The drag handle: an invisible strip over the panel's header, stopping short
- * of the right edge so the close button underneath stays clickable. A strip
- * rather than a handler on the whole panel, so selecting an answer's text
- * never drags the window.
+ * One composer. The border belongs to the form and the input inside it is transparent and borderless,
+ * so focus moves a single ring — the previous version outlined the form *and* the input, which is the
+ * doubled outline around the question box.
  */
-.fs-ai-drag {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 44px;
-  height: 34px;
-  cursor: grab;
-  touch-action: none;
-  z-index: 1;
+.fs-ai-composer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  margin: 0 12px 12px;
+  padding: 4px 4px 4px 14px;
+  border-radius: 22px;
+  background: var(--fs-surface-2);
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: box-shadow 150ms var(--fs-ease), background 150ms var(--fs-ease);
 }
-.fs-ai-drag:active { cursor: grabbing; }
+.fs-ai-composer:focus-within { background: var(--fs-surface); box-shadow: inset 0 0 0 1px var(--fs-accent); }
+.fs-ai-composer.is-listening { box-shadow: inset 0 0 0 1px var(--fs-accent); }
+.fs-ai-composer input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--fs-text);
+}
+.fs-ai-composer input::placeholder { color: var(--fs-text-3); }
+
+.fs-ai-mic, .fs-ai-send {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fs-text-2);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, opacity 140ms ease;
+}
+.fs-ai-mic:hover { background: var(--fs-hover); color: var(--fs-text); }
+.fs-ai-mic.is-listening { color: var(--fs-accent); background: var(--fs-accent-softer); animation: fs-pulse 1400ms var(--fs-ease) infinite; }
+.fs-ai-send { background: var(--fs-accent); color: var(--fs-on-accent); }
+.fs-ai-send:hover:not(:disabled) { opacity: 0.88; }
+.fs-ai-send:disabled { background: var(--fs-surface-3); color: var(--fs-text-3); cursor: default; }
+
 
 @media (max-width: 700px) {
   /* No room for the label beside YouTube's own controls — the icon carries it. */

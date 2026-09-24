@@ -2204,3 +2204,45 @@ button {
 @media (max-width: 720px) {
   .fsw-data-never ul { columns: 1; }
 }
+
+/* ─── Continue with Google ──────────────────────────────────────────────────
+ * Google's guidelines want their mark unaltered on a neutral surface, so this
+ * is the one button on the site that is not the accent colour. It keeps the
+ * site's own height, radius and weight so it still reads as FocusSpace.
+ */
+.fsw-btn-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  border: 1px solid var(--fs-border-strong);
+  text-decoration: none;
+}
+.fsw-btn-google:hover { background: var(--fs-surface-2); border-color: var(--fs-text-3); }
+.fsw-btn-google svg { flex: none; }
+.fsw-btn-google.is-disabled { opacity: 0.55; pointer-events: none; }
+
+/* A rule with the word sitting in it — the usual "or", without a heavy divider. */
+.fsw-auth-or {
+  position: relative;
+  margin: 18px 0 16px;
+  text-align: center;
+}
+.fsw-auth-or::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--fs-border);
+}
+.fsw-auth-or span {
+  position: relative;
+  padding: 0 12px;
+  background: var(--fs-elevated, var(--fs-bg));
+  font-size: 12.5px;
+  color: var(--fs-text-3);
+}

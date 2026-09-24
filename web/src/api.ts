@@ -18,6 +18,8 @@ export interface User {
   email: string | null;
   phone: string | null;
   emailVerified: boolean;
+  /** True once this account can also be signed into with Google. */
+  google: boolean;
   name: string | null;
   city: string | null;
   createdAt: number;
@@ -99,6 +101,23 @@ export const resetVerify = (email: string, code: string) => post<{ ok: true; tic
 export const resetComplete = (ticket: string, password: string) => post<{ ok: true } & Session>('/v1/auth/reset/complete', { ticket, password });
 
 export const login = (email: string, password: string) => post<{ ok: true } & Session>('/v1/auth/login', { email, password });
+
+/**
+ * One FocusSpace account across the website and the extension.
+ *
+ * `handoffCreate` asks the server, as this signed-in person, for a one-time code; whoever redeems it
+ * gets their own session for the same account. The code is what crosses between surfaces — never this
+ * site's refresh token. See server/auth/handoff.ts.
+ */
+export const handoffCreate = (token: string, origin: string) => post<{ ok: true; code: string; expiresAt: number }>('/v1/auth/handoff/create', { origin }, token);
+
+export const handoffRedeem = (code: string) => post<{ ok: true } & Session>('/v1/auth/handoff/redeem', { code });
+
+/**
+ * Where "Continue with Google" sends the browser. The whole OAuth exchange happens on the server — this
+ * is a plain navigation, and no client secret, authorization code or Google token ever touches this page.
+ */
+export const googleStartUrl = (returnTo: string): string => `${API_BASE}/v1/auth/google/start?returnTo=${encodeURIComponent(returnTo)}`;
 
 export const refresh = (refreshToken: string) => post<{ ok: true; accessToken: string; accessTokenExpiresAt: number; refreshToken: string }>('/v1/auth/refresh', { refreshToken });
 

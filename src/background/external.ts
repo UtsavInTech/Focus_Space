@@ -1,5 +1,6 @@
 import type { LearningMode, Settings } from '@/types/domain';
 import { getItem, updateItem } from '@/storage/storage';
+import { redeemHandoff } from './auth';
 import { addMode, deleteMode, selectMode, setFocusEnabled } from '@/modes/service';
 import { inferModeIntent, modeFromSuggestion } from '@/modes/intent';
 
@@ -31,7 +32,16 @@ export type ExternalRequest =
   | { type: 'space/create'; name: string }
   | { type: 'space/delete'; modeId: string }
   /** Opens the extension's own Home (Library, History) — how the site's "Open FocusSpace" gets there. */
-  | { type: 'home/open' };
+  | { type: 'home/open' }
+  /**
+   * One FocusSpace account: the website hands over a single-use code (never its own session) and the
+   * extension redeems it for a session of its own. See web/src/connect.ts and server/auth/handoff.ts.
+   *
+   * Safe over this channel because `externally_connectable` is the boundary — Chrome only delivers
+   * messages from the origins the manifest lists, so no other page can reach this — and because the
+   * code is worthless a minute later and after one use.
+   */
+  | { type: 'auth/handoff'; code: string; origin?: string };
 
 export interface ExternalChannel {
   id: string;
@@ -135,6 +145,19 @@ async function handle(request: ExternalRequest): Promise<ExternalResponse> {
       // Opens a page of this extension and nothing else: no data crosses to the site.
       await chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html#/') });
       return { ok: true };
+    case 'auth/handoff': {
+      if (typeof request.code !== 'string' || !request.code) return { ok: false, error: 'No sign-in code.' };
+      const result = await redeemHandoff(request.code);
+      if (!result.ok) return { ok: false, error: result.error };
+      /*
+       * Nothing else to do here, and that is the point: `redeemHandoff` writes `auth`, and
+       * background/ownership.ts is already subscribed to that key. A handoff sign-in therefore settles
+       * ownership of this browser's data by exactly the same path a password sign-in does — a guest with
+       * Spaces is asked whether to keep them, an account that has been here before gets its own data
+       * back, and nothing is ever merged or discarded on its own.
+       */
+      return { ok: true, data: { email: result.state.user?.email ?? null } };
+    }
     default:
       return { ok: false, error: 'Unknown request.' };
   }
