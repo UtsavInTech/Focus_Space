@@ -8,6 +8,7 @@ import { HOSTED_AI_LABEL, usesHostedAi } from '@/config';
 import { FREE_SPACE_LIMIT, GUEST_SPACE_LIMIT } from '@/billing/plans';
 import { sendMessage } from '@/messaging/runtime';
 import { accountIdentity, useAccountFlow } from '@/ui/account/flow';
+import { ACCOUNT_DATA_FACTS, aiDataSummary, ANONYMOUS_AI_SUMMARY, LOCAL_DATA_SUMMARY } from '@/ui/account/data-facts';
 import { planLabel } from '@/billing/plans';
 import type { DashboardData } from '../DashboardApp';
 import { navigate } from '../router';
@@ -246,37 +247,31 @@ export function SettingsPage({ data }: { data: DashboardData }) {
             ]}
           />
         </SettingRow>
-        <SettingRow title="Density">
-          <Segmented
-            label="Density"
-            value={settings.density}
-            onChange={(density) => patch({ density })}
-            options={[
-              { value: 'comfortable', label: 'Comfortable' },
-              { value: 'compact', label: 'Compact' },
-            ]}
-          />
-        </SettingRow>
+        {/*
+          Density used to be offered here, and it did essentially nothing: `[data-density='compact']`
+          only redefines --fs-pad and --fs-gap, and between them those two tokens are read by exactly
+          two rules (.fs-stack's gap and .fs-card-pad's padding, the latter used on three boxes on one
+          page). Clicking it changed a few pixels on Subscriptions and nothing anywhere else, which is
+          worse than not offering it. The setting itself is untouched — it is still in the schema, still
+          applied to <html> as data-density, and the website can still set it through
+          background/external.ts — so making the tokens real is a later change, not a migration.
+        */}
       </Section>
 
       {/*
         Four blocks of bullets used to live here — the complete account of what FocusSpace stores and
         sends, in the middle of a settings page. It was accurate and nobody read it. The full version now
         lives on the website (web/src/content/data-summary.ts), where someone deciding whether to trust
-        FocusSpace can find it, and where it is one document rather than two that can drift apart. What
-        stays here is the part that answers the question a learner asks *in settings*: is my stuff safe,
-        and what did I agree to.
+        FocusSpace can find it. What stays is the short version, and it comes from the same
+        ui/account/data-facts.ts list the Account page renders — so "concise" can never quietly become
+        "different from the detailed explanation".
       */}
       <Section id="privacy" title="Your data" description="Nothing is sold, and there is no advertising or tracking.">
-        <SettingRow
-          title="Your Spaces, notes and history stay in this browser"
-          description="FocusSpace cannot read them — they are never uploaded. An account stores only your email, your plan, your AI usage count and your Space names."
-        />
-        <SettingRow
-          title={`${usesHostedAi(settings.ai.endpointUrl) ? HOSTED_AI_LABEL : 'Your endpoint'} sees one moment, only when you ask`}
-          description="The video, your timestamp, the nearby outline, your topic names and a short transcript excerpt. Never your history, and never the whole transcript."
-        />
-        <SettingRow title="The full explanation" description="What is collected, what stays here, what goes to YouTube and what goes to the AI — in plain language.">
+        <SettingRow title="Your Spaces, notes and history stay in this browser" description={LOCAL_DATA_SUMMARY} />
+        <SettingRow title={user ? 'Your account holds' : 'An account would hold'} description={ACCOUNT_DATA_FACTS.map((f) => f.label.replace(/^Your /, '').replace(/^The /, '')).join(' · ')} />
+        <SettingRow title="The learning companion, only when you ask" description={aiDataSummary(usesHostedAi(settings.ai.endpointUrl) ? HOSTED_AI_LABEL : 'Your endpoint')} />
+        {!user && <SettingRow title="Using the AI without an account" description={ANONYMOUS_AI_SUMMARY} />}
+        <SettingRow title="The full explanation" description="Every one of these in detail, plus what goes to youtube.com and who else is involved.">
           <Button size="sm" variant="secondary" icon={<ExternalLink />} onClick={() => void sendMessage('site/open', { path: '/privacy#your-data' }).catch(() => undefined)}>
             Read it
           </Button>

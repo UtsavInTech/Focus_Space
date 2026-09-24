@@ -4,13 +4,13 @@ import type { ApiSettings, Settings } from '@/types/domain';
 import type { AuthUser } from '@/types/auth';
 import type { PaymentRecord } from '@/types/account';
 import type { DashboardData } from '../DashboardApp';
-import { navigate } from '../router';
 import { Meter, Section, patch, isHttpUrl } from './section';
 import { API_URL, PHONE_SIGN_IN } from '@/config';
 import { isPaidPlan, PlanName } from '@/ui/components/PlanName';
 import { planLabel } from '@/billing/plans';
 import { sendMessage } from '@/messaging/runtime';
 import { accountIdentity, CLAIM_COPY, useAccountFlow, type AccountFlow } from '@/ui/account/flow';
+import { ACCOUNT_DATA_FACTS, ANONYMOUS_AI_SUMMARY, LOCAL_DATA_SUMMARY } from '@/ui/account/data-facts';
 import { Button, Segmented, SettingRow, TextInput } from '@/ui/components/primitives';
 
 /**
@@ -36,7 +36,7 @@ export function AccountPage({ data }: { data: DashboardData }) {
       <SignInSection settings={settings} flow={flow} />
       <ProfileSection />
       <PaymentsSection signedIn={!!flow.user} />
-      <DataNote />
+      <DataNote signedIn={!!flow.user} />
     </div>
   );
 }
@@ -175,20 +175,22 @@ function PaymentsSection({ signedIn }: { signedIn: boolean }) {
 }
 
 /**
- * A short, honest answer to "what does FocusSpace do with my information", pointing at the fuller version
- * (Settings → Your data) rather than repeating it — this page is where name/email/phone are actually
- * entered, so it's the place a learner is most likely to wonder.
+ * This page is where an email, a name and a card actually get handed over, so it is where a learner is
+ * most likely to wonder what happens to them — and it answers with the same list Settings shows, from
+ * ui/account/data-facts.ts, rather than its own paraphrase. The paraphrase is what previously claimed
+ * FocusSpace uses your *name* to sign you in, which it has never done.
  */
-function DataNote() {
+function DataNote({ signedIn }: { signedIn: boolean }) {
   return (
-    <Section id="data" title="Your data">
-      <p className="fs-hint" style={{ padding: '10px 0' }}>
-        If you create an account, FocusSpace uses your name, email or phone number only to sign you in, recover your account, and identify your payments and
-        receipts. Everything else — your Spaces, what you watch, your notes — stays in this browser, account or not.
-      </p>
-      <SettingRow title="Full details" description="What's stored, what's sent to youtube.com, and what the learning companion sends when you ask it something.">
-        <Button size="sm" variant="ghost" onClick={() => navigate('/settings')}>
-          See in Settings
+    <Section id="data" title="Your data" description={signedIn ? 'Everything your account holds.' : 'What an account would hold, if you create one.'}>
+      <p className="fs-hint" style={{ padding: '4px 0 0' }}>{LOCAL_DATA_SUMMARY}</p>
+      {ACCOUNT_DATA_FACTS.map((fact) => (
+        <SettingRow key={fact.id} title={fact.label} description={fact.detail} />
+      ))}
+      {!signedIn && <SettingRow title="Using the AI without an account" description={ANONYMOUS_AI_SUMMARY} />}
+      <SettingRow title="The full explanation" description="What goes to youtube.com, what the learning companion sends, and who else is involved.">
+        <Button size="sm" variant="ghost" icon={<ExternalLink />} onClick={() => void sendMessage('site/open', { path: '/privacy#your-data' }).catch(() => undefined)}>
+          Read it
         </Button>
       </SettingRow>
     </Section>
@@ -259,7 +261,12 @@ export function SignInSection({ settings, flow: flowProp }: { settings: Settings
         </>
       ) : (
         <>
-          {!hasServer && <p className="fs-account-form-rows fs-hint">Add your FocusSpace server address below to create an account or sign in.</p>}
+          {!hasServer && (
+            <p className="fs-account-form-rows fs-hint">
+              Accounts are unavailable in this build — it ships without a FocusSpace server. Everything else works signed out. If you run your own server, add
+              its address under Advanced below.
+            </p>
+          )}
           {hasServer && (
             <div className="fs-account-form-rows">
               <Segmented
@@ -358,15 +365,32 @@ export function SignInSection({ settings, flow: flowProp }: { settings: Settings
           <TextInput value={settings.displayName} onChange={(e) => patch({ displayName: e.target.value })} maxLength={40} placeholder="Optional" style={{ width: 200 }} aria-label="Your name" />
         </SettingRow>
       )}
+      {/*
+        Running your own FocusSpace server is a real capability and stays exactly as capable, but it is
+        not part of signing in: a learner creating an account should never have to read the words
+        "server address" to do it. Folded away behind the same disclosure Settings already uses for
+        advanced filtering — open by default only for the person who has actually set one, so they can
+        still find it without hunting.
+      */}
       {(!API_URL || settings.api.baseUrl) && (
-        <SettingRow title="FocusSpace server" description="Where your account lives. Reference server: server/index.ts.">
-          <div className="fs-row">
-            <TextInput value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://your-server.example" style={{ width: 240 }} aria-label="FocusSpace server URL" />
-            <Button size="sm" variant="secondary" disabled={trimmedBaseUrl === settings.api.baseUrl || (trimmedBaseUrl !== '' && !isHttpUrl(trimmedBaseUrl))} onClick={() => setApi({ baseUrl: trimmedBaseUrl })}>
-              Save
-            </Button>
-          </div>
-        </SettingRow>
+        <details className="fs-advanced" open={!!settings.api.baseUrl}>
+          <summary className="fs-label">Advanced: run your own server</summary>
+          <SettingRow
+            title="FocusSpace server"
+            description={
+              API_URL
+                ? 'Where your account lives. Leave empty to use FocusSpace’s own server. Reference server: server/index.ts.'
+                : 'Where your account lives. This build has no server baked in, so an account needs one. Reference server: server/index.ts.'
+            }
+          >
+            <div className="fs-row">
+              <TextInput value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://your-server.example" style={{ width: 240 }} aria-label="FocusSpace server URL" />
+              <Button size="sm" variant="secondary" disabled={trimmedBaseUrl === settings.api.baseUrl || (trimmedBaseUrl !== '' && !isHttpUrl(trimmedBaseUrl))} onClick={() => setApi({ baseUrl: trimmedBaseUrl })}>
+                Save
+              </Button>
+            </div>
+          </SettingRow>
+        </details>
       )}
     </Section>
   );

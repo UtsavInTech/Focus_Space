@@ -15,6 +15,10 @@
  * - "payments" → server/billing: plan, period, amount and Razorpay's payment id. Card details go to
  *   Razorpay's own form and never reach us.
  * - "space names" → server/usage/spaces.ts stores ids and names only, to enforce the plan's allowance.
+ * - "AI usage" → the usage_events table (server/usage/db.ts): action, units, model and token counts.
+ * - "sessions" → the sessions table (server/auth/db.ts), which records a user_agent.
+ * - "signed out" → server/usage/service.ts's anonymousKey: a salted hash of the install id or address,
+ *   never the address itself, in anon_usage — a table with no user_id at all.
  * - "sent to YouTube" → src/content/data/youtube.ts and src/integrations/youtube/* make the same
  *   requests the page itself makes, from youtube.com, with the visitor's own session.
  * - "sent to AI" → src/learning/context/context.ts builds what leaves the browser; it is a moment, not
@@ -54,7 +58,8 @@ export const DATA_GROUPS: DataGroup[] = [
     points: [
       'Your email address — and your phone number, name or city only if you add them yourself.',
       'Your password, as a hash we cannot reverse. We never see the password itself.',
-      'Your plan, and a count of the AI actions you have used this month.',
+      'Your sessions, so you stay signed in and can sign out. Each one records the browser it was started from.',
+      'Your plan, and your AI usage: which kind of action you ran, the credits it cost, the model, and the token counts the provider reported back. Never your prompts or the answers.',
       'Payments: the plan, the amount and Razorpay’s payment reference, so we can show you a receipt. Card and UPI details go straight to Razorpay and never reach us.',
       'The names of your spaces, so your plan’s space limit can be applied wherever you sign in. Not what is in them.',
     ],
@@ -81,6 +86,7 @@ export const DATA_GROUPS: DataGroup[] = [
       'Not your watch history, not your other videos, not the whole transcript.',
       'OpenAI processes it for us. We do not keep your prompts or the answers.',
       'If your computer supports Chrome’s built-in on-device AI, you can use that instead — then nothing leaves your browser at all.',
+      'Signed out, a request also sends a random id the extension made up when you installed it, so your small daily free allowance is yours rather than your whole network’s. It is not linked to you, and the server keeps only a hashed counter against it.',
     ],
   },
 ];

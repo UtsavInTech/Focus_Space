@@ -60,8 +60,9 @@ export const PRIVACY: LegalDoc = {
       heading: 'What we store on our servers',
       body: [
         'Your account: email address, and phone, name and city if you provide them. Passwords are stored only as a salted hash and are never recoverable.',
-        'Your sessions, so you stay signed in, and so you can sign out.',
-        'Usage records: which kind of AI action you ran, what it cost in credits, when, and the token counts reported back to us. We do not store your prompts, the transcripts sent with them, or the answers produced.',
+        'Your sessions, so you stay signed in, and so you can sign out. Each session records the browser it was started from, so you can tell them apart.',
+        'Usage records: which kind of AI action you ran, what it cost in credits, when, the model that answered, and the token counts reported back to us. We do not store your prompts, the transcripts sent with them, or the answers produced.',
+        'If you use the AI signed out: a random identifier the extension generated at install, kept only as a salted hash alongside a daily counter, so the free allowance can be shared out fairly. It is not connected to any account, and your IP address is never stored.',
         'Payments: the plan, period, amount, and the payment identifier from Razorpay. We never see or store your card number, UPI ID or bank details — those go directly to Razorpay.',
         'The names and identifiers of spaces you create while signed in, so your plan’s space allowance can be enforced. The contents of those spaces stay in your browser.',
       ],
