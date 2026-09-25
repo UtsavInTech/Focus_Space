@@ -4,7 +4,7 @@ import { useAuth } from '../auth';
 import * as api from '../api';
 import { AUTH_FRAGMENT_MESSAGE, takeAuthFragment } from '../connect';
 import { GoogleButton } from './GoogleButton';
-import { Logo } from './Logo';
+import { Logo, Wordmark } from './Logo';
 import { FREE_SPACE_LIMIT } from '../content/plans';
 
 /**
@@ -165,7 +165,7 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
       <div className="fsw-auth-card">
         <a className="fsw-brand fsw-auth-brand" href="/" onClick={onLinkClick('/')}>
           <Logo />
-          <span>FocusSpace</span>
+          <Wordmark />
         </a>
 
         <h1>

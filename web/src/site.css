@@ -7,6 +7,13 @@
  */
 
 :root {
+  /*
+   * FocusSpace red — the brand colour, and only the brand colour: the mark, and the "Space" half of the
+   * wordmark. Kept apart from --fs-accent (buttons, links, focus states) so the logo can be red without
+   * repainting every control on the site.
+   */
+  --fs-brand: #ef4444;
+
   --fsw-max: 1120px;
   --fsw-gutter: 16px;
   --fsw-nav-h: 64px;
@@ -175,8 +182,9 @@ button {
   color: var(--fs-text);
 }
 
+/* The mark carries its own brand colour (components/Logo.tsx) — nothing to set here. */
 .fsw-brand svg {
-  color: var(--fs-accent);
+  flex: none;
 }
 
 .fsw-nav-links {
@@ -2245,4 +2253,23 @@ button {
   background: var(--fs-elevated, var(--fs-bg));
   font-size: 12.5px;
   color: var(--fs-text-3);
+}
+
+
+/* ─── The lockup ────────────────────────────────────────────────────────────
+ * "Focus" takes the surface's own text colour — near-black on light, white on
+ * dark — and "Space" is always the brand red. Text, not an image, so it reads
+ * correctly on every background the site puts it on and stays selectable.
+ */
+.fsw-wordmark { display: inline-flex; flex-direction: column; justify-content: center; gap: 1px; min-width: 0; }
+.fsw-wordmark-name { font-size: inherit; font-weight: 650; letter-spacing: -0.022em; line-height: 1.1; white-space: nowrap; color: inherit; }
+.fsw-wordmark-accent { color: var(--fs-brand); }
+.fsw-wordmark-tagline {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--fs-text-3);
+  white-space: nowrap;
 }

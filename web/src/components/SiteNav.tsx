@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { onLinkClick } from '../router';
 import { useAuth } from '../auth';
-import { Logo } from './Logo';
+import { Logo, Wordmark } from './Logo';
 import { InstallCta } from './InstallCta';
 
 const LINKS = [
@@ -27,7 +27,7 @@ export function SiteNav() {
       <div className="fsw-nav-inner">
         <a className="fsw-brand" href="/" onClick={onLinkClick('/')}>
           <Logo />
-          <span>FocusSpace</span>
+          <Wordmark />
         </a>
 
         <nav className="fsw-nav-links" aria-label="Main">

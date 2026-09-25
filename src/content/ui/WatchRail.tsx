@@ -13,7 +13,7 @@ import { channelRuleOf, setChannelRule } from '@/modes/service';
 import { saveToTopic } from '@/modes/playlists';
 import { useStorage } from '@/ui/hooks';
 import { SpaceIcon } from '@/ui/icons';
-import { LogoMark } from '@/ui/components/primitives';
+import { FocusMark, Wordmark } from '@/ui/components/primitives';
 import { YtLink } from '@/ui/nav';
 import { sendMessage } from '@/messaging/runtime';
 import type { WatchState } from '../store';
@@ -145,8 +145,10 @@ export function WatchRail({
         site, which has none of those. Deliberately one compact row: it earns its place by being small.
       */}
       <button type="button" className="fs-rail-launcher" onClick={() => void sendMessage('dashboard/open', { route: '/' }).catch(() => undefined)} title="Open FocusSpace — your notes, mind maps, AI chats and history">
-        <LogoMark size={20} />
-        <span className="fs-rail-launcher-name">FocusSpace</span>
+        <FocusMark size={20} />
+        <span className="fs-rail-launcher-name">
+          <Wordmark />
+        </span>
         <span className="fs-rail-launcher-hint">Library · History</span>
         <ExternalLink size={14} aria-hidden />
       </button>

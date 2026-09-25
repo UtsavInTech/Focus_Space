@@ -22,6 +22,12 @@
   --fs-text-2: #606060;
   --fs-text-3: #717171;
   --fs-link: #065fd4;
+  /*
+   * FocusSpace red — the brand colour, and only the brand colour: the mark, and the "Space" half of the
+   * wordmark. It is deliberately separate from --fs-accent (the interactive colour used by buttons,
+   * switches and focus states), so the logo can be red without repainting every control in the product.
+   */
+  --fs-brand: #ef4444;
   --fs-accent: #6d5dfc;
   --fs-accent-text: #5344e0;
   --fs-accent-soft: rgba(109, 93, 252, 0.12);
@@ -66,6 +72,8 @@
   --fs-text-2: #aaaaaa;
   --fs-text-3: #909090;
   --fs-link: #3ea6ff;
+  /* Lifted a little for dark surfaces: #ef4444 on near-black loses contrast against the text around it. */
+  --fs-brand: #f56565;
   --fs-accent: #a99dff;
   --fs-accent-text: #bcb3ff;
   --fs-accent-soft: rgba(169, 157, 255, 0.18);
@@ -379,7 +387,7 @@ a.fs-path-name:hover { color: var(--fs-text); }
 
 .fs-guide { display: flex; flex-direction: column; padding: 12px; border-bottom: 1px solid var(--fs-border); }
 .fs-guide-title { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; margin-bottom: 2px; border: none; border-radius: 10px; background: transparent; font-size: 16px; line-height: 22px; font-weight: 600; color: var(--fs-text); text-align: left; cursor: pointer; }
-.fs-guide-title span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-guide-title > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fs-guide-title svg:last-child { flex: none; color: var(--fs-text-3); }
 .fs-guide-title:hover { background: var(--fs-surface-2); }
 .fs-guide-title:hover svg:last-child { color: var(--fs-accent); }
@@ -766,15 +774,19 @@ a.fs-path-name:hover { color: var(--fs-text); }
  * quiet neutral and still when it is off. Requirement, stated plainly — off
  * must never draw the eye.
  */
+/* Off, the mark inherits this — see FocusPill's tone switch; on, it paints itself the brand red. */
 .fs-off-pill .fs-mark, .fs-off-mini .fs-mark { color: var(--fs-text-3); transition: color 200ms var(--fs-ease); }
-.fs-off-pill[data-on='true'] .fs-mark, .fs-off-mini[data-on='true'] .fs-mark { color: var(--fs-accent); }
 
 /* The panel's identity sits with its name, at text size, on the same baseline. */
 .fs-ai-panel-title { display: inline-flex; align-items: center; gap: 7px; }
-.fs-ai-panel-title .fs-mark { color: var(--fs-accent); }
-.fs-ai-bubble .fs-mark { color: var(--fs-accent); }
 
 /* Speaking and listening both have to be obvious — they make sound, and sound with no visible cause
    is alarming. Same accent treatment as the mic, so the two read as one family. */
 .fs-ai-turn-ai.is-speaking .fs-ai-turn-actions { opacity: 1; }
 .fs-yt .fs-icon-plain.is-speaking { color: var(--fs-accent); background: var(--fs-accent-softer); }
+
+/* The wordmark inside YouTube: it inherits its host's size and weight, so the sidebar entry and the
+   watch-rail launcher keep the type scale they already had — only the colour split is new. */
+.fs-yt .fs-wordmark-name { font-size: inherit; font-weight: inherit; letter-spacing: -0.02em; }
+.fs-guide-title .fs-wordmark { flex: 1; min-width: 0; }
+.fs-guide-title .fs-wordmark-name { overflow: hidden; text-overflow: ellipsis; }

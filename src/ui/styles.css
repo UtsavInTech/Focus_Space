@@ -20,6 +20,12 @@
   --fs-text: #17171a;
   --fs-text-2: #55555d;
   --fs-text-3: #8b8b93;
+  /*
+   * FocusSpace red — the brand colour, and only the brand colour: the mark, and the "Space" half of the
+   * wordmark. It is deliberately separate from --fs-accent (the interactive colour used by buttons,
+   * switches and focus states), so the logo can be red without repainting every control in the product.
+   */
+  --fs-brand: #ef4444;
   --fs-accent: #6d5dfc;
   --fs-accent-hover: #5c4bf0;
   --fs-accent-soft: rgba(109, 93, 252, 0.1);
@@ -57,6 +63,8 @@
   --fs-text: #f2f2f4;
   --fs-text-2: #a3a3ad;
   --fs-text-3: #71717b;
+  /* Lifted a little for dark surfaces: #ef4444 on near-black loses contrast against the text around it. */
+  --fs-brand: #f56565;
   --fs-accent: #8b7dff;
   --fs-accent-hover: #9d91ff;
   --fs-accent-soft: rgba(139, 125, 255, 0.15);
@@ -451,9 +459,27 @@ body.fs-popup-body {
 
 /* ------------------------------------------------------------ logo */
 
-.fs-logo { display: inline-flex; align-items: center; gap: 9px; font-weight: 650; letter-spacing: -0.02em; color: var(--fs-text); }
+/* ─── The lockup ────────────────────────────────────────────────────────────
+ * "Focus" takes the surface's own text colour — near-black on light, white on
+ * dark — and "Space" is always the brand red. That is the whole rule, and it
+ * is why the wordmark is text rather than an image: one component reads
+ * correctly on every background the product puts it on.
+ */
+.fs-logo { display: inline-flex; align-items: center; gap: 9px; color: var(--fs-text); }
 .fs-logo svg { flex: none; }
-.fs-logo span { font-size: 15px; }
+
+.fs-wordmark { display: inline-flex; flex-direction: column; justify-content: center; gap: 1px; min-width: 0; }
+.fs-wordmark-name { font-size: 15px; font-weight: 650; letter-spacing: -0.022em; line-height: 1.1; white-space: nowrap; color: inherit; }
+.fs-wordmark-accent { color: var(--fs-brand); }
+.fs-wordmark-tagline {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--fs-text-3);
+  white-space: nowrap;
+}
 
 /* ------------------------------------------------------------ mode chips */
 
@@ -772,7 +798,7 @@ body.fs-popup-body {
  * dead for anyone who has asked for less motion.
  */
 .fs-mark { flex: none; }
-.fs-mark-ring { transform-origin: 50% 50%; }
+.fs-mark-ring { transform-origin: 50% 50%; transform-box: fill-box; }
 .fs-mark.is-active .fs-mark-ring { animation: fs-mark-orbit 8s linear infinite; }
 
 @keyframes fs-mark-orbit {

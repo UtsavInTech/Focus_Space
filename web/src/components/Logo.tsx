@@ -1,14 +1,51 @@
 /**
- * The FocusSpace mark: concentric rings narrowing onto a single point — the
- * product's whole idea in one glyph. Inline SVG rather than an image file so
- * it inherits `currentColor` and stays sharp in both themes.
+ * The FocusSpace mark, identical in geometry to the extension's
+ * (src/ui/components/primitives.tsx): a target — outer ring, crosshair ticks, inner ring — with a play
+ * triangle at its centre. Aim at one thing, then watch it.
+ *
+ * The two copies are deliberate and the shape is kept in step by hand: the site and the extension share
+ * no bundle, and importing across that boundary would drag the extension's whole primitives module into
+ * the marketing build for one glyph.
+ *
+ * `tone="brand"` is FocusSpace red and the default; `tone="current"` inherits `currentColor` for the
+ * places that need it monochrome — white on a dark or coloured surface.
  */
-export function Logo({ size = 28 }: { size?: number }) {
+export function Logo({ size = 28, tone = 'brand' }: { size?: number; tone?: 'brand' | 'current' }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <circle cx="16" cy="16" r="13.5" stroke="currentColor" strokeWidth="1.5" opacity="0.28" />
-      <circle cx="16" cy="16" r="8.5" stroke="currentColor" strokeWidth="1.75" opacity="0.6" />
-      <circle cx="16" cy="16" r="3.5" fill="currentColor" />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      style={{ color: tone === 'brand' ? 'var(--fs-brand)' : undefined }}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="16" cy="16" r="12.6" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.5" />
+      <g stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.75">
+        <path d="M16 2v6" />
+        <path d="M16 24v6" />
+        <path d="M2 16h6" />
+        <path d="M24 16h6" />
+      </g>
+      <circle cx="16" cy="16" r="8.4" stroke="currentColor" strokeWidth="1.7" />
+      {/* Optically centred: a triangle's visual centre sits left of its bounding box, hence the nudge. */}
+      <path d="M13.2 11.5v9a.85.85 0 0 0 1.31.72l6.9-4.5a.85.85 0 0 0 0-1.44l-6.9-4.5a.85.85 0 0 0-1.31.72Z" fill="currentColor" transform="translate(-0.9 0)" />
     </svg>
+  );
+}
+
+/**
+ * "FocusSpace": "Focus" in the surface's own text colour, "Space" in the brand red. Text rather than an
+ * image, so it takes the page's font, scales with it, and is still selectable and read aloud as one word.
+ */
+export function Wordmark({ tagline = false }: { tagline?: boolean }) {
+  return (
+    <span className="fsw-wordmark">
+      <span className="fsw-wordmark-name">
+        Focus<span className="fsw-wordmark-accent">Space</span>
+      </span>
+      {tagline && <span className="fsw-wordmark-tagline">Intent-driven learning for YouTube</span>}
+    </span>
   );
 }

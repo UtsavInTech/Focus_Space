@@ -2,7 +2,7 @@ import { ExternalLink, Plus } from 'lucide-react';
 import type { LearningMode, Settings } from '@/types/domain';
 import { selectMode } from '@/modes/service';
 import { SpaceIcon } from '@/ui/icons';
-import { LogoMark } from '@/ui/components/primitives';
+import { FocusMark, Wordmark } from '@/ui/components/primitives';
 import { sendMessage } from '@/messaging/runtime';
 import { spaNavigate } from '../youtube/spa';
 
@@ -26,8 +26,8 @@ export function GuideSpaces({ settings, modes, onCreate }: { settings: Settings;
   return (
     <nav className="fs-guide" aria-label="FocusSpace spaces">
       <button type="button" className="fs-guide-title" onClick={openHome} title="Open FocusSpace — your Library, history and account">
-        <LogoMark size={22} />
-        <span>FocusSpace</span>
+        <FocusMark size={22} />
+        <Wordmark />
         <ExternalLink size={14} aria-hidden />
       </button>
       {modes.map((m) => (

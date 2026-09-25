@@ -3,7 +3,7 @@ import { navigate } from '../router';
 import { useAuth } from '../auth';
 import * as api from '../api';
 import { installedExtensionId, sendHandoffToExtension, type ConnectOutcome } from '../connect';
-import { Logo } from './Logo';
+import { Logo, Wordmark } from './Logo';
 
 /**
  * `/connect` — where the extension sends someone to finish signing in.
@@ -55,7 +55,7 @@ export function ConnectPage() {
       <div className="fsw-auth-card">
         <a className="fsw-brand fsw-auth-brand" href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }}>
           <Logo />
-          <span>FocusSpace</span>
+          <Wordmark />
         </a>
 
         {state === 'working' && (

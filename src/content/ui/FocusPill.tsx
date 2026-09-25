@@ -13,10 +13,10 @@ import { useDraggable } from './useDraggable';
  * sidebar. Being always present makes the state obvious and the switch one click away, and dragging it
  * keeps it out of the way of whatever the page puts underneath.
  *
- * The mark is FocusSpace's target-and-play alone, not the boxed logo: at this size, sitting over
- * YouTube's own chrome, a filled tile read as a third-party badge stuck to the page. An outline mark in
- * the current colour belongs to the page instead — accent and turning while focus is on, quiet grey and
- * still while it is off, which makes the state readable at a glance without any text.
+ * The mark is FocusSpace's target-and-play alone, not a boxed tile: at this size, sitting over YouTube's
+ * own chrome, a filled square read as a third-party badge stuck to the page. On, it is the brand red and
+ * the ring turns; off, it drops to `tone="current"` and inherits the pill's muted grey and stops moving.
+ * That makes the state readable at a glance with no label at all.
  */
 export function FocusPill({ on }: { on: boolean }) {
   const overlayRoot = useContext(OverlayRootContext);
@@ -41,7 +41,7 @@ export function FocusPill({ on }: { on: boolean }) {
         {...drag.handlers}
         onClick={() => !drag.dragging && setCollapsed(false)}
       >
-        <FocusMark size={19} active={on} />
+        <FocusMark size={19} active={on} tone={on ? 'brand' : 'current'} />
       </button>,
       overlayRoot,
     );
@@ -49,7 +49,7 @@ export function FocusPill({ on }: { on: boolean }) {
 
   return createPortal(
     <div className={`fs-off-pill${drag.dragging ? ' is-dragging' : ''}`} data-on={on ? 'true' : undefined} style={style} title="Drag to move" {...drag.handlers}>
-      <FocusMark size={18} active={on} />
+      <FocusMark size={18} active={on} tone={on ? 'brand' : 'current'} />
       {/* Off, it has to be found; on, it only has to be reachable — so it shrinks to the switch itself. */}
       {!on && <span className="fs-off-pill-text">FocusSpace</span>}
       <button type="button" className="fs-off-pill-on" data-no-drag aria-pressed={on} aria-label={on ? 'Turn FocusSpace off' : 'Turn FocusSpace on'} title={on ? 'Turn FocusSpace off' : 'Turn FocusSpace on'} onClick={toggle}>

@@ -152,56 +152,87 @@ export function SectionHeader({ title, subtitle, action, eyebrow }: { title: Rea
   );
 }
 
-export function LogoMark({ size = 26 }: { size?: number }) {
+/**
+ * The FocusSpace mark: a target — outer ring, crosshair ticks, inner ring — with a play triangle at its
+ * centre. Aim at one thing, then watch it. That is the product in one glyph, and it is why this replaced
+ * the boxed gradient tile: a filled violet square said nothing, and read as a third-party badge stuck
+ * onto whatever page it sat on.
+ *
+ * Colour is deliberately not fixed here. `tone="brand"` paints it FocusSpace red (`--fs-brand`) — the
+ * default, and what the logo means. `tone="current"` inherits `currentColor`, for the places that need
+ * it monochrome: white on a dark or coloured surface, grey when something is switched off. One
+ * component either way, so the shape can never drift between them.
+ *
+ * `active` turns the outer ring and ticks slowly (see `.fs-mark` in ui/styles.css). `ring={false}`
+ * leaves the play triangle alone, for sizes too small for a target to survive.
+ */
+export function FocusMark({
+  size = 20,
+  active = false,
+  ring = true,
+  tone = 'brand',
+}: {
+  size?: number;
+  active?: boolean;
+  ring?: boolean;
+  /** 'brand' = FocusSpace red; 'current' = inherit currentColor. */
+  tone?: 'brand' | 'current';
+}) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-      <defs>
-        <linearGradient id="fs-logo-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#8B7DFF" />
-          <stop offset="1" stopColor="#5B47F0" />
-        </linearGradient>
-      </defs>
-      <rect width="32" height="32" rx="9" fill="url(#fs-logo-g)" />
-      <circle cx="16" cy="16" r="8.2" fill="none" stroke="#fff" strokeOpacity="0.45" strokeWidth="2.2" />
-      <path d="M16 7.8a8.2 8.2 0 0 1 8.2 8.2" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
-      <circle cx="16" cy="16" r="3.2" fill="#fff" />
+    <svg
+      className={`fs-mark${active ? ' is-active' : ''}`}
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      style={{ color: tone === 'brand' ? 'var(--fs-brand)' : undefined }}
+      aria-hidden
+      focusable="false"
+    >
+      {ring && (
+        <g className="fs-mark-ring">
+          <circle cx="16" cy="16" r="12.6" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.5" />
+          {/* The four crosshair ticks, crossing the outer ring at the compass points. */}
+          <g stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.75">
+            <path d="M16 2v6" />
+            <path d="M16 24v6" />
+            <path d="M2 16h6" />
+            <path d="M24 16h6" />
+          </g>
+        </g>
+      )}
+      {ring && <circle cx="16" cy="16" r="8.4" stroke="currentColor" strokeWidth="1.7" />}
+      {/* Optically centred: a triangle's visual centre sits left of its bounding box, hence the nudge. */}
+      <path d="M13.2 11.5v9a.85.85 0 0 0 1.31.72l6.9-4.5a.85.85 0 0 0 0-1.44l-6.9-4.5a.85.85 0 0 0-1.31.72Z" fill="currentColor" transform="translate(-0.9 0)" />
     </svg>
   );
 }
 
 /**
- * FocusSpace's mark: the target ring with the play triangle at its centre — "aim at one thing, then
- * watch it". It is the identity FocusSpace AI uses, and the switch on YouTube, because a mark that
- * means *focus* says more in 20px than a generic sparkle does.
+ * "FocusSpace", set the way the brand sets it: "Focus" in the surface's own text colour and "Space" in
+ * FocusSpace red. Two spans rather than an image, so it takes the page's font, scales with it, and is
+ * still selectable, searchable and read aloud as one word.
  *
- * Drawn from `currentColor` rather than a fixed palette, so one component serves the accent-coloured
- * "on" state and the quiet neutral "off" state without a second copy. `ring={false}` leaves only the
- * play triangle, for the places where the surface around it is already the target.
- *
- * `active` adds the animation: the outer ring's dash rotates slowly, once every eight seconds. It is
- * deliberately not a spinner — nothing is loading, and a mark that implies waiting would be a lie. It
- * stops entirely under prefers-reduced-motion (see .fs-mark-ring in ui/styles.css).
+ * The split is the point. Rendering the name as one evenly-coloured string is what every surface was
+ * doing, and it threw away half the mark.
  */
-export function FocusMark({ size = 20, active = false, ring = true }: { size?: number; active?: boolean; ring?: boolean }) {
+export function Wordmark({ tagline = false }: { tagline?: boolean }) {
   return (
-    <svg className={`fs-mark${active ? ' is-active' : ''}`} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
-      {ring && (
-        <>
-          <circle className="fs-mark-ring" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.6" strokeOpacity="0.55" strokeLinecap="round" strokeDasharray="3.6 4.4" />
-          <circle cx="12" cy="12" r="6.6" stroke="currentColor" strokeWidth="1.6" strokeOpacity="0.9" />
-        </>
-      )}
-      {/* The play triangle — the part that stays when the ring is dropped. */}
-      <path d="M10.4 9.3v5.4a.6.6 0 0 0 .92.5l4.1-2.7a.6.6 0 0 0 0-1l-4.1-2.7a.6.6 0 0 0-.92.5Z" fill="currentColor" />
-    </svg>
+    <span className="fs-wordmark">
+      <span className="fs-wordmark-name">
+        Focus<span className="fs-wordmark-accent">Space</span>
+      </span>
+      {tagline && <span className="fs-wordmark-tagline">Intent-driven learning for YouTube</span>}
+    </span>
   );
 }
 
-export function Logo({ size = 26, word = true }: { size?: number; word?: boolean }) {
+/** The lockup: mark plus wordmark. `word={false}` is the mark on its own. */
+export function Logo({ size = 26, word = true, tagline = false }: { size?: number; word?: boolean; tagline?: boolean }) {
   return (
     <span className="fs-logo">
-      <LogoMark size={size} />
-      {word && <span>FocusSpace</span>}
+      <FocusMark size={size} />
+      {word && <Wordmark tagline={tagline} />}
     </span>
   );
 }

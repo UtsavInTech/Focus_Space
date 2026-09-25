@@ -1,5 +1,5 @@
 import { onLinkClick } from '../router';
-import { Logo } from './Logo';
+import { Logo, Wordmark } from './Logo';
 
 export function Footer() {
   return (
@@ -8,7 +8,7 @@ export function Footer() {
         <div className="fsw-footer-brand">
           <a className="fsw-brand" href="/" onClick={onLinkClick('/')}>
             <Logo size={24} />
-            <span>FocusSpace</span>
+            <Wordmark />
           </a>
           <p>YouTube has the content. FocusSpace gives it structure.</p>
         </div>

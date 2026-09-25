@@ -5,7 +5,13 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icons');
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+/*
+ * Two destinations, one source. The website kept its own hand-copied set, which had already drifted
+ * from the extension's — so a change to the mark silently missed the site's favicon. Writing both here
+ * is what stops that happening again.
+ */
+const OUTS = [join(ROOT, 'public', 'icons'), join(ROOT, 'web', 'public', 'icons')];
 const SIZES = [16, 32, 48, 128];
 
 const crcTable = Array.from({ length: 256 }, (_, n) => {
@@ -41,35 +47,59 @@ function png(size, rgba) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', header), chunk('IDAT', deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
 }
 
-// Geometry in a 32×32 design space (matches LogoMark in src/ui/components/primitives.tsx).
+/*
+ * Geometry in the same 32×32 design space as FocusMark (src/ui/components/primitives.tsx) — outer ring,
+ * four crosshair ticks, inner ring, play triangle — so the toolbar icon is the logo rather than a
+ * lookalike. Solid FocusSpace red on transparency: Chrome puts this on toolbars of every colour, and a
+ * filled tile would read as a sticker on all of them.
+ *
+ * Kept in step with the component by hand. If the mark's proportions change, they change here too.
+ */
 const C = 16;
-const RING_R = 8.2;
-const HALF_STROKE = 1.1;
-const DOT_R = 3.2;
-const from = [0x8b, 0x7d, 0xff];
-const to = [0x5b, 0x47, 0xf0];
+const BRAND = [0xef, 0x44, 0x44];
 
-function sample(u, v) {
-  // Rounded square, radius 9.
-  const dx = Math.max(Math.abs(u - C) - 7, 0);
-  const dy = Math.max(Math.abs(v - C) - 7, 0);
-  if (dx * dx + dy * dy > 81) return null;
-  const t = Math.min(1, Math.max(0, (u + v) / 64));
-  let color = from.map((f, i) => f + (to[i] - f) * t);
-  const blend = (alpha) => {
-    color = color.map((c) => c + (255 - c) * alpha);
-  };
-  const d = Math.hypot(u - C, v - C);
-  const onRing = Math.abs(d - RING_R) <= HALF_STROKE;
-  const angle = Math.atan2(u - C, -(v - C)); // 0 at top, clockwise positive
-  const onArc = (onRing && angle >= 0 && angle <= Math.PI / 2) || Math.hypot(u - C, v - (C - RING_R)) <= HALF_STROKE || Math.hypot(u - (C + RING_R), v - C) <= HALF_STROKE;
-  if (onArc) blend(1);
-  else if (onRing) blend(0.45);
-  if (d <= DOT_R) blend(1);
-  return color;
+const OUTER_R = 12.6;
+const OUTER_HALF = 0.75;
+const INNER_R = 8.4;
+const INNER_HALF = 0.85;
+const TICK_HALF = 0.75;
+/** Each tick runs from `TICK_IN` to `TICK_OUT` from centre, crossing the outer ring. */
+const TICK_IN = 8;
+const TICK_OUT = 14;
+
+/** Distance from a point to a horizontal or vertical segment, in the tick's own axis. */
+function tickDistance(along, across) {
+  const a = Math.abs(along);
+  const beyond = a < TICK_IN ? TICK_IN - a : a > TICK_OUT ? a - TICK_OUT : 0;
+  return Math.hypot(beyond, across);
 }
 
-mkdirSync(OUT, { recursive: true });
+/** Inside the play triangle: three half-plane tests, matching the component's path. */
+function inTriangle(u, v) {
+  const x = u - (C - 0.9);
+  const y = v - C;
+  // Apex right at (+6.0, 0); base from (-2.8, -4.5) to (-2.8, +4.5).
+  if (x < -2.8 || x > 6.0) return false;
+  const halfHeight = 4.5 * (1 - (x + 2.8) / 8.8);
+  return Math.abs(y) <= halfHeight;
+}
+
+function sample(u, v) {
+  const d = Math.hypot(u - C, v - C);
+  let alpha = 0;
+  const cover = (distance, half) => Math.max(0, Math.min(1, half + 0.5 - distance));
+
+  // Outer ring and its ticks are the lighter part of the mark; the inner ring and triangle are solid.
+  alpha = Math.max(alpha, cover(Math.abs(d - OUTER_R), OUTER_HALF) * 0.5);
+  alpha = Math.max(alpha, cover(tickDistance(v - C, u - C), TICK_HALF) * 0.75);
+  alpha = Math.max(alpha, cover(tickDistance(u - C, v - C), TICK_HALF) * 0.75);
+  alpha = Math.max(alpha, cover(Math.abs(d - INNER_R), INNER_HALF));
+  if (inTriangle(u, v)) alpha = 1;
+
+  return alpha > 0 ? [BRAND, alpha] : null;
+}
+
+for (const out of OUTS) mkdirSync(out, { recursive: true });
 for (const size of SIZES) {
   const rgba = Buffer.alloc(size * size * 4);
   const SS = 4;
@@ -80,10 +110,11 @@ for (const size of SIZES) {
         for (let sx = 0; sx < SS; sx++) {
           const c = sample(((x + (sx + 0.5) / SS) / size) * 32, ((y + (sy + 0.5) / SS) / size) * 32);
           if (c) {
-            r += c[0];
-            g += c[1];
-            b += c[2];
-            a++;
+            const [rgb, alpha] = c;
+            r += rgb[0] * alpha;
+            g += rgb[1] * alpha;
+            b += rgb[2] * alpha;
+            a += alpha;
           }
         }
       }
@@ -93,9 +124,10 @@ for (const size of SIZES) {
         rgba[i + 1] = Math.round(g / a);
         rgba[i + 2] = Math.round(b / a);
       }
-      rgba[i + 3] = Math.round((a / (SS * SS)) * 255);
+      rgba[i + 3] = Math.round(Math.min(1, a / (SS * SS)) * 255);
     }
   }
-  writeFileSync(join(OUT, `icon-${size}.png`), png(size, rgba));
+  const file = png(size, rgba);
+  for (const out of OUTS) writeFileSync(join(out, `icon-${size}.png`), file);
 }
-console.log(`icons: wrote ${SIZES.map((s) => `icon-${s}.png`).join(', ')}`);
+console.log(`icons: wrote ${SIZES.map((s) => `icon-${s}.png`).join(', ')} to ${OUTS.length} places`);
