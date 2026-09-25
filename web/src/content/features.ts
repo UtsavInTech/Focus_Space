@@ -11,15 +11,14 @@ export const STAGES = {
 } as const;
 
 /**
- * A real screenshot of the extension, served from web/public/journey/ at two widths
- * (`<name>-1600.webp`, `<name>-900.webp`). `focus` is the object-position that keeps the part worth
- * seeing in frame when the book's page crops it.
+ * A real screenshot of the extension, cropped to the part that proves its feature — the book's pages are
+ * small, and a whole browser window at that size is unreadable. Served from web/public/journey/ at two
+ * widths (`<name>-960.webp`, `<name>-560.webp`), cut to 3:2, the page's own shape.
  */
 export interface Shot {
   name: string;
   alt: string;
   caption: string;
-  focus?: string;
 }
 
 export interface Feature {
@@ -47,7 +46,7 @@ export const FEATURES: Feature[] = [
     ],
     shots: [
       { name: '01-choose-a-space', alt: 'FocusSpace on YouTube asking “What do you want to focus on?”, with Spaces grouped into Tech, Languages, Creative, Life and Unwind', caption: 'Choosing a Space on YouTube' },
-      { name: '02-your-spaces', alt: 'The Spaces page in the FocusSpace dashboard: AI/ML, System Design (active) and Content Creation, with built-in Spaces to add', caption: 'Your Spaces, in the dashboard', focus: 'left top' },
+      { name: '02-your-spaces', alt: 'The Spaces page in the FocusSpace dashboard: the AI/ML and System Design (active) Spaces, and built-in Spaces to add', caption: 'Your Spaces, in the dashboard' },
     ],
   },
   {
@@ -62,8 +61,8 @@ export const FEATURES: Feature[] = [
       'Continue watching knows where you stopped and what you skipped',
     ],
     shots: [
-      { name: '03-your-feed', alt: 'YouTube’s home in a DSA Space: topic chips, then linked-list lectures from the learner’s own subscriptions', caption: 'YouTube’s home, in a DSA Space', focus: 'left top' },
-      { name: '04-continue-watching', alt: 'The FocusSpace dashboard home: Your Spaces, Continue watching with progress bars, and recent notes', caption: 'Continue watching, where you stopped', focus: 'left top' },
+      { name: '03-your-feed', alt: 'YouTube’s home in a DSA Space: topic chips, then linked-list lectures from the learner’s own subscriptions', caption: 'YouTube’s home, in a DSA Space' },
+      { name: '04-continue-watching', alt: 'The FocusSpace dashboard home: Your Spaces, Continue watching with progress bars, and recent notes', caption: 'Continue watching, where you stopped' },
     ],
   },
   {
@@ -78,7 +77,7 @@ export const FEATURES: Feature[] = [
       'Relevance never reorders your course',
     ],
     shots: [
-      { name: '05-watch-page', alt: 'A system design lecture on YouTube with the FocusSpace rail beside it: Learn with AI actions and notes generated from the transcript', caption: 'The FocusSpace rail beside a lecture', focus: 'right top' },
+      { name: '05-watch-page', alt: 'The FocusSpace rail beside a lecture: the System Design Space, the Learn with AI actions and Make Notes', caption: 'The FocusSpace rail beside a lecture' },
     ],
   },
   {

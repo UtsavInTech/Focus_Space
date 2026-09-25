@@ -742,7 +742,7 @@ button {
 
 /* The box the book sits in: a darker well than the page, like the frame of a presentation. */
 .fsw-book-box {
-  padding: 20px 18px 16px;
+  padding: 14px 12px 14px;
   border: 1px solid var(--fs-border);
   border-radius: 20px;
   background: #080809;
@@ -785,7 +785,7 @@ button {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 46%;
+  width: 52%;
   aspect-ratio: 3 / 2;
   transform: translateY(-50%);
 }

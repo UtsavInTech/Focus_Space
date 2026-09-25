@@ -16,8 +16,8 @@ import { Starfield } from './Starfield';
 
 const PAGES: Shot[] = FEATURES.flatMap((f) => f.shots);
 
-const src = (name: string, width: 900 | 1600) => `/journey/${name}-${width}.webp`;
-const srcSet = (name: string) => `${src(name, 900)} 900w, ${src(name, 1600)} 1600w`;
+const src = (name: string, width: 560 | 960) => `/journey/${name}-${width}.webp`;
+const srcSet = (name: string) => `${src(name, 560)} 560w, ${src(name, 960)} 960w`;
 
 export function FeatureJourney() {
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -107,7 +107,7 @@ export function FeatureJourney() {
                 <div className={`fsw-journey-shots${f.shots.length > 1 ? ' is-row' : ''}`}>
                   {f.shots.map((shot) => (
                     <figure key={shot.name} className="fsw-journey-shot">
-                      <img src={src(shot.name, 900)} srcSet={srcSet(shot.name)} sizes="92vw" alt={shot.alt} loading="lazy" decoding="async" />
+                      <img src={src(shot.name, 560)} srcSet={srcSet(shot.name)} sizes="92vw" alt={shot.alt} loading="lazy" decoding="async" />
                       <figcaption>{shot.caption}</figcaption>
                     </figure>
                   ))}
@@ -181,8 +181,7 @@ function PageTurn() {
         const shot = PAGES[((n % PAGES.length) + PAGES.length) % PAGES.length];
         const img = imgs[k];
         img.srcset = srcSet(shot.name);
-        img.src = src(shot.name, 900);
-        img.style.objectPosition = shot.focus ?? '';
+        img.src = src(shot.name, 560);
       });
     };
 
@@ -203,7 +202,7 @@ function PageTurn() {
         const angle = -OPEN - phase * (180 - 2 * OPEN);
         leaf.style.setProperty('--a', angle.toFixed(2));
         // Darker as it stands edge-on to the light; lit when lying open.
-        leaf.style.setProperty('--shade', (Math.sin(((angle + 180) * Math.PI) / 180) ** 3 * 0.3).toFixed(3));
+        leaf.style.setProperty('--shade', (Math.sin(((angle + 180) * Math.PI) / 180) ** 3 * 0.22).toFixed(3));
         // On the faces, not the leaf: opacity below 1 on a 3D element flattens it in Chrome, which turns off
         // backface hiding and would show a mirrored screenshot through the back of a fading leaf.
         leaf.style.setProperty('--fade', Math.min(1, phase / FADE, (1 - phase) / FADE).toFixed(3));
@@ -244,7 +243,7 @@ function PageTurn() {
         visible = entry.isIntersecting;
         if (visible && !fetched) {
           fetched = true;
-          PAGES.forEach((shot) => (new Image().src = src(shot.name, 900)));
+          PAGES.forEach((shot) => (new Image().src = src(shot.name, 560)));
         }
         wake();
       },
@@ -280,10 +279,10 @@ function PageTurn() {
             {Array.from({ length: LEAVES }, (_, i) => (
               <div key={i} className="fsw-book-leaf" data-leaf={i} aria-hidden="true">
                 <div className="fsw-book-face is-front">
-                  <img alt="" decoding="async" sizes="320px" />
+                  <img alt="" decoding="async" sizes="300px" />
                 </div>
                 <div className="fsw-book-face is-back">
-                  <img alt="" decoding="async" sizes="320px" />
+                  <img alt="" decoding="async" sizes="300px" />
                 </div>
               </div>
             ))}
