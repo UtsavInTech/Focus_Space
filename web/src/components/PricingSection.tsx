@@ -1,4 +1,4 @@
-import { hasStoreListing, installHref } from '../install';
+import { hasStoreListing, installHref, onPhoneOrTablet, sendLinkToComputer } from '../install';
 import { useState, type CSSProperties } from 'react';
 import { navigate, onLinkClick } from '../router';
 import { useAuth } from '../auth';
@@ -34,7 +34,9 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
   async function buy(plan: Plan) {
     if (plan.comingSoon) return;
     if (plan.id === 'free') {
-      if (hasStoreListing()) window.open(installHref(), '_blank', 'noreferrer');
+      // A phone cannot install the extension; hand the link on to a computer instead of a dead store page.
+      if (onPhoneOrTablet()) void sendLinkToComputer();
+      else if (hasStoreListing()) window.open(installHref(), '_blank', 'noreferrer');
       else navigate('/#install');
       return;
     }
@@ -111,7 +113,7 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
 
       <div className={`fsw-plans${compact ? ' is-compact' : ''}`}>
         {PLANS.map((plan, i) => (
-          <PlanCard key={plan.id} order={i} plan={plan} period={period} currency={currency} compact={compact} busy={busy === plan.id} current={auth.user ? auth.plan : null} expiresAt={auth.planExpiresAt} autoRenew={auth.autoRenew} onBuy={() => void buy(plan)} />
+          <PlanCard key={plan.id} order={i} plan={plan} period={period} currency={currency} compact={compact} busy={busy === plan.id} current={auth.user ? auth.plan : null} expiresAt={auth.planExpiresAt} autoRenew={auth.autoRenew} renewing={renewing} onBuy={() => void buy(plan)} />
         ))}
       </div>
 
@@ -160,6 +162,7 @@ function PlanCard({
   current,
   expiresAt,
   autoRenew,
+  renewing,
   onBuy,
   order,
 }: {
@@ -173,13 +176,24 @@ function PlanCard({
   current: string | null;
   expiresAt: number | null;
   autoRenew: boolean;
+  /** The "Renew automatically" choice above the cards — what buying this card would set up. */
+  renewing: boolean;
   onBuy: () => void;
 }) {
   const isFree = plan.id === 'free';
   const isCurrent = current === plan.id;
   const comingSoon = Boolean(plan.comingSoon);
   // Offering "Get Pro" to someone already on Pro is the bug this replaces.
-  const label = isCurrent ? 'Your plan' : comingSoon ? 'Coming soon' : current !== null && RANK[plan.id] < RANK[current] ? `Switch to ${plan.name}` : plan.cta;
+  const label = isCurrent
+    ? 'Your plan'
+    : comingSoon
+      ? 'Coming soon'
+      : current !== null && RANK[plan.id] < RANK[current]
+        ? `Switch to ${plan.name}`
+        : // On a phone the Free plan's button sends the link on rather than opening a store that cannot install.
+          isFree && onPhoneOrTablet()
+          ? 'Send the link to my computer'
+          : plan.cta;
   const monthly = perMonth(plan, period);
   const saving = annualSavingPercent(plan, currency);
 
@@ -211,6 +225,11 @@ function PlanCard({
             : period === 'annual'
               ? `${formatAmount(plan.price.annual, currency)} billed once a year · save ${saving}%`
               : `${formatAmount(plan.price.monthly, currency)} billed every month`}
+      </p>
+      {/* The renewal term said on the card itself, where the price is read — not only in a checkbox above.
+          The line is there on every card, empty where it does not apply, so the four buttons line up. */}
+      <p className="fsw-plan-renews">
+        {!isFree && !isCurrent && !comingSoon && (renewing ? `Renews ${period === 'annual' ? 'yearly' : 'monthly'} · cancel anytime` : 'One payment · does not renew')}
       </p>
 
       <button

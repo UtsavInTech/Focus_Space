@@ -451,6 +451,13 @@ button {
   gap: 12px;
 }
 
+/* On a phone, under the send-the-link button: why there is no install button here. */
+.fsw-install-note {
+  flex-basis: 100%;
+  font-size: 13px;
+  color: var(--fs-text-3);
+}
+
 /* One quiet line under the buttons: the promise, and the invitation. */
 .fsw-hero-tagline {
   margin-top: 26px;
@@ -742,7 +749,7 @@ button {
 
 /* The box the book sits in: a darker well than the page, like the frame of a presentation. */
 .fsw-book-box {
-  padding: 14px 12px 14px;
+  padding: 16px 16px 14px;
   border: 1px solid var(--fs-border);
   border-radius: 20px;
   background: #080809;
@@ -785,7 +792,8 @@ button {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 52%;
+  /* As large as the fan allows: at -24° plus perspective, the open pages reach the box's edges past this. */
+  width: 48%;
   aspect-ratio: 3 / 2;
   transform: translateY(-50%);
 }
@@ -1147,7 +1155,8 @@ button {
 
 .fsw-plan-sub {
   margin: 6px 0 20px;
-  min-height: 20px;
+  /* Two lines on every card — "billed once a year · save 33%" wraps — so the buttons below line up. */
+  min-height: 40px;
   font-size: 12.5px;
   color: var(--fs-text-3);
 }
@@ -2317,13 +2326,22 @@ button {
 .fsw-renew-toggle input {
   width: 15px;
   height: 15px;
-  accent-color: var(--fs-accent);
+  /* A billing term, not an action: the site's state colour and a neutral edge, like the switches beside it. */
+  accent-color: var(--fsw-mint);
   cursor: pointer;
 }
 
 .fsw-renew-toggle:has(input:checked) {
-  border-color: var(--fs-accent);
+  border-color: var(--fs-border-strong);
   color: var(--fs-text);
+}
+
+.fsw-plan-renews {
+  /* Tucked under the price line, inside its bottom margin, so the button keeps its place below. */
+  margin: -16px 0 20px;
+  min-height: 20px;
+  font-size: 12.5px;
+  color: var(--fs-text-3);
 }
 
 /* Details already given, shown as facts rather than as an unfinished form. */
