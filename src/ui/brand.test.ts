@@ -32,6 +32,15 @@ describe('the FocusSpace mark', () => {
     }
   });
 
+  it('is the same mark in the website’s tab icon, which is linked at a fresh address', () => {
+    const favicon = read('../../web/public/favicon.svg');
+    expect(favicon).toContain('M13.2 11.5v9a.85.85 0 0 0 1.31.72l6.9-4.5a.85.85 0 0 0 0-1.44l-6.9-4.5a.85.85 0 0 0-1.31.72Z');
+    for (const value of ['12.6', '8.4', 'M16 2v6', 'M24 16h6']) expect(favicon).toContain(value);
+    expect(favicon.toLowerCase()).toContain(BRAND);
+    // A favicon is cached by its address; the page must link a versioned one, or the old mark lingers.
+    expect(read('../../web/index.html')).toMatch(/href="\/favicon\.svg\?v=\d+"/);
+  });
+
   it('has the target’s four crosshair ticks, not just rings', () => {
     for (const source of [extensionMark, websiteMark]) {
       for (const tick of ['M16 2v6', 'M16 24v6', 'M2 16h6', 'M24 16h6']) expect(source).toContain(tick);

@@ -36,8 +36,10 @@ interface Dust {
 const COLOURS = ['239, 226, 207', '239, 226, 207', '239, 226, 207', '239, 226, 207', '127, 214, 194', '127, 214, 194', '239, 90, 90'];
 
 /** Shooting stars a second at the first step and at the last; the rate climbs between them. */
-const RATE_START = 0.9;
-const RATE_END = 3.4;
+const RATE_START = 0.3;
+const RATE_END = 1.2;
+/** Faint twinkling stars behind everything — few enough that the sky stays quiet behind the text. */
+const DUST_COUNT = 110;
 /** The fraction of the section, at its end, over which the shooting stars taper to none. */
 const WIND_DOWN = 0.1;
 
@@ -52,7 +54,7 @@ export function Starfield({ progress }: { progress: RefObject<number> }) {
 
     let width = 0;
     let height = 0;
-    const dust: Dust[] = Array.from({ length: 170 }, () => ({
+    const dust: Dust[] = Array.from({ length: DUST_COUNT }, () => ({
       x: Math.random(),
       y: Math.random(),
       radius: 0.35 + Math.random() * 0.95,

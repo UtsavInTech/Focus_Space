@@ -100,6 +100,8 @@ function sample(u, v) {
 }
 
 for (const out of OUTS) mkdirSync(out, { recursive: true });
+/** Each size's finished PNG, kept for the .ico written at the end. */
+const pngs = new Map();
 for (const size of SIZES) {
   const rgba = Buffer.alloc(size * size * 4);
   const SS = 4;
@@ -129,5 +131,29 @@ for (const size of SIZES) {
   }
   const file = png(size, rgba);
   for (const out of OUTS) writeFileSync(join(out, `icon-${size}.png`), file);
+  pngs.set(size, file);
 }
 console.log(`icons: wrote ${SIZES.map((s) => `icon-${s}.png`).join(', ')} to ${OUTS.length} places`);
+
+// The website's /favicon.ico — browsers and crawlers ask for it by that name whatever the page links, and
+// without a file there the host's page fallback answers with HTML. An .ico may simply hold PNGs, so this
+// wraps the 16/32/48 images drawn above: the same mark, no second drawing to keep in step.
+const icoSizes = [16, 32, 48];
+const header = Buffer.alloc(6 + 16 * icoSizes.length);
+header.writeUInt16LE(0, 0);
+header.writeUInt16LE(1, 2); // type: icon
+header.writeUInt16LE(icoSizes.length, 4);
+let offset = header.length;
+icoSizes.forEach((size, i) => {
+  const entry = 6 + 16 * i;
+  const data = pngs.get(size);
+  header.writeUInt8(size, entry);
+  header.writeUInt8(size, entry + 1);
+  header.writeUInt16LE(1, entry + 4); // colour planes
+  header.writeUInt16LE(32, entry + 6); // bits per pixel
+  header.writeUInt32LE(data.length, entry + 8);
+  header.writeUInt32LE(offset, entry + 12);
+  offset += data.length;
+});
+writeFileSync(join(ROOT, 'web', 'public', 'favicon.ico'), Buffer.concat([header, ...icoSizes.map((size) => pngs.get(size))]));
+console.log('icons: wrote web/public/favicon.ico');
