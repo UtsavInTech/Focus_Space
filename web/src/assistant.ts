@@ -54,7 +54,7 @@ const KNOWLEDGE: Entry[] = [
     keywords: [f.id, ...tokens(f.label), ...tokens(f.headline)],
     title: f.headline,
     body: `${f.body}\n\n${f.points.map((p) => `• ${p}`).join('\n')}`,
-    actions: [{ label: `See ${f.label}`, href: `/#features` }],
+    actions: [{ label: `See ${f.label}`, href: `/#feature-${f.id}` }],
   })),
   {
     keywords: ['price', 'pricing', 'cost', 'plan', 'plans', 'much', 'rupees', 'inr', 'dollar', 'usd', 'subscription', 'pay', 'paid', 'money', 'upi', 'razorpay'],

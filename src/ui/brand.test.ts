@@ -65,11 +65,36 @@ describe('the brand colour', () => {
     expect(iconScript).toMatch(/BRAND = \[0xef, 0x44, 0x44\]/);
   });
 
-  it('stays separate from the interactive accent, so the logo alone is red', () => {
+  it('is the interactive colour too: every accent is red, and no violet is left behind', () => {
     for (const path of ['./styles.css', '../content/ui/content.css']) {
       const css = read(path);
-      expect(css).toContain('--fs-accent:');
-      expect(css).not.toMatch(/--fs-accent:\s*#ef4444/i);
+      const accents = [...css.matchAll(/--fs-accent:\s*(#[0-9a-f]{6})/gi)].map((m) => m[1].toLowerCase());
+      expect(accents).toHaveLength(2); // light and dark
+      for (const hex of accents) {
+        const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+        expect(r).toBeGreaterThan(180);
+        expect(Math.max(g, b)).toBeLessThan(80);
+      }
+      expect(css.toLowerCase()).not.toMatch(/6d5dfc|8b7dff|a99dff|109, 93, 252|139, 125, 255|169, 157, 255/);
+    }
+  });
+
+  it('keeps white button text readable on the accent (WCAG AA, 4.5:1)', () => {
+    const luminance = (hex: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => {
+        const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    for (const path of ['./styles.css', '../content/ui/content.css']) {
+      const css = read(path);
+      const accents = [...css.matchAll(/--fs-accent:\s*(#[0-9a-f]{6})/gi)].map((m) => m[1]);
+      const onAccent = [...css.matchAll(/--fs-on-accent:\s*(#[0-9a-f]{6})/gi)].map((m) => m[1]);
+      accents.forEach((accent, i) => {
+        const [hi, lo] = [luminance(onAccent[i]), luminance(accent)].sort((a, b) => b - a);
+        expect((hi + 0.05) / (lo + 0.05)).toBeGreaterThanOrEqual(4.5);
+      });
     }
   });
 });

@@ -169,18 +169,25 @@ export function SectionHeader({ title, subtitle, action, eyebrow }: { title: Rea
 export function FocusMark({
   size = 20,
   active = false,
+  animated = false,
   ring = true,
   tone = 'brand',
 }: {
   size?: number;
   active?: boolean;
+  /**
+   * The living mark, as in the website's nav (web/src/components/Logo.tsx): the outer ring and the inner
+   * ring turn slowly in opposite directions and the play triangle spins in once. The dashboard's sidebar
+   * uses it; its CSS lives in dashboard.css, and stops under prefers-reduced-motion.
+   */
+  animated?: boolean;
   ring?: boolean;
   /** 'brand' = FocusSpace red; 'current' = inherit currentColor. */
   tone?: 'brand' | 'current';
 }) {
   return (
     <svg
-      className={`fs-mark${active ? ' is-active' : ''}`}
+      className={`fs-mark${active ? ' is-active' : ''}${animated ? ' is-animated' : ''}`}
       width={size}
       height={size}
       viewBox="0 0 32 32"
@@ -201,9 +208,12 @@ export function FocusMark({
           </g>
         </g>
       )}
-      {ring && <circle cx="16" cy="16" r="8.4" stroke="currentColor" strokeWidth="1.7" />}
-      {/* Optically centred: a triangle's visual centre sits left of its bounding box, hence the nudge. */}
-      <path d="M13.2 11.5v9a.85.85 0 0 0 1.31.72l6.9-4.5a.85.85 0 0 0 0-1.44l-6.9-4.5a.85.85 0 0 0-1.31.72Z" fill="currentColor" transform="translate(-0.9 0)" />
+      {ring && <circle className="fs-mark-inner" cx="16" cy="16" r="8.4" stroke="currentColor" strokeWidth="1.7" />}
+      {/* The wrapper takes any spin, so the path keeps its own nudge: a CSS transform would replace it. */}
+      <g className="fs-mark-play">
+        {/* Optically centred: a triangle's visual centre sits left of its bounding box, hence the nudge. */}
+        <path d="M13.2 11.5v9a.85.85 0 0 0 1.31.72l6.9-4.5a.85.85 0 0 0 0-1.44l-6.9-4.5a.85.85 0 0 0-1.31.72Z" fill="currentColor" transform="translate(-0.9 0)" />
+      </g>
     </svg>
   );
 }

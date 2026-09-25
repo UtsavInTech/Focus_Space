@@ -1,5 +1,6 @@
 import { onLinkClick } from '../router';
 import { Logo, Wordmark } from './Logo';
+import { Sparkle } from './Sparkle';
 
 export function Footer() {
   return (
@@ -7,8 +8,12 @@ export function Footer() {
       <div className="fsw-footer-inner">
         <div className="fsw-footer-brand">
           <a className="fsw-brand" href="/" onClick={onLinkClick('/')}>
-            <Logo size={24} />
-            <Wordmark />
+            {/* Alive as in the nav: the rings turn, the name sparkles, the ring gets no sparks. */}
+            <Logo size={24} animated />
+            <span className="fsw-brand-word">
+              <Wordmark />
+              <Sparkle from="text" rate={4} />
+            </span>
           </a>
           <p>YouTube has the content. FocusSpace gives it structure.</p>
         </div>
@@ -22,7 +27,7 @@ export function Footer() {
 
         <nav aria-label="Legal">
           <h4>Legal</h4>
-          <a href="/privacy#your-data" onClick={onLinkClick('/privacy#your-data')}>Your data</a>
+          <a href="/data" onClick={onLinkClick('/data')}>Your data</a>
           <a href="/privacy" onClick={onLinkClick('/privacy')}>Privacy</a>
           <a href="/terms" onClick={onLinkClick('/terms')}>Terms</a>
           <a href="/refunds" onClick={onLinkClick('/refunds')}>Refunds</a>

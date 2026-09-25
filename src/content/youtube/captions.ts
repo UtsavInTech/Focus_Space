@@ -23,7 +23,8 @@ export function onCaptions(listener: (transcript: Transcript) => void): () => vo
 
 let nextRequest = 1;
 
-export function requestCaptions(videoId: string, timeoutMs = 15_000): Promise<CaptionsStatus> {
+/** A little longer than the bridge's own 45 s wait (main-world.ts), so it can report its real outcome. */
+export function requestCaptions(videoId: string, timeoutMs = 50_000): Promise<CaptionsStatus> {
   const requestId = nextRequest++;
   return new Promise((resolve) => {
     const timer = window.setTimeout(() => finish('timeout'), timeoutMs);

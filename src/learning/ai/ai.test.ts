@@ -5,7 +5,7 @@ import { buildKnowledgeMap } from '../knowledge/fuse';
 import { conceptStops, locateConcept } from '../knowledge/locate';
 import type { TranscriptSegment } from '../knowledge/types';
 import { buildLearningPath } from '../path/path';
-import { buildPrompt, quizQuestions, reviewAnswer, reviewQuiz, WINDOW_FOR } from './actions';
+import { buildPrompt, quizQuestions, reviewAnswer, reviewQuiz, transcriptLanguage, WINDOW_FOR } from './actions';
 import { aiCacheKey, createAiService, type AiAvailability, type AiProvider, type AiRequest } from './service';
 
 const dsa = structuredClone(DEFAULT_MODES.find((m) => m.id === 'dsa')!);
@@ -286,5 +286,28 @@ describe('quiz quality: test the subject, not the course', () => {
     expect(at().startSec).toBeGreaterThanOrEqual(1025);
     expect(at(WINDOW_FOR.quiz).startSec).toBeLessThanOrEqual(915);
     expect(at(WINDOW_FOR.quiz).text.length).toBeLessThanOrEqual(4500);
+  });
+});
+
+describe('transcript language', () => {
+  it('recognises Hindi captions, including ones that mix in English terms', () => {
+    expect(transcriptLanguage('अब हम array के अंदर binary search लगाएंगे और देखेंगे कि mid कैसे निकलता है')).toBe('Hindi (Devanagari script)');
+  });
+
+  it('leaves English and romanised Hinglish unlabelled', () => {
+    expect(transcriptLanguage('Now we apply binary search inside the array and see how mid is computed')).toBeNull();
+    expect(transcriptLanguage('ab hum array ke andar binary search lagayenge aur dekhenge ki mid kaise nikalta hai')).toBeNull();
+  });
+
+  it('flags other non-Latin scripts without guessing their name', () => {
+    expect(transcriptLanguage('今日は配列の中で二分探索を使って、真ん中の値をどうやって求めるかを見ていきます')).toBe('a language other than English');
+  });
+
+  it('asks for English output over a Hindi transcript when no response language is set', () => {
+    const hindi: TranscriptSegment[] = Array.from({ length: 60 }, (_, i) => ({ startSec: i * 5, durSec: 5, text: `यहाँ हम पॉइंटर ${i} को अगले नोड पर ले जाते हैं।` }));
+    const ctx = (language: 'en' | 'hi') =>
+      buildLearningContext({ video: { id: 'v', title: 'Linked List', channelTitle: 'C' }, mode: DEFAULT_MODES[0], topicId: null, path: null, map: null, transcript: hindi, currentTime: 200, language });
+    expect(buildPrompt('explain', ctx('en')).user).toMatch(/Respond in English, translating/);
+    expect(buildPrompt('explain', ctx('hi')).user).not.toMatch(/Respond in English/);
   });
 });

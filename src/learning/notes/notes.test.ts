@@ -327,3 +327,39 @@ describe('mindmap format', () => {
     });
   });
 });
+
+describe('notes and mind maps organised by the whole-video outline', () => {
+  // 40 sections with long summaries: the most an outline can hold, to test the prompt budget.
+  const outline = Array.from({ length: 40 }, (_, i) => ({ startSec: i * 90, endSec: (i + 1) * 90, title: `Topic ${i}`, summary: `What topic ${i} teaches, in one fairly long sentence about linked lists and pointers.` }));
+
+  it('lists the outline topics in range and uses them as the mind map branches', () => {
+    const request = buildNoteRequest(inputs({ scope: { kind: 'full-video' }, format: 'mindmap', outline: outline.slice(0, 5) }));
+    expect(request.prompt.user).toContain('Topics in this part of the video');
+    expect(request.prompt.user).toContain('3:00–4:30 Topic 2 — What topic 2 teaches');
+    expect(request.prompt.user).toMatch(/as the main branches, in that order/);
+    expect(request.prompt.user).toMatch(/about 5 main branches/);
+    expect(request.prompt.user).toMatch(/Never put more than 6 lines directly under any one line/);
+  });
+
+  it('keeps only the topics inside a narrower range', () => {
+    const request = buildNoteRequest(inputs({ scope: { kind: 'current-section' }, format: 'mindmap', outline }));
+    const range = request.context.range!;
+    const listed = [...request.prompt.user.matchAll(/^\d+:\d+–\d+:\d+ (Topic \d+)/gm)].map((m) => m[1]);
+    expect(listed.length).toBeGreaterThan(0);
+    expect(listed.length).toBeLessThan(outline.length);
+    for (const t of listed) {
+      const s = outline.find((o) => o.title === t)!;
+      expect(s.endSec > range.startSec && s.startSec < range.endSec).toBe(true);
+    }
+  });
+
+  it('still fits the API limit with a full outline on a long lecture', () => {
+    const request = buildNoteRequest(inputs({ scope: { kind: 'full-video' }, format: 'mindmap', durationSec: 10800, outline }));
+    expect(request.prompt.user.length).toBeLessThanOrEqual(24_000);
+    expect(request.prompt.user).toContain('Topic 39');
+  });
+
+  it('is unchanged without an outline', () => {
+    expect(buildNoteRequest(inputs({ scope: { kind: 'full-video' }, format: 'mindmap' })).prompt.user).not.toContain('Topics in this part of the video');
+  });
+});

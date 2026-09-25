@@ -12,7 +12,7 @@
 | `IntentEngine` | `src/modes/intent.ts` | Catalogue + composed intents | AI intent → topics and signals |
 | `Sidekick.assess()` | `src/ai/sidekick.ts` | Deterministic on-track verdict | LLM rationale |
 | **AI actions** | `src/learning/ai/actions.ts` | What am I learning? · Explain · Example · Quiz me · Ask about this moment | Summaries, notes, flashcards, interview/coding questions, simplify, compare: one entry + one task line each |
-| **AI providers** | `src/learning/ai/service.ts`, `src/background/ai.ts` | Chrome on-device model, or the learner's endpoint | Hosted FocusSpace backend with accounts and quotas |
+| **AI providers** | `src/learning/ai/service.ts`, `src/background/ai.ts` | The hosted FocusSpace API (`server/`, metered per account and per install); Chrome's on-device model; a self-hosted endpoint for development | — |
 | **Learning context** | `src/learning/context/context.ts` | Moment, concept outline, course position, space topic path | Learning-plan queries ("what am I missing before trees?") |
 | **Knowledge sources** | `src/learning/knowledge/types.ts` | chapters, description, comments, transcript | `'ai'` source for concept labelling/refinement (base confidence 0.5) |
 
@@ -86,9 +86,14 @@ A 3-hour transcript still produces a prompt under 4,000 characters (tested).
 
 ```
 Extension (no secrets)
+  ├─ HTTPS ─► FocusSpace API (server/, holds the one OpenAI key, meters usage) ─► OpenAI
   ├─ Chrome on-device model (Prompt API, Chrome 138+) — nothing leaves the browser
-  └─ HTTPS/HTTP ─► learner's endpoint (keeps the API key) ─► LLM provider
+  └─ HTTP ─► a self-hosted endpoint, for development only (scripts/ai-endpoint)
 ```
+
+A store build has the API's address baked in (`VITE_API_URL`, `src/config.ts`), so learners never
+configure an endpoint or supply a key. The contract below is what that API and the development
+endpoint both speak.
 
 - **Automatic** (the default) uses the endpoint when one is configured, otherwise the on-device model when Chrome reports it `available`. The one-time model download starts only from a click in Settings.
 - **Endpoint contract:** `POST <url>`
@@ -101,7 +106,7 @@ Extension (no secrets)
 - **Reference server:** `scripts/ai-endpoint/server.mjs`. It keeps `OPENAI_API_KEY` in its environment, forwards `prompt` to OpenAI (`OPENAI_MODEL`, default `gpt-4o-mini`), and limits request size.
 - **Rendering:** answers are plain text; code blocks go in `<pre>`. Nothing is rendered as HTML or executed.
 
-## Data sent (endpoint only)
+## Data sent to the AI
 
 - **Sent:**
   - video title and channel
@@ -117,4 +122,4 @@ Extension (no secrets)
 
 - **Learning plan.** `LearningContext.learningPath` already carries the space's topic order. A plan engine can map the learner's watched concepts to those topics and answer "Am I missing anything before trees?" through a new action.
 - **AI refinement of maps.** For transcript-only maps, one request per video, cached as a Knowledge Map source `'ai'`, never replacing chapters.
-- **More actions:** summarize, notes, flashcards, interview question, coding exercise.
+- **More actions:** flashcards, interview question, coding exercise. (Notes, mind maps and chat are built — see [V5_CONTRACT.md](V5_CONTRACT.md).)

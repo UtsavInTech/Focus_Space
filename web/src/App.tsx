@@ -4,16 +4,18 @@ import { initialCurrency, rememberCurrency } from './currency';
 import type { CurrencyCode } from './content/plans';
 import { SiteNav } from './components/SiteNav';
 import { Hero } from './components/Hero';
-import { FeatureTabs } from './components/FeatureTabs';
+import { FeatureJourney } from './components/FeatureJourney';
 import { PricingSection } from './components/PricingSection';
 import { Faq } from './components/Faq';
 import { Footer } from './components/Footer';
 import { ChatLauncher } from './components/ChatLauncher';
+import { CursorSparkle } from './components/CursorSparkle';
 import { AuthPage } from './components/AuthPage';
 import { ConnectPage } from './components/ConnectPage';
 import { AccountPage } from './components/AccountPage';
 import { LegalPage } from './components/LegalPage';
 import { DataSummary } from './components/DataSummary';
+import { DataPage } from './components/DataPage';
 import { LEGAL_DOCS } from './content/legal';
 import { AuthProvider } from './auth';
 
@@ -42,6 +44,8 @@ export function App() {
           ? 'Connecting FocusSpace'
           : path === '/account'
             ? 'Your account — FocusSpace'
+            : path === '/data'
+              ? 'Your data — FocusSpace'
             : LEGAL_DOCS[path]
               ? `${LEGAL_DOCS[path].title} — FocusSpace`
               : 'FocusSpace — YouTube, organised around what you came for';
@@ -52,6 +56,7 @@ export function App() {
   // Where the extension sends someone to finish signing in — see web/src/connect.ts.
   const isConnect = path === '/connect';
   const isAccount = path === '/account';
+  const isData = path === '/data';
   const legal = LEGAL_DOCS[path] ?? null;
 
   return (
@@ -64,6 +69,8 @@ export function App() {
           <ConnectPage />
         ) : isAuth ? (
           <AuthPage mode={path === '/signup' ? 'signup' : path === '/reset' ? 'reset' : 'signin'} />
+        ) : isData ? (
+          <DataPage />
         ) : isAccount ? (
           <AccountPage />
         ) : isPricing ? (
@@ -81,13 +88,14 @@ export function App() {
         ) : (
           <>
             <Hero />
-            <FeatureTabs />
+            <FeatureJourney />
             <PricingSection currency={currency} onCurrency={chooseCurrency} compact />
             <Faq />
           </>
         )}
       </main>
       {!isAuth && !isConnect && <Footer />}
+      <CursorSparkle />
       <ChatLauncher />
     </AuthProvider>
   );

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowRight, BookOpen, Check, ChevronDown, ChevronUp, Circle, CircleDot, CircleHelp, Lightbulb, ListChecks, MessageCircle, MessageCircleQuestion, NotebookPen, Play, Send, SkipForward, Sparkles, X } from 'lucide-react';
 import type { AiSettings, LearningMode } from '@/types/domain';
 import type { WatchPage } from '@/integrations/youtube/innertube-client';
@@ -14,6 +14,7 @@ import { HOSTED_AI_LABEL } from '@/config';
 import { sendMessage } from '@/messaging/runtime';
 import { YtLink } from '@/ui/nav';
 import { useKnowledge, usePlaybackConcept, useVideoDuration } from '../data/knowledge';
+import { useVideoOutline } from '../data/outline';
 import { ChatPanel } from './ChatPanel';
 import { NotesPanel } from './NotesPanel';
 import { RichText } from '@/ui/components/RichText';
@@ -168,6 +169,13 @@ export function NowLearning({
   const [status, setStatus] = useState<AiStatus | null>(null);
   const [panel, setPanel] = useState<'notes' | 'chat' | null>(null);
   const runId = useRef(0);
+  const outline = useVideoOutline(panel !== null, video, knowledge.transcript, duration, knowledge.map);
+  // Chat answers from the transcript and the outline built on it, so opening chat fetches the captions — the same request "Explain this" makes.
+  const { requestTranscript } = knowledge;
+  useEffect(() => {
+    if (panel === 'chat') void requestTranscript();
+  }, [panel, requestTranscript]);
+  const loadTranscript = useCallback(async () => (await requestTranscript())?.segments ?? null, [requestTranscript]);
 
   useEffect(() => {
     runId.current++;
@@ -276,6 +284,8 @@ export function NowLearning({
             path={path}
             map={map}
             transcript={knowledge.transcript?.segments ?? null}
+            outline={outline}
+            loadTranscript={loadTranscript}
             durationSec={duration}
             currentTime={currentTime}
             defaultLanguage={ai.language}
@@ -291,6 +301,8 @@ export function NowLearning({
             map={map}
             transcript={knowledge.transcript?.segments ?? null}
             transcriptSource={knowledge.transcript?.kind ?? null}
+            outline={outline}
+            loadTranscript={loadTranscript}
             currentTime={currentTime}
             language={ai.language}
             onClose={() => setPanel(null)}

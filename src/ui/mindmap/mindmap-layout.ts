@@ -15,16 +15,18 @@ export const PAD_X = 11;
 export const PAD_Y = 7;
 export const FONT = 12;
 export const LINE_H = 15;
-const CHAR_W = 6.15; // Inter at 12px, averaged — good enough for box sizing
+// Inter at 12px, averaged. 6.15 measured short on real titles ("Common mistakes" touched its box edge).
+export const CHAR_W = 6.4;
 const MAX_TEXT_W = 168;
 const MAX_LINES = 2;
 const COL_GAP = 46;
 /** Space between sibling boxes. */
 const GAP_Y = 8;
 const MARGIN = 12;
+const BADGE_ROOM = 36;
 
 /** Branch colours, cycled per top-level branch so each limb of the map reads as one thing. */
-const BRANCH_COLORS = ['#6d5dfc', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+export const BRANCH_COLORS = ['#dc2626', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
 
 export interface LaidNode {
   title: string;
@@ -38,6 +40,8 @@ export interface LaidNode {
   h: number;
   color: string;
   children: LaidNode[];
+  /** The node this box draws — how a click on it is traced back to the map. */
+  source: MindMapNode;
 }
 
 /** Greedy word wrap to at most `MAX_LINES`, ellipsising whatever does not fit. */
@@ -114,7 +118,7 @@ export function layoutMindMap(root: MindMapNode): { nodes: LaidNode[]; width: nu
   const place = (node: MindMapNode, depth: number, top: number, color: string): LaidNode => {
     const b = boxes.get(node)!;
     const total = span(node, boxes);
-    const laid: LaidNode = { title: node.title, lines: b.lines, depth, x: colX[depth], y: top + total / 2, w: b.w, h: b.h, color, children: [] };
+    const laid: LaidNode = { title: node.title, lines: b.lines, depth, x: colX[depth], y: top + total / 2, w: b.w, h: b.h, color, children: [], source: node };
     nodes.push(laid);
     const childrenSpan = node.children.reduce((sum, child) => sum + span(child, boxes), 0);
     let childTop = top + (total - childrenSpan) / 2;
@@ -126,7 +130,8 @@ export function layoutMindMap(root: MindMapNode): { nodes: LaidNode[]; width: nu
   };
   place(root, 0, MARGIN, BRANCH_COLORS[0]);
 
-  return { nodes, width: x - COL_GAP + MARGIN, height: span(root, boxes) + MARGIN * 2 };
+  // BADGE_ROOM: the "+N" handle on a closed topic (MindMapDiagram) sits on its right edge, past the last column.
+  return { nodes, width: x - COL_GAP + MARGIN + BADGE_ROOM, height: span(root, boxes) + MARGIN * 2 };
 }
 
 /** A soft S-curve from a parent's right edge to a child's left edge. */

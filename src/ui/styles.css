@@ -21,16 +21,20 @@
   --fs-text-2: #55555d;
   --fs-text-3: #8b8b93;
   /*
-   * FocusSpace red — the brand colour, and only the brand colour: the mark, and the "Space" half of the
-   * wordmark. It is deliberately separate from --fs-accent (the interactive colour used by buttons,
-   * switches and focus states), so the logo can be red without repainting every control in the product.
+   * FocusSpace red. --fs-brand is the mark and the "Space" half of the wordmark; --fs-accent is the same
+   * red family doing the interactive work — buttons, switches, selection, focus. People come here from
+   * YouTube and go back to it, so the product speaks in the colour they already read as "video".
+   *
+   * They stay two tokens because they do different jobs: the accent is one step deeper than the logo so
+   * white text on a button clears 4.5:1, and it is used sparingly — one primary action per view, the
+   * selected item, a switch that is on. Red everywhere is an alarm; red in a few places is a signpost.
    */
   --fs-brand: #ef4444;
-  --fs-accent: #6d5dfc;
-  --fs-accent-hover: #5c4bf0;
-  --fs-accent-soft: rgba(109, 93, 252, 0.1);
-  --fs-accent-softer: rgba(109, 93, 252, 0.05);
-  --fs-accent-text: #5344e0;
+  --fs-accent: #dc2626;
+  --fs-accent-hover: #c21f1f;
+  --fs-accent-soft: rgba(220, 38, 38, 0.09);
+  --fs-accent-softer: rgba(220, 38, 38, 0.045);
+  --fs-accent-text: #b91c1c;
   --fs-on-accent: #ffffff;
   --fs-success: #15803d;
   --fs-success-soft: rgba(22, 163, 74, 0.1);
@@ -41,7 +45,7 @@
   --fs-shadow-sm: 0 1px 2px rgba(20, 20, 30, 0.05);
   --fs-shadow-md: 0 4px 16px -4px rgba(20, 20, 30, 0.1), 0 1px 3px rgba(20, 20, 30, 0.06);
   --fs-shadow-lg: 0 24px 60px -12px rgba(20, 20, 30, 0.25), 0 2px 8px rgba(20, 20, 30, 0.08);
-  --fs-ring: 0 0 0 3px rgba(109, 93, 252, 0.28);
+  --fs-ring: 0 0 0 3px rgba(220, 38, 38, 0.24);
 
   --fs-r-sm: 6px;
   --fs-r-md: 10px;
@@ -54,23 +58,24 @@
 }
 
 [data-theme='dark'] {
-  --fs-bg: #0c0c10;
-  --fs-surface: #141419;
-  --fs-surface-2: #1b1b22;
-  --fs-surface-3: #23232c;
-  --fs-border: #25252e;
-  --fs-border-strong: #353540;
-  --fs-text: #f2f2f4;
-  --fs-text-2: #a3a3ad;
-  --fs-text-3: #71717b;
+  /* Warm near-black, close to YouTube's own #0f0f0f: a blue-black under a red accent reads as a clash. */
+  --fs-bg: #0f0d0d;
+  --fs-surface: #171414;
+  --fs-surface-2: #1f1b1b;
+  --fs-surface-3: #282323;
+  --fs-border: #2a2424;
+  --fs-border-strong: #3b3434;
+  --fs-text: #f5f2f2;
+  --fs-text-2: #ada5a5;
+  --fs-text-3: #7d7575;
   /* Lifted a little for dark surfaces: #ef4444 on near-black loses contrast against the text around it. */
   --fs-brand: #f56565;
-  --fs-accent: #8b7dff;
-  --fs-accent-hover: #9d91ff;
-  --fs-accent-soft: rgba(139, 125, 255, 0.15);
-  --fs-accent-softer: rgba(139, 125, 255, 0.07);
-  --fs-accent-text: #aca2ff;
-  --fs-on-accent: #0c0c10;
+  --fs-accent: #dc2626;
+  --fs-accent-hover: #e53535;
+  --fs-accent-soft: rgba(239, 68, 68, 0.15);
+  --fs-accent-softer: rgba(239, 68, 68, 0.07);
+  --fs-accent-text: #ff7b7b;
+  --fs-on-accent: #ffffff;
   --fs-success: #4ade80;
   --fs-success-soft: rgba(74, 222, 128, 0.12);
   --fs-warning: #fbbf24;
@@ -80,7 +85,7 @@
   --fs-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --fs-shadow-md: 0 6px 20px -6px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.4);
   --fs-shadow-lg: 0 30px 70px -12px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.5);
-  --fs-ring: 0 0 0 3px rgba(139, 125, 255, 0.35);
+  --fs-ring: 0 0 0 3px rgba(239, 68, 68, 0.38);
   color-scheme: dark;
 }
 
@@ -244,7 +249,7 @@ body.fs-popup-body {
 .fs-btn-lg { height: 44px; padding: 0 20px; font-size: 14.5px; border-radius: 12px; }
 .fs-btn-block { width: 100%; }
 
-.fs-btn-primary { background: var(--fs-accent); color: var(--fs-on-accent); box-shadow: 0 1px 2px rgba(60, 40, 200, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+.fs-btn-primary { background: var(--fs-accent); color: var(--fs-on-accent); box-shadow: 0 1px 2px rgba(150, 20, 20, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12); }
 .fs-btn-primary:hover:not(:disabled) { background: var(--fs-accent-hover); }
 .fs-btn-secondary { background: var(--fs-surface); border-color: var(--fs-border); color: var(--fs-text); box-shadow: var(--fs-shadow-sm); }
 .fs-btn-secondary:hover:not(:disabled) { background: var(--fs-surface-2); border-color: var(--fs-border-strong); }
@@ -300,7 +305,11 @@ body.fs-popup-body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   transition: transform 200ms var(--fs-ease);
 }
-.fs-switch[aria-checked='true'] { background: var(--fs-accent); box-shadow: none; }
+/*
+ * On is red, but a step quieter than a button: a settings page is a column of switches, and a column of
+ * full-strength red pills reads as a row of warnings. The knob's position still says on/off without colour.
+ */
+.fs-switch[aria-checked='true'] { background: color-mix(in srgb, var(--fs-accent) 82%, var(--fs-surface)); box-shadow: none; }
 .fs-switch[aria-checked='true']::after { transform: translateX(16px); }
 .fs-switch:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -738,7 +747,13 @@ body.fs-popup-body {
 .fs-mm-controls button { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px; border: none; border-radius: 7px; background: none; color: var(--fs-text); font: inherit; cursor: pointer; }
 .fs-mm-controls button:hover, .fs-mm-controls button[aria-pressed='true'] { background: var(--fs-surface); }
 .fs-mm-controls span { min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+.fs-mm-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fs-mm-hint { font-size: 12px; color: var(--fs-text-3); }
 .fs-mm-frame { overflow: auto; }
+/* Mind map nodes that open (ui/mindmap/expand.ts): a pointer, a hover lift, and a visible keyboard focus. */
+.fs-mm-node.is-clickable { cursor: pointer; outline: none; }
+.fs-mm-node.is-clickable:hover > rect:first-child { filter: brightness(1.12); stroke-opacity: 0.9; }
+.fs-mm-node.is-clickable:focus-visible > rect:first-child { stroke: var(--fs-text); stroke-opacity: 1; stroke-width: 2; }
 .fs-mm-frame .fs-mindmap { overflow: visible; max-width: none; }
 
 /* ─── Creator picker ────────────────────────────────────────────────────────

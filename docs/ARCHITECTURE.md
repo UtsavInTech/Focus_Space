@@ -1,4 +1,7 @@
-# FocusSpace architecture (V4)
+# FocusSpace architecture
+
+This page is the Chrome extension's internals. The repository also holds the website (`web/`) and
+the API (`server/`) — the [README's project map](../README.md#project-map) shows how the three fit.
 
 ```
                         chrome.storage.local  (typed schema: src/storage)
@@ -33,6 +36,13 @@
 | `src/ui` | Design system, shared components (`CreateSpace`, `ChannelPicker`, …), `nav.tsx` (navigation context), `data.tsx` (YouTube data context). |
 | `src/ai` | Classifier registry, sidekick, `on-device.ts` (Chrome Prompt API helpers). |
 | `src/background` | Service worker: sync, relevance warmer, subscriptions import, YouTube relay, `ai.ts` (companion providers), session alarms (dormant). |
+| `src/content/site-bridge.ts` | Content script on focusspace.xyz: tells the website the extension is installed, so it can hand over a sign-in. |
+| `src/dashboard`, `src/popup` | The extension's own pages: dashboard (Home, Library, History, Spaces, Account, Settings) and the toolbar popup. |
+| `src/storage` | Typed `chrome.storage.local` schema and migrations, per-account data ownership, notes and chat stores. |
+| `src/messaging`, `src/types` | Typed runtime messages (`types/messages.ts` is the full list) and shared types. |
+| `src/billing`, `src/config.ts` | Plan limits and prices (`plans.ts`, the single source the server and website also read); build-time API/site URLs. |
+| `server/` | The API (Node 22, `node:sqlite`): `auth/`, `usage/` (metering, entitlements), `billing/` (Razorpay), `notify/` (email). |
+| `web/` | The website (React + Vite): home, pricing, sign-in, account, the `/connect` page that signs the extension in. |
 
 ## Navigation (same tab, SPA)
 

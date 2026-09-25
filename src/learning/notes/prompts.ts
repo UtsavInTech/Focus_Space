@@ -3,6 +3,7 @@ import type { LearningContext } from '../context/context';
 import { formatTimestamp } from '../knowledge/timestamps';
 import type { Grounding } from './grounding';
 import { LANGUAGE_INSTRUCTION } from './language';
+import type { OutlineSection } from '../outline/outline';
 
 /**
  * Independent of `AiPrompt` in src/learning/ai/actions.ts (WS3-owned) —
@@ -34,8 +35,10 @@ const MINDMAP_FORMAT = 'Write a hierarchical outline, not prose: one concept or 
  */
 export function mindmapGuidance(ctx: LearningContext, scopeKind: NoteScopeKind, grounding: Grounding): string {
   const minutes = ctx.range ? (ctx.range.endSec - ctx.range.startSec) / 60 : 0;
-  const concepts = grounding.conceptTitles.length;
-  const branches = Math.max(3, Math.min(9, concepts || Math.round(minutes / 7) || 3));
+  const topics = outlineInRange(ctx).length;
+  const concepts = topics >= 2 ? topics : grounding.conceptTitles.length;
+  // More than 8 limbs off one centre stops reading as a map (ui/mindmap/tidy.ts folds any extra away).
+  const branches = Math.max(3, Math.min(8, concepts || Math.round(minutes / 7) || 3));
   const long = scopeKind !== 'current-section' && (minutes >= 25 || concepts >= 6);
   const root = scopeKind === 'current-section' ? 'the concept this section teaches' : `the subject of the whole video ("${ctx.videoTitle}")`;
   return [
@@ -44,8 +47,22 @@ export function mindmapGuidance(ctx: LearningContext, scopeKind: NoteScopeKind, 
     long
       ? 'Go three to four levels deep where the evidence supports it: under each concept, its definition or purpose, the steps or cases, key details, and examples or pitfalls the instructor gives.'
       : 'Two to three levels deep: under each concept, the few details the evidence actually gives.',
+    topics >= 2 ? 'Use the topics listed under "Topics in this part of the video" as the main branches, in that order, and fill in each one from the transcript.' : '',
+    'Never put more than 6 lines directly under any one line: when there are more, group related ones under a shared parent instead.',
     'Keep each line short (a phrase, not a sentence). Every line must be a distinct idea from the evidence — no filler, no repeating a parent in its child, no generic knowledge the video does not teach. If the evidence is thin, a smaller map is the right answer.',
-  ].join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+const OUTLINE_MAX_CHARS = 3000;
+
+/** The outline's sections that overlap the note's range (all of them for a whole-video note). */
+export function outlineInRange(ctx: LearningContext): OutlineSection[] {
+  const sections = ctx.videoOutline ?? [];
+  if (!ctx.range) return sections;
+  const { startSec, endSec } = ctx.range;
+  return sections.filter((s) => s.endSec > startSec && s.startSec < endSec);
 }
 const REVISION_INSTRUCTION = 'These are quick revision notes for reviewing before continuing or before an exam: be concise — definitions, key facts, formulas and common pitfalls only, minimal elaboration.';
 
@@ -68,6 +85,13 @@ function orientationBlock(ctx: LearningContext, scopeKind: NoteScopeKind): strin
 
 function evidenceBlock(ctx: LearningContext, grounding: Grounding): string {
   const lines: string[] = [];
+  const topics = outlineInRange(ctx);
+  if (topics.length) {
+    // Bounded: a whole-video transcript already takes up to 16,000 of the API's 24,000 characters.
+    const full = topics.map((t) => `${formatTimestamp(t.startSec)}–${formatTimestamp(t.endSec)} ${t.title}${t.summary ? ` — ${t.summary}` : ''}`).join('\n');
+    const list = full.length <= OUTLINE_MAX_CHARS ? full : topics.map((t) => `${formatTimestamp(t.startSec)} ${t.title}`).join('\n').slice(0, OUTLINE_MAX_CHARS);
+    lines.push('Topics in this part of the video, in order (from an outline of the whole transcript — organise by these):', list);
+  }
   if (grounding.outline) lines.push('Concept structure in this range (from chapters, description or transcript — use it to organise the notes; it is not the notes itself):', grounding.outline);
   if (ctx.transcriptWindow) {
     lines.push(`Transcript excerpt (${formatTimestamp(ctx.transcriptWindow.startSec)}–${formatTimestamp(ctx.transcriptWindow.endSec)}):`, `"""${ctx.transcriptWindow.text}"""`);

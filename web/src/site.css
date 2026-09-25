@@ -8,9 +8,8 @@
 
 :root {
   /*
-   * FocusSpace red — the brand colour, and only the brand colour: the mark, and the "Space" half of the
-   * wordmark. Kept apart from --fs-accent (buttons, links, focus states) so the logo can be red without
-   * repainting every control on the site.
+   * FocusSpace red for the mark and the "Space" half of the wordmark. The buttons' red (--fs-accent) and
+   * the warm dark neutrals come from src/ui/styles.css, so the site and the extension cannot drift.
    */
   --fs-brand: #ef4444;
 
@@ -18,7 +17,37 @@
   --fsw-gutter: 16px;
   --fsw-nav-h: 64px;
   /* FocusSpace uses no gradients: the hero's backdrop is a flat, faint tint of the accent. */
-  --fsw-glow: var(--fs-accent-softer);
+  --fsw-glow: rgba(239, 226, 207, 0.03);
+}
+
+/*
+ * The website's own palette, over the extension's tokens (src/ui/styles.css). Inside YouTube the extension
+ * needs a warm near-black to sit beside YouTube's; out here, a warm-red-tinted black made every surface
+ * read as red before a single red thing was on it. So the neutrals are neutral, and colour has roles:
+ *
+ *   red   — the brand and the one action worth taking (logo, primary button, the recommended plan)
+ *   mint  — guidance and progress (where you are, what is included, where a link goes)
+ *   cream — warmth in type (the headline's phrase), never a surface
+ *
+ * Red is refreshing when it is rare; mint is the cool note that lets it stay warm.
+ */
+html[data-theme='dark'] {
+  --fs-bg: #0d0d0e;
+  --fs-surface: #151516;
+  --fs-surface-2: #1b1b1d;
+  --fs-surface-3: #242426;
+  --fs-border: #262628;
+  --fs-border-strong: #37373a;
+  --fs-text: #f4f1ec;
+  --fs-text-2: #a8a5a0;
+  --fs-text-3: #767470;
+  --fsw-mint: #7fd6c2;
+  --fsw-mint-soft: rgba(127, 214, 194, 0.13);
+  --fsw-cream: #efe2cf;
+  /* Checks and "included" marks are guidance, so they take the mint rather than a second, greener green. */
+  --fs-success: var(--fsw-mint);
+  --fs-success-soft: var(--fsw-mint-soft);
+  --fs-ring: 0 0 0 3px rgba(127, 214, 194, 0.35);
 }
 
 * {
@@ -28,6 +57,9 @@
 html {
   scroll-behavior: smooth;
   scroll-padding-top: calc(var(--fsw-nav-h) + 16px);
+  /* With body's clip below: on <body> alone it reaches the viewport as "hidden", which still lets the
+     page be panned sideways (pinch-zoom, scrollTo) into the hero tint that runs past the edges. */
+  overflow-x: clip;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -51,7 +83,10 @@ body {
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  /* The hero's tint runs past the viewport. `clip`, not `hidden`: hidden makes body a scroll container,
+     which iOS Safari still lets you swipe sideways, and which can stop the sticky nav from sticking. */
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 h1,
@@ -79,7 +114,7 @@ button {
 }
 
 :focus-visible {
-  outline: 2px solid var(--fs-accent);
+  outline: 2px solid var(--fsw-mint, var(--fs-accent));
   outline-offset: 2px;
   border-radius: var(--fs-r-sm);
 }
@@ -153,13 +188,29 @@ button {
   top: 0;
   z-index: 40;
   border-bottom: 1px solid transparent;
-  transition: background 160ms var(--fs-ease), border-color 160ms var(--fs-ease);
+  transition:
+    background 300ms var(--fs-ease),
+    border-color 300ms var(--fs-ease),
+    box-shadow 300ms var(--fs-ease);
 }
 
+/*
+ * Once the page moves under it, the bar becomes smoked glass: the page's own black, blurred, with a
+ * hairline — part of the same room rather than a strip laid on top. Blur is what keeps text legible
+ * over screenshots.
+ */
 .fsw-nav.is-scrolled {
-  background: color-mix(in srgb, var(--fs-bg) 82%, transparent);
-  backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--fs-bg) 76%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
   border-bottom-color: var(--fs-border);
+  box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.6);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .fsw-nav.is-scrolled {
+    background: var(--fs-bg);
+  }
 }
 
 .fsw-nav-inner {
@@ -185,6 +236,60 @@ button {
 /* The mark carries its own brand colour (components/Logo.tsx) — nothing to set here. */
 .fsw-brand svg {
   flex: none;
+}
+
+/*
+ * The living mark (Logo animated). Slow and opposed: the outer ring and its ticks turn one way, the inner
+ * ring the other, like a sight settling on a target — slow enough to read as calm, not as loading.
+ * The play triangle spins in once per page and lands in its resting pose.
+ *
+ * A plain circle turning is invisible, so while animated the inner ring is cut into two arcs; the gaps
+ * are what the eye tracks. Everything rotates about the mark's centre (16,16 in its 32-unit viewBox).
+ */
+.fsw-logo.is-animated .fsw-logo-outer,
+.fsw-logo.is-animated .fsw-logo-inner {
+  transform-box: view-box;
+  transform-origin: 16px 16px;
+}
+.fsw-logo.is-animated .fsw-logo-outer {
+  animation: fsw-logo-turn 24s linear infinite;
+}
+.fsw-logo.is-animated .fsw-logo-inner {
+  stroke-dasharray: 22.4 4;
+  animation: fsw-logo-turn 14s linear infinite reverse;
+}
+.fsw-logo.is-animated .fsw-logo-play {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fsw-logo-play-in 900ms var(--fs-ease) 120ms both;
+}
+@keyframes fsw-logo-turn {
+  to { transform: rotate(360deg); }
+}
+@keyframes fsw-logo-play-in {
+  0% { transform: rotate(-270deg) scale(0.35); opacity: 0; }
+  55% { transform: rotate(24deg) scale(1.14); opacity: 1; }
+  78% { transform: rotate(-6deg) scale(0.97); }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fsw-logo.is-animated .fsw-logo-outer,
+  .fsw-logo.is-animated .fsw-logo-inner,
+  .fsw-logo.is-animated .fsw-logo-play {
+    animation: none;
+  }
+  /* At rest the mark is the logo exactly — solid inner ring, no gaps. */
+  .fsw-logo.is-animated .fsw-logo-inner { stroke-dasharray: none; }
+}
+
+/* The nav's install button is light: the hero's red button is the page's one red call to action. */
+.fsw-nav .fsw-btn-primary {
+  background: var(--fs-text);
+  color: var(--fs-bg);
+}
+.fsw-nav .fsw-btn-primary:hover {
+  background: #ffffff;
 }
 
 .fsw-nav-links {
@@ -296,9 +401,11 @@ button {
   margin: 0 auto;
   padding: 72px var(--fsw-gutter) 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+  /* The product is the evidence, so it gets the wider column; the copy's measure is capped anyway. */
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   gap: 56px;
-  align-items: center;
+  /* Top-aligned, with the preview dropped to the headline (below): one clean line across both columns. */
+  align-items: start;
 }
 
 .fsw-hero::before {
@@ -307,23 +414,15 @@ button {
   inset: -80px -200px auto;
   height: 480px;
   background: var(--fsw-glow);
+  /* Still a flat tint — only its bottom edge fades, so it no longer cuts a hard line through the hero. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
   pointer-events: none;
   z-index: -1;
 }
 
-.fsw-eyebrow {
-  display: inline-block;
-  padding: 5px 12px;
-  border: 1px solid var(--fs-border);
-  border-radius: 999px;
-  background: var(--fs-surface-2);
-  font-size: 12.5px;
-  font-weight: 560;
-  color: var(--fs-text-2);
-}
-
 .fsw-hero h1 {
-  margin-top: 20px;
+  margin-top: 0;
   font-size: clamp(34px, 5.5vw, 54px);
   letter-spacing: -0.03em;
   /* Keeps the headline from leaving a single orphaned word on the last line. */
@@ -331,7 +430,11 @@ button {
 }
 
 .fsw-grad {
-  color: var(--fs-accent-text);
+  color: var(--fsw-cream);
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.015em;
 }
 
 .fsw-lede {
@@ -348,21 +451,17 @@ button {
   gap: 12px;
 }
 
-.fsw-trust {
-  margin: 24px 0 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 20px;
-  font-size: 13px;
-  color: var(--fs-text-3);
+/* One quiet line under the buttons: the promise, and the invitation. */
+.fsw-hero-tagline {
+  margin-top: 26px;
+  padding-left: 14px;
+  border-left: 2px solid var(--fsw-mint);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--fs-text-2);
 }
-
-.fsw-trust li::before {
-  content: '✓';
-  margin-right: 7px;
-  color: var(--fs-success);
+.fsw-hero-tagline span {
+  color: var(--fsw-cream);
 }
 
 /* ── Product preview ─────────────────────────────────────────────────── */
@@ -375,213 +474,547 @@ button {
   overflow: hidden;
 }
 
-.fsw-preview-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--fs-border);
-  background: var(--fs-surface-2);
-}
+/* ── Feature journey ─────────────────────────────────────────────────
+ * The features as the course a learner takes. On wide screens the steps
+ * scroll on the left while a book stays pinned on the right and turns to a
+ * real screenshot for each one (FeatureJourney.tsx drives the pages). The
+ * steps are not boxed: a line down their left edge fills as you read.
+ */
 
-.fsw-preview-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--fs-border-strong);
-}
-
-.fsw-preview-url {
-  margin-left: 12px;
-  font-size: 12px;
-  color: var(--fs-text-3);
-}
-
-.fsw-preview-body {
-  padding: 16px;
-}
-
-.fsw-preview-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 18px;
-}
-
-.fsw-preview-chips span {
-  padding: 4px 11px;
-  border-radius: 999px;
-  background: var(--fs-surface-2);
-  font-size: 12px;
-  color: var(--fs-text-2);
-}
-
-.fsw-preview-chips .is-active {
-  background: var(--fs-accent);
-  color: var(--fs-on-accent);
-  font-weight: 560;
-}
-
-.fsw-preview-label {
-  margin: 0 0 8px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--fs-text-3);
-}
-
-.fsw-preview-resume,
-.fsw-preview-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-}
-
-.fsw-preview-resume {
-  margin-bottom: 18px;
-  padding: 10px;
-  border: 1px solid var(--fs-accent-soft);
-  border-radius: var(--fs-r-md);
-  background: var(--fs-accent-softer);
-}
-
-.fsw-preview-thumb {
-  flex: none;
-  width: 56px;
-  height: 32px;
-  border-radius: var(--fs-r-sm);
-  background: var(--fs-surface-3);
-}
-
-.fsw-preview-resume strong,
-.fsw-preview-row strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 560;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fsw-preview-resume span,
-.fsw-preview-row span {
-  font-size: 11.5px;
-  color: var(--fs-text-3);
-}
-
-.fsw-preview-row > div:nth-child(2) {
-  min-width: 0;
-  flex: 1;
-}
-
-.fsw-tier {
-  flex: none;
-  font-size: 10.5px;
-  font-style: normal;
-  font-weight: 560;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: var(--fs-surface-2);
-  color: var(--fs-text-3);
-}
-
-.fsw-tier.is-best {
-  background: var(--fs-success-soft);
-  color: var(--fs-success);
-}
-
-.fsw-tier.is-good {
-  background: var(--fs-accent-soft);
-  color: var(--fs-accent-text);
-}
-
-.fsw-tier.is-discovery {
-  background: var(--fs-warning-soft);
-  color: var(--fs-warning);
-}
-
-/* ── Feature tabs ────────────────────────────────────────────────────── */
-
-.fsw-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  margin-bottom: 28px;
-}
-
-.fsw-tab {
-  padding: 9px 16px;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  font-size: 14px;
-  color: var(--fs-text-2);
-  cursor: pointer;
-  transition: all 140ms var(--fs-ease);
-}
-
-.fsw-tab:hover {
-  background: var(--fs-surface-2);
-  color: var(--fs-text);
-}
-
-.fsw-tab.is-active {
-  background: var(--fs-surface);
-  border-color: var(--fs-border-strong);
-  color: var(--fs-text);
-  font-weight: 560;
-}
-
-.fsw-panel {
+.fsw-journey-body {
+  --fsw-journey-progress: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  gap: 40px;
-  padding: 36px;
-  border: 1px solid var(--fs-border);
-  border-radius: var(--fs-r-xl);
-  background: var(--fs-surface);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 72px;
+  max-width: var(--fsw-max);
+  margin: 0 auto;
 }
 
-.fsw-panel h3 {
-  font-size: 22px;
-}
-
-.fsw-panel-copy p {
-  margin-top: 14px;
-  color: var(--fs-text-2);
-  font-size: 15px;
-}
-
-.fsw-panel-points {
+.fsw-journey-steps {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  align-self: center;
 }
 
-.fsw-panel-points li {
+.fsw-journey-step {
   position: relative;
-  padding-left: 22px;
-  font-size: 14px;
+  padding: 48px 0;
+  scroll-margin-top: calc(var(--fsw-nav-h) + 24px);
+}
+
+/* The step being read is the only one at full strength; the book beside it is showing that one. */
+.fsw-journey-step > :not(.fsw-journey-shots) {
+  transition: opacity 400ms var(--fs-ease);
+}
+.fsw-journey-step:not([data-state='current']) > :not(.fsw-journey-shots) {
+  opacity: 0.38;
+}
+.fsw-journey-step:first-child {
+  padding-top: 8px;
+}
+
+
+.fsw-journey-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--fs-text-3);
+}
+
+.fsw-journey-num {
+  font-family: var(--fs-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fsw-mint);
+}
+
+.fsw-journey-step h3 {
+  margin-top: 14px;
+  max-width: 22ch;
+  font-size: clamp(24px, 3vw, 32px);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.fsw-journey-text {
+  margin-top: 16px;
+  max-width: 60ch;
+  font-size: 16.5px;
+  line-height: 1.65;
   color: var(--fs-text-2);
 }
 
-.fsw-panel-points li::before {
+.fsw-journey-points {
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+  max-width: 60ch;
+}
+
+/* A small play triangle for each point — the mark's own centre, not a generic bullet. */
+.fsw-journey-points li {
+  position: relative;
+  padding-left: 24px;
+  font-size: 15px;
+  color: var(--fs-text);
+}
+.fsw-journey-points li::before {
   content: '';
   position: absolute;
-  left: 0;
-  top: 8px;
+  left: 2px;
+  top: 0.5em;
   width: 8px;
-  height: 8px;
+  height: 9px;
+  background: var(--fsw-mint);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+
+/*
+ * The reading line: down the left of the steps, filling mint as you scroll (--fsw-journey-progress,
+ * from the component), with a dot at each step — hollow ahead, ringed once passed, filled where you are.
+ */
+.fsw-journey-steps {
+  position: relative;
+  padding-left: 34px;
+}
+.fsw-journey-steps::before,
+.fsw-journey-steps::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 14px;
+  bottom: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--fs-border);
+}
+.fsw-journey-steps::after {
+  background: var(--fsw-mint);
+  transform-origin: top;
+  transform: scaleY(var(--fsw-journey-progress));
+}
+.fsw-journey-step::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  left: -35px;
+  top: 53px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: var(--fs-accent);
-  opacity: 0.6;
+  background: var(--fs-bg);
+  box-shadow: inset 0 0 0 2px var(--fs-border-strong);
+  transition: background 200ms var(--fs-ease), box-shadow 200ms var(--fs-ease);
+}
+.fsw-journey-step:first-child::before {
+  top: 13px;
+}
+.fsw-journey-step[data-state='past']::before {
+  box-shadow: inset 0 0 0 2px var(--fsw-mint);
+}
+.fsw-journey-step[data-state='current']::before {
+  background: var(--fsw-mint);
+  box-shadow: 0 0 0 4px var(--fsw-mint-soft);
+}
+
+/*
+ * The sky (Starfield.tsx): full width behind the section, its canvas pinned
+ * to the viewport while the section scrolls past, so it is drawn at the size
+ * of a screen rather than of the whole section. Everything else in the
+ * section sits above it.
+ */
+.fsw-journey {
+  position: relative;
+}
+.fsw-journey > :not(.fsw-journey-sky) {
+  position: relative;
+  z-index: 1;
+}
+.fsw-journey-sky {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
+  z-index: 0;
+  pointer-events: none;
+}
+.fsw-journey-sky canvas {
+  position: sticky;
+  top: 0;
+  display: block;
+  width: 100%;
+  height: 100vh;
+}
+
+/*
+ * Sparks (Sparkle.tsx): a canvas reaching 14px past its element on every
+ * side, taking no clicks. On the nav's name, with "Space" breathing a faint
+ * red glow — the ring beside it keeps only its own turn — and on the plan we
+ * recommend, whose red outline breathes the same way.
+ */
+.fsw-sparkle {
+  position: absolute;
+  z-index: 2;
+  inset: -14px;
+  width: calc(100% + 28px);
+  height: calc(100% + 28px);
+  pointer-events: none;
+}
+.fsw-brand-word {
+  position: relative;
+  display: inline-flex;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fsw-plan.is-featured:not(.is-current) {
+    animation: fsw-plan-glow 3.6s ease-in-out infinite;
+  }
+}
+@keyframes fsw-plan-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1.5px var(--fs-accent), var(--fs-shadow-md);
+  }
+  50% {
+    box-shadow: 0 0 0 1.5px var(--fs-accent), 0 0 28px -4px rgba(239, 68, 68, 0.3), var(--fs-shadow-md);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fsw-nav .fsw-wordmark-accent,
+  .fsw-footer .fsw-wordmark-accent {
+    animation: fsw-space-glow 3.6s ease-in-out infinite;
+  }
+  /*
+   * The guide in the corner glows softly, always — a lamp left on, not an alarm. The ring halo
+   * (.is-pulsing) still runs only until it has been opened once; this is the quiet light under it.
+   */
+  .fsw-assistant-launcher:not(.is-open) {
+    animation: fsw-guide-glow 3.6s ease-in-out infinite;
+  }
+}
+@keyframes fsw-guide-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), var(--fs-shadow-lg);
+  }
+  50% {
+    box-shadow: 0 0 22px 2px rgba(239, 68, 68, 0.22), var(--fs-shadow-lg);
+  }
+}
+@keyframes fsw-space-glow {
+  0%,
+  100% {
+    text-shadow: 0 0 0 rgba(239, 68, 68, 0);
+  }
+  50% {
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.38);
+  }
+}
+
+/* The cursor's sparks (CursorSparkle.tsx): over everything, taking no clicks. */
+.fsw-cursor-sparkle {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+/* ── The book ──
+ * A book of screenshots, open in a box, turning its own pages
+ * (FeatureJourney.tsx sets each leaf's angle, --a, shading, --shade, and
+ * fade, --fade). The spine is a flat stacking context on purpose, each leaf
+ * carrying its own perspective: that way the z-index the script gives the
+ * leaves decides which is in front, instead of 3D pages meeting at the spine
+ * flickering through each other.
+ */
+
+.fsw-book-wrap {
+  position: sticky;
+  top: calc(var(--fsw-nav-h) + max(24px, (100vh - var(--fsw-nav-h) - 440px) / 2));
+  align-self: start;
+}
+
+/* The box the book sits in: a darker well than the page, like the frame of a presentation. */
+.fsw-book-box {
+  padding: 20px 18px 16px;
+  border: 1px solid var(--fs-border);
+  border-radius: 20px;
+  background: #080809;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+/*
+ * Light around the box, never on the pages: a slow breath of mint — the colour that means "where you
+ * are" on this site — with a faint warm red beneath it, rising and settling every few seconds.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .fsw-book-box {
+    animation: fsw-book-glow 5.5s ease-in-out infinite;
+  }
+}
+@keyframes fsw-book-glow {
+  0%,
+  100% {
+    border-color: var(--fs-border);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.03),
+      0 0 18px -6px rgba(127, 214, 194, 0.12),
+      0 22px 40px -28px rgba(239, 68, 68, 0.1);
+  }
+  50% {
+    border-color: rgba(127, 214, 194, 0.28);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.03),
+      0 0 46px -4px rgba(127, 214, 194, 0.26),
+      0 30px 60px -26px rgba(239, 68, 68, 0.22);
+  }
+}
+
+.fsw-book {
+  position: relative;
+  aspect-ratio: 1.75 / 1;
+}
+
+/* The spine at the centre; every page's inner edge is fixed to it. */
+.fsw-book-spine {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46%;
+  aspect-ratio: 3 / 2;
+  transform: translateY(-50%);
+}
+
+.fsw-book-cover,
+.fsw-book-leaf {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 50%;
+  /* A near camera, as in a book held in front of you: the lifted edges come forward. */
+  transform: perspective(1100px) rotateY(calc(var(--a) * 1deg));
+}
+
+/*
+ * The two pages the book lies open on. They never move; the pages under them
+ * show as a few offset edges, which is what reads as a book rather than
+ * loose cards.
+ */
+.fsw-book-cover {
+  z-index: 1;
+  border-radius: 3px;
+  background: #1a1a1c;
+}
+.fsw-book-cover.is-right {
+  --a: -24;
+  box-shadow:
+    2px 2px 0 -1px #242426,
+    4px 4px 0 -2px #1f1f21,
+    6px 6px 0 -3px #242426,
+    0 30px 50px -28px rgba(0, 0, 0, 0.9);
+}
+.fsw-book-cover.is-left {
+  --a: -156;
+  box-shadow:
+    2px 2px 0 -1px #242426,
+    4px 4px 0 -2px #1f1f21,
+    6px 6px 0 -3px #242426,
+    0 30px 50px -28px rgba(0, 0, 0, 0.9);
+}
+
+.fsw-book-leaf {
+  --a: -24;
+  --shade: 0;
+  --fade: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.fsw-book-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 3px;
+  /* The page's own colour until its screenshot arrives. */
+  background: #1a1a1c;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  opacity: var(--fade, 1);
+  box-shadow: 0 20px 36px -22px rgba(0, 0, 0, 0.9);
+}
+/* The back is its own page, turned so it reads the right way round once the leaf is over on the left. */
+.fsw-book-face.is-back {
+  transform: rotateY(180deg);
+}
+.fsw-book-face img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+/*
+ * Light, not decoration: a page darkens toward the spine it is bound into,
+ * and as it stands edge-on to the light — the only gradients on the site,
+ * because they are shading, not colour. A hairline of light on the edge keeps
+ * a dark screenshot reading as a page.
+ */
+.fsw-book-face::before,
+.fsw-book-face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.fsw-book-face::before {
+  background: #000;
+  opacity: var(--shade);
+}
+.fsw-book-face.is-front::after {
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.32), transparent 12%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.fsw-book-face.is-back::after {
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.32), transparent 12%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.fsw-book-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--fs-border);
+  font-size: 14px;
+}
+.fsw-book-count {
+  font-family: var(--fs-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fsw-mint);
+  font-variant-numeric: tabular-nums;
+}
+.fsw-book-count span {
+  color: var(--fs-text-3);
+}
+.fsw-book-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fs-text-2);
+}
+.fsw-book-toggle {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--fs-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fs-text-2);
+  cursor: pointer;
+  transition: border-color 140ms var(--fs-ease), color 140ms var(--fs-ease);
+}
+.fsw-book-toggle:hover {
+  border-color: var(--fs-border-strong);
+  color: var(--fs-text);
+}
+
+/* Narrow screens only: each step's screenshots, inline under its text. */
+.fsw-journey-shots {
+  display: none;
+}
+.fsw-journey-shot {
+  margin: 0;
+}
+.fsw-journey-shot img {
+  display: block;
+  width: 100%;
+  /* Uncropped on a phone: the whole screen, at its own shape. */
+  height: auto;
+  border: 1px solid var(--fs-border);
+  border-radius: var(--fs-r-lg);
+  background: var(--fs-surface);
+}
+.fsw-journey-shot figcaption {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--fs-text-3);
+}
+
+/* Narrow screens: no book. The screenshots sit in the steps, and a line runs down them with a dot at each one. */
+@media (max-width: 880px) {
+  .fsw-journey-body {
+    display: block;
+  }
+  .fsw-book-wrap {
+    display: none;
+  }
+  .fsw-journey-step > :not(.fsw-journey-shots) {
+    opacity: 1 !important;
+  }
+  .fsw-journey-shots {
+    display: block;
+    margin-top: 26px;
+  }
+  /* Two or more: a row you swipe, each one snapping into place, the next peeking in. */
+  .fsw-journey-shots.is-row {
+    display: flex;
+    gap: 12px;
+    margin-right: calc(-1 * var(--fsw-gutter));
+    padding-right: var(--fsw-gutter);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .fsw-journey-shots.is-row::-webkit-scrollbar {
+    display: none;
+  }
+  .fsw-journey-shots.is-row .fsw-journey-shot {
+    flex: 0 0 86%;
+    scroll-snap-align: start;
+  }
+  .fsw-journey-step {
+    padding: 40px 0;
+  }
+  .fsw-journey-steps {
+    padding-left: 26px;
+  }
+  .fsw-journey-step::before {
+    left: -27px;
+    top: 45px;
+  }
+  .fsw-journey-text {
+    font-size: 15.5px;
+  }
+}
+
+/* ── Scroll reveal ───────────────────────────────────────────────────────
+ * Anything marked data-reveal settles up into place the first time it is
+ * scrolled to (web/src/reveal.ts). Short travel, no bounce: it should feel
+ * like the page arriving, not performing. The hidden state exists only once
+ * the script has run, and never for reduced motion.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  html.fsw-reveal-ready [data-reveal] {
+    transition:
+      opacity 700ms var(--fs-ease) var(--fsw-reveal-delay, 0ms),
+      transform 700ms var(--fs-ease) var(--fsw-reveal-delay, 0ms);
+  }
+  html.fsw-reveal-ready [data-reveal]:not(.is-revealed) {
+    opacity: 0;
+    transform: translateY(20px);
+  }
 }
 
 /* ── Pricing ─────────────────────────────────────────────────────────── */
@@ -651,7 +1084,8 @@ button {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  align-items: start;
+  /* Equal-height cards: four plans read as one row to compare, not four boxes of different lengths. */
+  align-items: stretch;
 }
 
 .fsw-plan {
@@ -761,6 +1195,7 @@ button {
 }
 
 .fsw-pricing-more a {
+  --fs-accent-text: var(--fsw-mint);
   color: var(--fs-accent-text);
   font-weight: 560;
 }
@@ -1191,11 +1626,6 @@ button {
     gap: 40px;
     padding-top: 48px;
   }
-  .fsw-panel {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
-    padding: 26px;
-  }
   .fsw-footer-inner {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
@@ -1338,6 +1768,7 @@ button {
 }
 
 .fsw-link {
+  --fs-accent-text: var(--fsw-mint);
   border: 0;
   padding: 0;
   background: none;
@@ -1750,13 +2181,13 @@ button {
 /* The plan you are already on */
 
 .fsw-plan.is-current {
-  border-color: var(--fs-success);
-  box-shadow: 0 0 0 1px var(--fs-success);
+  border-color: var(--fs-border-strong);
+  box-shadow: 0 0 0 1px var(--fs-border-strong);
 }
 
 .fsw-plan-flag.is-current {
-  background: var(--fs-success);
-  color: #fff;
+  background: var(--fs-text);
+  color: var(--fs-bg);
 }
 
 .fsw-plan-renew {
@@ -1908,9 +2339,15 @@ button {
   position: relative;
   width: 100%;
   min-width: 0;
+  /* Level with the headline, which now opens the column. */
+  margin-top: 0;
   overflow: hidden;
   border-radius: var(--fs-r-xl);
   background: var(--fs-surface);
+  /* The one lit object on the page: a warm red cast underneath, like light off the screen, not a glow. */
+  box-shadow:
+    0 50px 100px -50px color-mix(in srgb, var(--fs-accent) 28%, transparent),
+    var(--fs-shadow-lg);
 }
 
 /* Mode selector above the screenshot */
@@ -2042,11 +2479,6 @@ button {
     max-width: 100%;
   }
 
-  .fsw-trust {
-    gap: 7px 14px;
-    font-size: 12px;
-  }
-
   .fsw-real-product-preview {
     border-radius: var(--fs-r-lg);
   }
@@ -2070,10 +2502,6 @@ button {
     padding-top: 28px;
   }
 
-  .fsw-eyebrow {
-    font-size: 11.5px;
-  }
-
   .fsw-hero h1 {
     font-size: 31px;
   }
@@ -2085,12 +2513,6 @@ button {
   .fsw-product-modes button {
     font-size: 10.5px;
     padding: 5px 8px;
-  }
-
-  .fsw-trust {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 7px;
   }
 }
 
@@ -2272,4 +2694,96 @@ button {
   line-height: 1.2;
   color: var(--fs-text-3);
   white-space: nowrap;
+}
+
+/* ── Your data (/data, DataPage.tsx) ─────────────────────────────────── */
+
+.fsw-data-page {
+  max-width: 960px;
+  padding-top: 40px;
+}
+
+/* The one thing on the page that can surprise someone, so it comes first and reads as a caution. */
+.fsw-remove {
+  margin-bottom: 56px;
+  padding: 26px 28px;
+  border: 1px solid color-mix(in srgb, var(--fs-accent) 45%, var(--fs-border));
+  border-radius: var(--fs-r-xl);
+  background: color-mix(in srgb, var(--fs-accent) 6%, var(--fs-surface));
+}
+.fsw-remove h2 {
+  font-size: 22px;
+}
+.fsw-remove > p {
+  margin-top: 10px;
+  max-width: 68ch;
+  color: var(--fs-text-2);
+}
+.fsw-remove-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 22px 40px;
+  margin-top: 22px;
+}
+.fsw-remove h3 {
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fs-text-3);
+}
+.fsw-remove-list {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fsw-remove-list li {
+  position: relative;
+  padding-left: 24px;
+  font-size: 15px;
+}
+.fsw-remove-list li::before {
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+}
+.fsw-remove-list.is-lost li::before {
+  content: '×';
+  color: var(--fs-accent-text);
+}
+.fsw-remove-list.is-kept li::before {
+  content: '✓';
+  color: var(--fsw-mint);
+}
+.fsw-remove > .fsw-remove-note {
+  max-width: none;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--fs-border);
+  font-size: 14px;
+}
+.fsw-data-plain {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 32px 48px;
+  padding: 0 4px;
+}
+.fsw-data-plain h2 {
+  margin-bottom: 14px;
+  font-size: 18px;
+}
+.fsw-remove-list.is-never li::before {
+  content: '–';
+  color: var(--fs-text-3);
+}
+.fsw-data-more {
+  margin-top: 28px;
+  text-align: center;
+  color: var(--fs-text-3);
+}
+.fsw-data-more a {
+  color: var(--fsw-mint);
 }

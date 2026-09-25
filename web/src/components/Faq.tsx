@@ -11,14 +11,14 @@ export function Faq() {
 
   return (
     <section className="fsw-section fsw-faq" id="faq">
-      <div className="fsw-section-head">
+      <div className="fsw-section-head" data-reveal>
         <h2>Frequently asked questions</h2>
         <p>
           Anything missing? The bubble in the corner answers questions about FocusSpace, and it costs nothing to ask.
         </p>
       </div>
 
-      <div className="fsw-faq-list">
+      <div className="fsw-faq-list" data-reveal>
         {FAQ.map((item, i) => {
           const isOpen = open === i;
           return (

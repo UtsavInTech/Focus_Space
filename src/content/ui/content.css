@@ -23,15 +23,19 @@
   --fs-text-3: #717171;
   --fs-link: #065fd4;
   /*
-   * FocusSpace red — the brand colour, and only the brand colour: the mark, and the "Space" half of the
-   * wordmark. It is deliberately separate from --fs-accent (the interactive colour used by buttons,
-   * switches and focus states), so the logo can be red without repainting every control in the product.
+   * FocusSpace red. --fs-brand is the mark and the "Space" half of the wordmark; --fs-accent is the same
+   * red family doing the interactive work — buttons, switches, selection, focus. People come here from
+   * YouTube and go back to it, so the product speaks in the colour they already read as "video".
+   *
+   * They stay two tokens because they do different jobs: the accent is one step deeper than the logo so
+   * white text on a button clears 4.5:1, and it is used sparingly — one primary action per view, the
+   * selected item, a switch that is on. Red everywhere is an alarm; red in a few places is a signpost.
    */
   --fs-brand: #ef4444;
-  --fs-accent: #6d5dfc;
-  --fs-accent-text: #5344e0;
-  --fs-accent-soft: rgba(109, 93, 252, 0.12);
-  --fs-accent-softer: rgba(109, 93, 252, 0.06);
+  --fs-accent: #dc2626;
+  --fs-accent-text: #b91c1c;
+  --fs-accent-soft: rgba(220, 38, 38, 0.1);
+  --fs-accent-softer: rgba(220, 38, 38, 0.05);
   --fs-on-accent: #ffffff;
   --fs-active: #0f0f0f;
   --fs-on-active: #ffffff;
@@ -45,7 +49,7 @@
   --fs-danger-soft: rgba(197, 34, 31, 0.08);
   --fs-shadow-pop: 0 4px 32px rgba(0, 0, 0, 0.16);
   /* FocusSpace's own accent, softly — a focused FocusSpace control should not look like a YouTube link. */
-  --fs-ring: 0 0 0 3px rgba(109, 93, 252, 0.32);
+  --fs-ring: 0 0 0 3px rgba(220, 38, 38, 0.26);
   --fs-ease: cubic-bezier(0.2, 0, 0, 1);
   /* spacing scale */
   --fs-s1: 4px;
@@ -74,11 +78,11 @@
   --fs-link: #3ea6ff;
   /* Lifted a little for dark surfaces: #ef4444 on near-black loses contrast against the text around it. */
   --fs-brand: #f56565;
-  --fs-accent: #a99dff;
-  --fs-accent-text: #bcb3ff;
-  --fs-accent-soft: rgba(169, 157, 255, 0.18);
-  --fs-accent-softer: rgba(169, 157, 255, 0.09);
-  --fs-on-accent: #0f0f0f;
+  --fs-accent: #dc2626;
+  --fs-accent-text: #ff7b7b;
+  --fs-accent-soft: rgba(239, 68, 68, 0.16);
+  --fs-accent-softer: rgba(239, 68, 68, 0.08);
+  --fs-on-accent: #ffffff;
   --fs-active: #f1f1f1;
   --fs-on-active: #0f0f0f;
   --fs-hover: rgba(255, 255, 255, 0.08);
@@ -90,7 +94,7 @@
   --fs-danger: #ff8a80;
   --fs-danger-soft: rgba(255, 138, 128, 0.12);
   --fs-shadow-pop: 0 8px 40px rgba(0, 0, 0, 0.6);
-  --fs-ring: 0 0 0 3px rgba(169, 157, 255, 0.34);
+  --fs-ring: 0 0 0 3px rgba(239, 68, 68, 0.38);
   color-scheme: dark;
 }
 
@@ -585,7 +589,8 @@ a.fs-path-name:hover { color: var(--fs-text); }
  */
 .fs-ai-composer {
   display: flex;
-  align-items: center;
+  /* The buttons stay on the last line as the box grows (ChatPanel's fitComposer). */
+  align-items: flex-end;
   gap: 4px;
   flex: none;
   margin: 0 12px 12px;
@@ -602,18 +607,27 @@ a.fs-path-name:hover { color: var(--fs-text); }
  */
 .fs-ai-composer:focus-within { background: var(--fs-surface); box-shadow: inset 0 0 0 1px var(--fs-border-strong); }
 .fs-ai-composer.is-listening { background: var(--fs-surface); box-shadow: inset 0 0 0 1px var(--fs-accent); }
-.fs-ai-composer input {
+/* Height, and the step down to 13px/18px for long text, are set inline by fitComposer. */
+.fs-ai-composer textarea {
   flex: 1;
   min-width: 0;
   height: 36px;
+  margin: 0;
+  padding: 8px 0;
   border: none;
   outline: none;
+  resize: none;
+  overflow-y: hidden;
   background: transparent;
   font-family: inherit;
   font-size: 14px;
+  line-height: 20px;
   color: var(--fs-text);
+  overflow-wrap: anywhere;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
 }
-.fs-ai-composer input::placeholder { color: var(--fs-text-3); }
+.fs-ai-composer textarea::placeholder { color: var(--fs-text-3); }
 
 .fs-ai-mic, .fs-ai-send {
   display: grid;
@@ -628,6 +642,8 @@ a.fs-path-name:hover { color: var(--fs-text); }
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease, opacity 140ms ease;
 }
+/* Centred on the last line of text (36px) rather than on the whole, growing box. */
+.fs-ai-composer .fs-ai-mic, .fs-ai-composer .fs-ai-send { margin-bottom: 2px; }
 .fs-ai-mic:hover { background: var(--fs-hover); color: var(--fs-text); }
 .fs-ai-mic.is-listening { color: var(--fs-accent); background: var(--fs-accent-softer); animation: fs-pulse 1400ms var(--fs-ease) infinite; }
 .fs-ai-send { background: var(--fs-accent); color: var(--fs-on-accent); }
@@ -730,6 +746,23 @@ a.fs-path-name:hover { color: var(--fs-text); }
 }
 .fs-off-mini:hover { opacity: 1; border-color: var(--fs-accent); }
 .fs-off-mini.is-dragging { cursor: grabbing; opacity: 1; }
+
+/*
+ * During playback the switch steps aside like YouTube's own controls (playback-idle.ts): a slow fade out
+ * once nobody has touched anything for a few seconds, a quick fade back the moment they do. Opacity, not
+ * display — it stays in the tab order, and focusing it brings it back. Declared after the rules above so
+ * it wins over their resting opacity at equal specificity.
+ */
+.fs-off-pill, .fs-off-mini { transition: opacity 160ms var(--fs-ease), transform 160ms var(--fs-ease), border-color 140ms var(--fs-ease); }
+.fs-off-pill[data-idle='true'], .fs-off-mini[data-idle='true'] {
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition-duration: 500ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fs-off-pill[data-idle='true'], .fs-off-mini[data-idle='true'] { transform: none; }
+}
 
 @media (max-width: 600px) {
   .fs-off-pill { left: 12px; bottom: 12px; }

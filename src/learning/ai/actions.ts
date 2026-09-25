@@ -54,6 +54,7 @@ export const SYSTEM = [
   'You are FocusSpace, a learning companion shown next to a YouTube video.',
   'Answer about the exact moment described in the context. Use the transcript excerpt as the primary evidence of what the instructor is teaching.',
   'If the context does not contain enough information, say so briefly instead of guessing. Never invent what the video says.',
+  'The transcript may be in Hindi or another language. Read it in that language and use it as evidence exactly as you would an English one — never treat a non-English transcript as missing or unusable.',
   'The course position, section names, previous and upcoming topics and the instructor are orientation only: use them to understand what is being studied, not as subject matter.',
   'Be concise and concrete. Plain text; short lists and small code blocks are fine.',
 ].join(' ');
@@ -69,6 +70,9 @@ export const LANGUAGE_RULE: Record<NoteLanguage, string> = {
   hi: 'Respond in Hindi (Devanagari script). Keep technical terms — concept names, syntax, APIs, formulas, code — exactly as spoken, in English/Roman script; translate only the explanation around them naturally, the way a fluent bilingual instructor would.',
   hinglish: 'Respond in Hinglish (Roman-script conversational Hindi/English mix, the way Indian instructors commonly explain on YouTube). Keep technical terms in English exactly as spoken.',
 };
+
+/** English output (the default) over a non-English transcript: say so, or the model drifts into the transcript's language. */
+const ENGLISH_FROM_OTHER = 'Respond in English, translating what you use from the transcript. Give technical terms their usual English names, even where the captions spell them in another script.';
 
 const QUIZ = `Write a 3-question quiz that checks whether the learner understands the subject matter being taught at this moment — questions that would be useful in a university exam, a technical interview or a placement test.
 
@@ -105,6 +109,21 @@ const TASK: Record<AiAction, string> = {
   quiz: QUIZ,
 };
 
+/**
+ * What language a transcript excerpt is written in, when that is worth saying — null for English/Latin
+ * script. Lectures from Indian channels very often have only Hindi auto-captions; unlabelled, the model
+ * sometimes answered as if there were no transcript at all. Naming the language is enough: the model
+ * reads Hindi directly, so no separate (paid, lossy) translation pass is needed.
+ */
+export function transcriptLanguage(text: string): string | null {
+  const letters = text.match(/\p{L}/gu)?.length ?? 0;
+  if (letters < 20) return null;
+  const devanagari = text.match(/[ऀ-ॿ]/g)?.length ?? 0;
+  if (devanagari / letters > 0.3) return 'Hindi (Devanagari script)';
+  const latin = text.match(/[A-Za-zÀ-ɏ]/g)?.length ?? 0;
+  return latin / letters < 0.5 ? 'a language other than English' : null;
+}
+
 /** Context as compact labelled lines, split into orientation vs. what is being taught. */
 export function contextBlock(ctx: LearningContext): string {
   const orientation = [
@@ -115,11 +134,12 @@ export function contextBlock(ctx: LearningContext): string {
     ctx.previousConcepts.length ? `Previous concepts: ${ctx.previousConcepts.join(', ')}` : '',
     ctx.upcomingConcepts.length ? `Upcoming concepts: ${ctx.upcomingConcepts.join(', ')}` : '',
   ];
+  const spoken = ctx.transcriptWindow ? transcriptLanguage(ctx.transcriptWindow.text) : null;
   const now = [
     `Timestamp: ${ctx.timestamp}`,
     ctx.conceptPath.length ? `Current concept: ${ctx.conceptPath.join(' › ')}` : 'Current concept: unknown',
     ctx.transcriptWindow
-      ? `${ctx.transcriptSource === 'asr' ? 'Auto-generated captions (speech recognition — technical terms and names may be misheard)' : 'Transcript'} ${formatTimestamp(ctx.transcriptWindow.startSec)}–${formatTimestamp(ctx.transcriptWindow.endSec)}:\n"""${ctx.transcriptWindow.text}"""`
+      ? `${ctx.transcriptSource === 'asr' ? 'Auto-generated captions (speech recognition — technical terms and names may be misheard)' : 'Transcript'}${spoken ? `, in ${spoken}` : ''} ${formatTimestamp(ctx.transcriptWindow.startSec)}–${formatTimestamp(ctx.transcriptWindow.endSec)}:\n"""${ctx.transcriptWindow.text}"""`
       : 'Transcript: not available for this moment',
   ];
   return ['[Orientation — context only, not subject matter]', ...orientation.filter(Boolean), '', '[Being taught now]', ...now].join('\n');
@@ -127,7 +147,7 @@ export function contextBlock(ctx: LearningContext): string {
 
 export function buildPrompt(action: AiAction, ctx: LearningContext, question?: string): AiPrompt {
   const ask = action === 'ask' ? `\n\nLearner's question: "${(question ?? '').trim().slice(0, 500)}"` : '';
-  const language = LANGUAGE_RULE[ctx.language] ? `\n\n${LANGUAGE_RULE[ctx.language]}` : '';
+  const language = LANGUAGE_RULE[ctx.language] ? `\n\n${LANGUAGE_RULE[ctx.language]}` : ctx.transcriptWindow && transcriptLanguage(ctx.transcriptWindow.text) ? `\n\n${ENGLISH_FROM_OTHER}` : '';
   return { system: SYSTEM, user: `${contextBlock(ctx)}${ask}\n\nTask: ${TASK[action]}${language}` };
 }
 

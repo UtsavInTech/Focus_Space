@@ -7,7 +7,7 @@ import { findMode } from '@/modes/service';
 export const SESSION_END_ALARM = 'fs-session-end';
 const NOTIFICATION_ID = 'fs-session-limit';
 
-const COLORS = { accent: '#6D5DFC', done: '#16A34A', muted: '#71717A' };
+const COLORS = { accent: '#DC2626', done: '#16A34A', muted: '#71717A' };
 
 async function setBadge(text: string, color: string) {
   await chrome.action.setBadgeText({ text });

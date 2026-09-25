@@ -5,30 +5,24 @@ import { InstallCta } from './InstallCta';
 /**
  * Deliberately no "80,000,000+ users" badge. FocusSpace has not shipped, and
  * inventing social proof is the one thing on a launch page that can never be
- * walked back. The trust line below the buttons says true things instead.
+ * walked back. What happens to a visitor's data has its own page (/data).
  */
-const TRUST = [
-  'No API key to bring',
-  'No account needed to start',
-  'Your history never leaves your browser',
-];
-
 const HERO_MODES = [
   {
     name: 'DSA',
-    image: '/hero-dsa.png',
+    image: 'hero-dsa',
   },
   {
     name: 'Web Development',
-    image: '/hero-web-development.png',
+    image: 'hero-web-development',
   },
   {
     name: 'System Design',
-    image: '/hero-system-design.png',
+    image: 'hero-system-design',
   },
   {
     name: 'Spanish',
-    image: '/hero-spanish.png',
+    image: 'hero-spanish',
   },
 ];
 
@@ -36,8 +30,6 @@ export function Hero() {
   return (
     <section className="fsw-hero" id="install">
       <div className="fsw-hero-copy">
-        <p className="fsw-eyebrow">Chrome extension · Free to start</p>
-
         <h1>
           YouTube, organised around{' '}
           <span className="fsw-grad">what you came for</span>
@@ -67,11 +59,10 @@ export function Hero() {
           />
         </div>
 
-        <ul className="fsw-trust">
-          {TRUST.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
+        {/* What sets it apart, in one line: it learns the learner, and the learner shapes it. */}
+        <p className="fsw-hero-tagline">
+          YouTube that learns how you prefer to learn. <span>Add your own personal touch.</span>
+        </p>
       </div>
 
       <HeroProductPreview />
@@ -131,9 +122,18 @@ function HeroProductPreview() {
       </div>
 
       <div className="fsw-product-image">
+        {/* WebP at two widths (web/public/<name>-1600|900.webp): the screenshot is the largest thing on the
+            page, and a phone should not download the desktop copy. The width and height stop the column
+            jumping when it arrives; the first one is the page's main image, so it is fetched first and
+            decoded without delay (no decoding="async" here). */}
         <img
           key={mode.image}
-          src={mode.image}
+          src={`/${mode.image}-1600.webp`}
+          srcSet={`/${mode.image}-900.webp 900w, /${mode.image}-1600.webp 1600w`}
+          sizes="(max-width: 880px) 92vw, 560px"
+          width={1600}
+          height={900}
+          fetchPriority={activeMode === 0 ? 'high' : 'auto'}
           alt={`FocusSpace ${mode.name} learning view`}
         />
       </div>

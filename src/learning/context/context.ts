@@ -4,6 +4,7 @@ import { conceptStops, locateConcept, type ConceptStop } from '../knowledge/loca
 import { formatTimestamp } from '../knowledge/timestamps';
 import type { KnowledgeMap, KnowledgeSource, TranscriptSegment } from '../knowledge/types';
 import type { LearningPath, PathSource } from '../path/path';
+import type { OutlineSection } from '../outline/outline';
 
 /**
  * The learning context of one moment: which space, which course and lecture,
@@ -55,6 +56,8 @@ export interface LearningContext {
   language: NoteLanguage;
   /** Set for a span-based context (notes); null for the point-in-time context every existing AI action uses. */
   range: NoteRange | null;
+  /** Every topic in the video and when it is taught (learning/outline). Absent or null when there is none yet. */
+  videoOutline?: OutlineSection[] | null;
 }
 
 export interface TranscriptWindow {
@@ -88,6 +91,8 @@ export interface ContextInputs {
   /** Span the context should describe instead of the instant at `currentTime` (notes only). */
   range?: NoteRange | null;
   language?: NoteLanguage;
+  /** The whole-video outline (learning/outline), when the API has one for this transcript. */
+  outline?: OutlineSection[] | null;
 }
 
 /**
@@ -207,6 +212,7 @@ export function buildLearningContext(inputs: ContextInputs): LearningContext {
     transcriptSource: window ? inputs.transcriptSource ?? 'manual' : null,
     language: inputs.language ?? 'en',
     range: inputs.range ?? null,
+    videoOutline: inputs.outline?.length ? inputs.outline : null,
   };
 }
 

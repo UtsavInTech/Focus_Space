@@ -62,10 +62,38 @@ describe('chat prompt: reuses the same LearningContext pipeline as actions/notes
     const en = buildChatPrompt(contextAt(1052, 'en'), [], 'Why?');
     const hi = buildChatPrompt(contextAt(1052, 'hi'), [], 'Why?');
     const hinglish = buildChatPrompt(contextAt(1052, 'hinglish'), [], 'Why?');
-    expect(en.user).not.toMatch(/Devanagari|Hinglish/);
+    expect(en.user).not.toMatch(/Devanagari/);
+    expect(en.user).toMatch(/language the learner's question is written in/);
     expect(hi.user).toMatch(/Hindi \(Devanagari/);
     expect(hi.user).toMatch(/keep technical terms/i);
+    expect(hi.user).not.toMatch(/language the learner's question is written in/);
     expect(hinglish.user).toMatch(/Hinglish/);
+  });
+
+  it('keeps a long question whole, up to the API limit', () => {
+    const long = `${'a'.repeat(1500)} END`;
+    expect(buildChatPrompt(contextAt(1052), [], long).user).toContain(' END');
+  });
+});
+
+describe('chat over a Hindi transcript', () => {
+  const hindi: TranscriptSegment[] = Array.from({ length: 400 }, (_, i) => ({ startSec: i * 5, durSec: 5, text: `अब हम लिंक्ड लिस्ट में नया नोड जोड़ेंगे, पॉइंटर ${i} को अपडेट करके।` }));
+  const hindiAt = (currentTime: number, language: 'en' | 'hi' = 'en') =>
+    buildLearningContext({ video: { id: 'v18', title: 'Lecture 18 — Linked List', channelTitle: 'Apna College' }, mode: dsa, topicId: 'linked-lists', path, map, transcript: hindi, transcriptSource: 'asr', currentTime, language });
+
+  it('names the transcript language and keeps the Hindi text as the evidence', () => {
+    const prompt = buildChatPrompt(hindiAt(1052), [], 'What is being added here?');
+    expect(prompt.user).toMatch(/Auto-generated captions.*, in Hindi \(Devanagari script\)/);
+    expect(prompt.user).toContain('लिंक्ड लिस्ट');
+    expect(prompt.system).toMatch(/never treat a non-English transcript as missing/i);
+  });
+
+  it('answers in the language of the question, not the transcript', () => {
+    expect(buildChatPrompt(hindiAt(1052), [], 'What is being added here?').user).toMatch(/language the learner's question is written in/);
+  });
+
+  it('does not label an English transcript', () => {
+    expect(buildChatPrompt(contextAt(1052), [], 'Why?').user).not.toMatch(/, in Hindi|other than English/);
   });
 });
 
@@ -143,5 +171,27 @@ describe('homepage chat: routes to HomepageContext instead of the video pipeline
     const ai = createAiService({ providers: () => [provider] });
     const result = await ai.chat({ context: homepage, history: [], question: 'What should I watch?' });
     expect(result).toEqual({ ok: true, answer: 'Try "Binary Search Trees Explained" from Apna College.', provider: 'chrome' });
+  });
+});
+
+describe('chat with a whole-video outline', () => {
+  const outline = [
+    { startSec: 0, endSec: 252, title: 'Introduction', summary: 'What a linked list is' },
+    { startSec: 252, endSec: 1260, title: 'Insertion', summary: 'At the head and the tail' },
+    { startSec: 1260, endSec: 3600, title: 'Deletion', summary: 'Unlinking a node' },
+  ];
+  const withOutline = (currentTime: number) =>
+    buildLearningContext({ video: { id: 'v18', title: 'Lecture 18 — Linked List', channelTitle: 'Apna College' }, mode: dsa, topicId: 'linked-lists', path, map, transcript, currentTime, language: 'en', outline });
+
+  it('adds the outline, marks the current section, and asks for time ranges', () => {
+    const prompt = buildChatPrompt(withOutline(1052), [], 'Where do they cover deletion?');
+    expect(prompt.user).toContain('[Whole-video outline');
+    expect(prompt.user).toContain('21:00–1:00:00 Deletion — Unlinking a node');
+    expect(prompt.user).toMatch(/4:12–21:00 Insertion.*learner is here/);
+    expect(prompt.system).toMatch(/time range/);
+  });
+
+  it('leaves the prompt as it was when there is no outline', () => {
+    expect(buildChatPrompt(contextAt(1052), [], 'Why?').user).not.toContain('Whole-video outline');
   });
 });

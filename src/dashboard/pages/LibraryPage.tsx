@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, Copy, Download, MessageCircle, Network, NotebookPen, Play, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Copy, Download, LogIn, MessageCircle, Network, NotebookPen, Play, Search, Trash2 } from 'lucide-react';
 import type { SavedNote } from '@/types/notes';
 import type { ChatSession } from '@/types/chat';
 import type { LearningMode } from '@/types/domain';
@@ -16,7 +16,9 @@ import { useStorage } from '@/ui/hooks';
 import { RichText } from '@/ui/components/RichText';
 import { MindMapOutline, downloadMindMapSvg } from '@/ui/mindmap/MindMapDiagram';
 import { MindMapCanvas } from '@/ui/mindmap/MindMapCanvas';
-import { Button, EmptyState, Segmented, TextInput } from '@/ui/components/primitives';
+import { Alert, Button, EmptyState, Segmented, TextInput } from '@/ui/components/primitives';
+import { SAVE_PROMPT } from '@/ui/account/save-gate';
+import { openSignIn, useCanSave } from '@/ui/account/use-can-save';
 import { Modal } from '@/ui/components/Modal';
 
 /**
@@ -56,6 +58,7 @@ export function LibraryPage({ segments }: { segments: string[] }) {
 function LibraryList({ tab, notes, chats, modes }: { tab: Tab; notes: SavedNote[]; chats: ChatSession[]; modes: LearningMode[] }) {
   const [query, setQuery] = useState('');
   const [space, setSpace] = useState<string | null>(null);
+  const canSave = useCanSave();
   const q = query.trim().toLowerCase();
   const shown = useMemo(() => {
     const matches = (text: string) => !q || text.toLowerCase().includes(q);
@@ -77,6 +80,18 @@ function LibraryList({ tab, notes, chats, modes }: { tab: Tab; notes: SavedNote[
           <p>Every note, mind map and AI conversation you saved while watching — kept in this browser for your account.</p>
         </div>
       </div>
+      {/* Anything saved before signing out is still shown below; only new saves need an account (ui/account/save-gate.ts). */}
+      {canSave === false && (
+        <Alert
+          action={
+            <Button size="sm" icon={<LogIn />} onClick={openSignIn}>
+              {SAVE_PROMPT.action}
+            </Button>
+          }
+        >
+          {SAVE_PROMPT.library}
+        </Alert>
+      )}
       <div className="fs-row-wrap" style={{ justifyContent: 'space-between' }}>
         <Segmented label="Library section" value={tab} options={TABS} onChange={(next) => navigate(next === 'notes' ? '/library' : `/library/${next}`)} />
         <div className="fs-lib-search">
@@ -230,11 +245,11 @@ function NoteReader({ note }: { note: SavedNote }) {
   );
 }
 
-/** Diagram or outline, with SVG export — the same views the YouTube panel offers, at full width. */
+/** Tree, cloud or outline, with SVG export — the same views the YouTube panel offers, at full width. */
 function MindMapView({ note }: { note: SavedNote }) {
-  const [view, setView] = useState<'diagram' | 'text'>('diagram');
+  const [view, setView] = useState<'tree' | 'cloud' | 'text'>('tree');
   const holder = useRef<HTMLDivElement>(null);
-  const filename = `${note.provenance.videoTitle.replace(/[^\w\s-]/g, '').trim().slice(0, 60).replace(/\s+/g, '-') || 'mind-map'}-mindmap.svg`;
+  const filename = `${note.provenance.videoTitle.replace(/[^\w\s-]/g, '').trim().slice(0, 60).replace(/\s+/g, '-') || 'mind-map'}-mindmap${view === 'cloud' ? '-cloud' : ''}.svg`;
   if (!note.mindmap) return null;
   return (
     <div className="fs-reader-mindmap">
@@ -244,18 +259,19 @@ function MindMapView({ note }: { note: SavedNote }) {
           value={view}
           onChange={setView}
           options={[
-            { value: 'diagram', label: 'Diagram' },
+            { value: 'tree', label: 'Tree' },
+            { value: 'cloud', label: 'Cloud' },
             { value: 'text', label: 'Outline' },
           ]}
         />
-        {view === 'diagram' && (
+        {view !== 'text' && (
           <Button size="sm" variant="ghost" icon={<Download />} onClick={() => downloadMindMapSvg(holder.current, filename)}>
             SVG
           </Button>
         )}
       </div>
       <div ref={holder} className="fs-reader-mindmap-canvas">
-        {view === 'diagram' ? <MindMapCanvas root={note.mindmap} maxHeight="70vh" /> : <MindMapOutline node={note.mindmap} />}
+        {view === 'text' ? <MindMapOutline node={note.mindmap} /> : <MindMapCanvas root={note.mindmap} maxHeight="70vh" variant={view} />}
       </div>
     </div>
   );

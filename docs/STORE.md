@@ -115,7 +115,7 @@ Upload in this order:
 
 ## Before submitting
 
-- [ ] **Deploy the API first** (DEPLOY.md, "Release order") — the extension expects the server it was built with
+- [ ] **Deploy the API first** ([DEPLOY.md](DEPLOY.md), "Release order") — the extension expects the server it was built with
 - [ ] Bump `version` in `public/manifest.json` (the store rejects a re-used version)
 - [ ] Confirm https://focusspace.xyz/privacy loads
 - [ ] Verify the packaged build against the live API, not localhost (`npm run package` checks this)

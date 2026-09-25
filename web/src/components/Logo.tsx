@@ -10,9 +10,23 @@
  * `tone="brand"` is FocusSpace red and the default; `tone="current"` inherits `currentColor` for the
  * places that need it monochrome — white on a dark or coloured surface.
  */
-export function Logo({ size = 28, tone = 'brand' }: { size?: number; tone?: 'brand' | 'current' }) {
+export function Logo({
+  size = 28,
+  tone = 'brand',
+  animated = false,
+}: {
+  size?: number;
+  tone?: 'brand' | 'current';
+  /**
+   * The living version, for the nav: the outer ring (with its ticks) and the inner ring turn slowly in
+   * opposite directions — a sight settling on its target — and the play triangle spins in once and
+   * lands. Remount it to replay the spin. Everything stops under prefers-reduced-motion (site.css).
+   */
+  animated?: boolean;
+}) {
   return (
     <svg
+      className={animated ? 'fsw-logo is-animated' : 'fsw-logo'}
       width={size}
       height={size}
       viewBox="0 0 32 32"
@@ -21,16 +35,21 @@ export function Logo({ size = 28, tone = 'brand' }: { size?: number; tone?: 'bra
       aria-hidden="true"
       focusable="false"
     >
-      <circle cx="16" cy="16" r="12.6" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.5" />
-      <g stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.75">
-        <path d="M16 2v6" />
-        <path d="M16 24v6" />
-        <path d="M2 16h6" />
-        <path d="M24 16h6" />
+      <g className="fsw-logo-outer">
+        <circle cx="16" cy="16" r="12.6" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.5" />
+        <g stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.75">
+          <path d="M16 2v6" />
+          <path d="M16 24v6" />
+          <path d="M2 16h6" />
+          <path d="M24 16h6" />
+        </g>
       </g>
-      <circle cx="16" cy="16" r="8.4" stroke="currentColor" strokeWidth="1.7" />
-      {/* Optically centred: a triangle's visual centre sits left of its bounding box, hence the nudge. */}
-      <path d="M13.2 11.5v9a.85.85 0 0 0 1.31.72l6.9-4.5a.85.85 0 0 0 0-1.44l-6.9-4.5a.85.85 0 0 0-1.31.72Z" fill="currentColor" transform="translate(-0.9 0)" />
+      <circle className="fsw-logo-inner" cx="16" cy="16" r="8.4" stroke="currentColor" strokeWidth="1.7" />
+      {/* The wrapper takes the spin, so the path keeps its own nudge: a CSS transform would replace it. */}
+      <g className="fsw-logo-play">
+        {/* Optically centred: a triangle's visual centre sits left of its bounding box, hence the nudge. */}
+        <path d="M13.2 11.5v9a.85.85 0 0 0 1.31.72l6.9-4.5a.85.85 0 0 0 0-1.44l-6.9-4.5a.85.85 0 0 0-1.31.72Z" fill="currentColor" transform="translate(-0.9 0)" />
+      </g>
     </svg>
   );
 }

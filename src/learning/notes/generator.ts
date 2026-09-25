@@ -3,6 +3,7 @@ import type { GeneratedNote, NoteFormat, NoteLanguage, NoteProvenance, NoteScope
 import { buildLearningContext, type LearningContext } from '../context/context';
 import type { KnowledgeMap, TranscriptSegment } from '../knowledge/types';
 import type { LearningPath } from '../path/path';
+import type { OutlineSection } from '../outline/outline';
 import { groundingFor, type Grounding } from './grounding';
 import { technicalTerms } from './language';
 import { buildNotePrompt, type NotePrompt } from './prompts';
@@ -37,6 +38,8 @@ export interface NoteRequestInputs {
   scope: NoteScope;
   format: NoteFormat;
   language: NoteLanguage;
+  /** The whole-video outline (learning/outline) — the topics a wide note or map is organised by. */
+  outline?: OutlineSection[] | null;
 }
 
 export interface NoteRequest {
@@ -59,6 +62,7 @@ export function buildNoteRequest(inputs: NoteRequestInputs): NoteRequest {
     currentTime: inputs.currentTime,
     range: resolved.range,
     language: inputs.language,
+    outline: inputs.outline ?? null,
   });
   const grounding = groundingFor(inputs.map, resolved.range, context.transcriptWindow);
   const terms = technicalTerms(grounding.conceptTitles, inputs.mode.topics.map((t) => t.name), `${grounding.outline}\n${context.transcriptWindow?.text ?? ''}`);

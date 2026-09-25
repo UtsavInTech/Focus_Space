@@ -173,7 +173,8 @@ export function ChatLauncher() {
             <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         ) : (
-          <Logo size={24} />
+          // Its rings turn, so the guide reads as something alive to ask, not a decoration in the corner.
+          <Logo size={24} animated />
         )}
         {!seen && !open && <span className="fsw-assistant-dot" aria-hidden="true" />}
       </button>

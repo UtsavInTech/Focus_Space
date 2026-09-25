@@ -20,7 +20,7 @@
 // who just wants a raw OpenAI relay for local dev.
 import { createServer } from 'node:http';
 import { ApiError, clientIp, CORS_HEADERS, readJsonBody, readTextBody, sendJson, type ApiErrorResponse } from './http';
-import { loadOpenAIConfig } from './openai';
+import { callOpenAI, loadOpenAIConfig } from './openai';
 import { orchestrate } from './orchestrator';
 import { validateAiApiRequest } from './validate';
 import { getDb } from './auth/db';
@@ -55,6 +55,8 @@ import { resolvePlan } from './usage/entitlements';
 import { loadRazorpayConfig, verifyWebhookSignature } from './billing/razorpay';
 import { applyWebhook, cancelPlan, confirmPayment, confirmSubscription, startCheckout, startSubscription } from './billing/service';
 import { buildReceipt } from './billing/receipt';
+import { getOutlineDb } from './outline/db';
+import { outlineDailyLimit, outlineFor, validateOutlineRequest, validateTranscriptKey, validateVideoId } from './outline/service';
 
 const PORT = Number(process.env.PORT ?? 8788);
 const HOST = process.env.HOST ?? '127.0.0.1';
@@ -63,6 +65,10 @@ const MAX_BODY_BYTES = 256 * 1024;
 /** Auth bodies are just an email + password (or a refresh token) — a much tighter cap than the AI route needs. */
 const AUTH_MAX_BODY_BYTES = 8 * 1024;
 const ROUTE = '/v1/ai/complete';
+/** Whole-video outlines (server/outline). GET reads a stored one; POST sends the transcript and gets one made if it is missing. */
+const OUTLINE_ROUTE = '/v1/outline';
+/** A three-hour lecture's captions, in a script that takes three bytes a character, with room to spare. */
+const OUTLINE_MAX_BODY_BYTES = 2 * 1024 * 1024;
 const HEALTH_ROUTE = '/v1/health';
 const AUTH_LOGIN_ROUTE = '/v1/auth/login';
 const AUTH_REFRESH_ROUTE = '/v1/auth/refresh';
@@ -133,6 +139,8 @@ const AUTH_ROUTES = new Set([HANDOFF_CREATE_ROUTE, HANDOFF_REDEEM_ROUTE, ME_PROF
 // "Rate limiting vs. quota"). Reuses the exact same RateLimiter class Layer 2B already established for
 // login/register, keyed by IP since there is no account identity to key an anonymous caller by.
 const anonymousAiLimiter = new RateLimiter(30, 10 * 60_000);
+/** New outlines per caller (account, install or address) per day. Stored ones are free and unlimited. */
+const outlineLimiter = new RateLimiter(40, 24 * 60 * 60_000);
 /** Railway fronts the API with a proxy; its record of the client's address is the one to trust there (http.ts clientIp). */
 const TRUST_PROXY = process.env.TRUST_PROXY ? process.env.TRUST_PROXY === '1' : process.env.NODE_ENV === 'production';
 
@@ -258,6 +266,27 @@ const server = createServer(async (req, res) => {
     }
 
     const path = (req.url ?? '').split('?')[0];
+
+    // ── Video outlines. Public video data only: no account needed, nothing about the caller stored. ──
+    if (path === OUTLINE_ROUTE && (req.method === 'GET' || req.method === 'POST')) {
+      const db = getOutlineDb();
+      if (req.method === 'GET') {
+        const query = new URL(req.url ?? '', 'http://localhost').searchParams;
+        const stored = db.get(validateVideoId(query.get('videoId')), validateTranscriptKey(query.get('key')));
+        sendJson(res, 200, { ok: true, sections: stored?.sections ?? null });
+        return;
+      }
+      const request = validateOutlineRequest(await readJsonBody(req, OUTLINE_MAX_BODY_BYTES));
+      const identity = authConfig ? tryAuthenticate(getDb(), authConfig, req.headers.authorization) : null;
+      const caller = identity?.user.id ?? parseInstallId(req.headers['x-focusspace-install']) ?? clientIp(req, TRUST_PROXY);
+      const result = await outlineFor(
+        request,
+        { db, model: config.model, dailyLimit: outlineDailyLimit(), complete: (prompt, maxTokens) => callOpenAI(prompt, { ...config, maxTokens }) },
+        () => outlineLimiter.attempt(caller),
+      );
+      sendJson(res, 200, { ok: true, sections: result.sections, cached: result.cached });
+      return;
+    }
 
     /*
      * ── Google sign-in ──────────────────────────────────────────────────────

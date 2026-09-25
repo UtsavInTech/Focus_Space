@@ -23,7 +23,7 @@ ENV NODE_ENV=production
 # `build:server` emits a single self-contained ESM bundle that imports nothing
 # but Node builtins, so the runtime image needs no node_modules at all.
 COPY --from=build /app/dist-server ./dist-server
-# DB_PATH points at the mounted volume in production (see DEPLOY.md); this
+# DB_PATH points at the mounted volume in production (see docs/DEPLOY.md); this
 # default only matters if someone runs the image with no volume.
 RUN mkdir -p /data
 EXPOSE 8788

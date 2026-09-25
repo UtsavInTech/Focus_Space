@@ -26,7 +26,8 @@ export function GuideSpaces({ settings, modes, onCreate }: { settings: Settings;
   return (
     <nav className="fs-guide" aria-label="FocusSpace spaces">
       <button type="button" className="fs-guide-title" onClick={openHome} title="Open FocusSpace — your Library, history and account">
-        <FocusMark size={22} />
+        {/* Turning, as it does on the website's nav — the one place in YouTube's sidebar that is ours. */}
+        <FocusMark size={22} active />
         <Wordmark />
         <ExternalLink size={14} aria-hidden />
       </button>

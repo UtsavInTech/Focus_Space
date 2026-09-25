@@ -1,7 +1,8 @@
 import { hasStoreListing, installHref } from '../install';
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { navigate, onLinkClick } from '../router';
 import { useAuth } from '../auth';
+import { Sparkle } from './Sparkle';
 import { CheckoutCancelled, startCheckout } from '../checkout';
 import { formatAmount, looksIndian } from '../currency';
 import { ANNUAL_DISCOUNT_LABEL, CREDIT_COSTS, PLANS, annualSavingPercent, perMonth } from '../content/plans';
@@ -68,7 +69,7 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
   return (
     <section className="fsw-section fsw-pricing" id="pricing">
       {compact && (
-        <div className="fsw-section-head">
+        <div className="fsw-section-head" data-reveal>
           <h2>Free where it can be, paid where it costs us</h2>
           <p>Modes, ranking, the learning path and the knowledge map run on your machine and stay free.</p>
         </div>
@@ -109,8 +110,8 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
       )}
 
       <div className={`fsw-plans${compact ? ' is-compact' : ''}`}>
-        {PLANS.map((plan) => (
-          <PlanCard key={plan.id} plan={plan} period={period} currency={currency} compact={compact} busy={busy === plan.id} current={auth.plan} expiresAt={auth.planExpiresAt} autoRenew={auth.autoRenew} onBuy={() => void buy(plan)} />
+        {PLANS.map((plan, i) => (
+          <PlanCard key={plan.id} order={i} plan={plan} period={period} currency={currency} compact={compact} busy={busy === plan.id} current={auth.user ? auth.plan : null} expiresAt={auth.planExpiresAt} autoRenew={auth.autoRenew} onBuy={() => void buy(plan)} />
         ))}
       </div>
 
@@ -160,13 +161,16 @@ function PlanCard({
   expiresAt,
   autoRenew,
   onBuy,
+  order,
 }: {
+  order: number;
   plan: Plan;
   period: BillingPeriod;
   currency: CurrencyCode;
   compact?: boolean;
   busy?: boolean;
-  current: string;
+  /** Null for a visitor: `auth.plan` defaults to 'free', and marking Free as "Current plan" for someone with no account is untrue. */
+  current: string | null;
   expiresAt: number | null;
   autoRenew: boolean;
   onBuy: () => void;
@@ -175,13 +179,20 @@ function PlanCard({
   const isCurrent = current === plan.id;
   const comingSoon = Boolean(plan.comingSoon);
   // Offering "Get Pro" to someone already on Pro is the bug this replaces.
-  const label = isCurrent ? 'Your plan' : comingSoon ? 'Coming soon' : RANK[plan.id] < RANK[current] ? `Switch to ${plan.name}` : plan.cta;
+  const label = isCurrent ? 'Your plan' : comingSoon ? 'Coming soon' : current !== null && RANK[plan.id] < RANK[current] ? `Switch to ${plan.name}` : plan.cta;
   const monthly = perMonth(plan, period);
   const saving = annualSavingPercent(plan, currency);
 
   return (
-    <article className={`fsw-plan${plan.featured ? ' is-featured' : ''}${isCurrent ? ' is-current' : ''}`}>
+    <article
+      className={`fsw-plan${plan.featured ? ' is-featured' : ''}${isCurrent ? ' is-current' : ''}`}
+      data-reveal
+      // The four plans arrive left to right, a beat apart, so the eye reads them in order.
+      style={{ '--fsw-reveal-delay': `${order * 80}ms` } as CSSProperties}
+    >
       {isCurrent ? <span className="fsw-plan-flag is-current">Current plan</span> : plan.featured && <span className="fsw-plan-flag">Most popular</span>}
+      {/* The plan we recommend twinkles, from its outline so nothing lands on the price. Not once it is yours. */}
+      {plan.featured && !isCurrent && <Sparkle from="edge" rate={7} />}
       <h3>{plan.name}</h3>
       <p className="fsw-plan-tagline">{plan.tagline}</p>
 

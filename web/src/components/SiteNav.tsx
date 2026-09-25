@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react';
-import { onLinkClick } from '../router';
+import { onLinkClick, usePath } from '../router';
 import { useAuth } from '../auth';
 import { Logo, Wordmark } from './Logo';
 import { InstallCta } from './InstallCta';
+import { Sparkle } from './Sparkle';
 
 const LINKS = [
   { label: 'Features', to: '/#features' },
   { label: 'Pricing', to: '/pricing' },
   { label: 'FAQ', to: '/#faq' },
+  // Where a visitor's data lives, and what removing the extension deletes (DataPage.tsx).
+  { label: 'Data', to: '/data' },
 ];
 
 export function SiteNav() {
   const auth = useAuth();
+  const path = usePath();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -26,8 +30,13 @@ export function SiteNav() {
     <header className={`fsw-nav${scrolled ? ' is-scrolled' : ''}`}>
       <div className="fsw-nav-inner">
         <a className="fsw-brand" href="/" onClick={onLinkClick('/')}>
-          <Logo />
-          <Wordmark />
+          {/* Keyed on the route: the nav persists across pages, so remounting is what replays the spin-in. */}
+          <Logo key={path} animated />
+          {/* The sparks belong to the name, not the ring: the ring has its own motion. */}
+          <span className="fsw-brand-word">
+            <Wordmark />
+            <Sparkle from="text" rate={5} />
+          </span>
         </a>
 
         <nav className="fsw-nav-links" aria-label="Main">

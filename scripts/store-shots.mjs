@@ -5,7 +5,7 @@
 //   node scripts/store-shots.mjs            → release/store-assets/*.png
 //
 // Signed out, so AI draws on the anonymous allowance (a handful of requests per run).
-// Order and choice of screens follow STORE.md → Screenshots.
+// Order and choice of screens follow docs/STORE.md → Screenshots.
 import { chromium } from 'playwright';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

@@ -116,6 +116,8 @@ interface Player extends HTMLElement {
 const captured = new Map<string, string>();
 const loading = new Map<string, Promise<string>>();
 const sleep = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
+/** How long an explicit caption load waits for the player's download. */
+const CAPTIONS_WAIT_MS = 45_000;
 
 function onTimedText(url: string, body: string) {
   try {
@@ -207,7 +209,9 @@ async function loadCaptions(videoId: string): Promise<string> {
     const pick = pickTrack(tracks, (root.lang || navigator.language || 'en').slice(0, 2));
     if (!pick) return 'none';
     player.setOption('captions', 'track', { languageCode: pick.languageCode, kind: pick.kind });
-    for (let i = 0; i < 50 && !captured.has(videoId); i++) await sleep(150);
+    // A 30-hour lecture's captions are one ~30 MB response; 7.5 s was too short on anything but a fast
+    // connection, and giving up here unloads the captions module mid-download, so they never arrived.
+    for (let i = 0; i < CAPTIONS_WAIT_MS / 150 && !captured.has(videoId); i++) await sleep(150);
     return captured.has(videoId) ? 'captured' : 'none';
   } finally {
     try {

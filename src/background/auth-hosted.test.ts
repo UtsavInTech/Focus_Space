@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-// A store build: VITE_API_URL is baked in (see STORE.md). Isolated in its own file because
+// A store build: VITE_API_URL is baked in (see docs/STORE.md). Isolated in its own file because
 // the mock applies to the whole module graph, and the other auth tests model a build without it.
 vi.mock('@/config', () => ({ API_URL: 'https://api.focusspace.xyz' }));
 

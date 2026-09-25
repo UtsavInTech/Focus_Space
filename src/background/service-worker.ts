@@ -8,6 +8,7 @@ import { startRelevanceWarmer, viewFor } from './relevance-warmer';
 import { startPreferenceWarmer } from './preference-warmer';
 import { backgroundYouTube } from './youtube';
 import { aiService, resolveProviders, usageLog } from './ai';
+import { videoOutline } from './outline';
 import { generateNoteWithProvider } from '@/learning/ai/notes-integration';
 import { deleteNote, listNotes, saveNote } from '@/storage/notes-store';
 import * as auth from './auth';
@@ -18,6 +19,7 @@ import { SITE_URL, siteUrl } from '@/config';
 import { registerExternalMessaging } from './external';
 import { migrate } from './migrate';
 import { resolveClaim, startOwnership } from './ownership';
+import { canSave, SAVE_NEEDS_ACCOUNT } from '@/ui/account/save-gate';
 
 const TICK_ALARM = 'fs-tick';
 const SYNC_ALARM = 'fs-library-sync';
@@ -155,13 +157,18 @@ listen({
   'ai/status': () => aiService.status(),
   'ai/run': (request) => aiService.run(request),
   'notes/generate': async ({ inputs }) => generateNoteWithProvider(inputs, await resolveProviders(), usageLog.sink),
-  'notes/save': ({ note }) => saveNote(note),
+  // Saving is for signed-in learners (src/ui/account/save-gate.ts); the panels already say so, this keeps it true.
+  'notes/save': async ({ note }) => {
+    if (!canSave(await getItem('auth'))) throw new Error(SAVE_NEEDS_ACCOUNT);
+    return saveNote(note);
+  },
   'notes/list': ({ videoId }) => listNotes(videoId),
   'notes/delete': async ({ videoId, id }) => {
     await deleteNote(videoId, id);
     return { ok: true };
   },
   'chat/send': (request) => aiService.chat(request),
+  'outline/get': (request) => videoOutline(request),
   'dashboard/open': async ({ route }) => {
     try {
       await openDashboard(route);

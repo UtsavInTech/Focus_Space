@@ -195,7 +195,8 @@
 
 .fs-home-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
 .fs-home-tool { display: flex; flex-direction: column; gap: 5px; padding: 14px; }
-.fs-home-tool > svg { color: var(--fs-accent-text); }
+/* Descriptions, not buttons: a red icon would promise a click. Neutral keeps red for what does act. */
+.fs-home-tool > svg { color: var(--fs-text-2); }
 .fs-home-tool strong { font-size: 13.5px; font-weight: 600; }
 .fs-home-tool span { font-size: 12.5px; color: var(--fs-text-2); line-height: 1.45; }
 
@@ -235,3 +236,148 @@
 .fs-or { position: relative; margin: 4px 0; text-align: center; }
 .fs-or::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--fs-border); }
 .fs-or span { position: relative; padding: 0 10px; background: var(--fs-bg); font-size: 12px; color: var(--fs-text-3); }
+
+/* ─── The website's palette, here too ────────────────────────────────────────────────────────────
+ * The dashboard is FocusSpace's own page, not YouTube's, so it takes focusspace.xyz's colours rather
+ * than the warm near-black the extension needs inside YouTube (src/ui/styles.css keeps that). Colour
+ * has roles, as on the site:
+ *   red   — the brand and the one main action (the logo, a primary button, video progress)
+ *   mint  — guidance and state: where you are, what is selected, what is switched on, where a link goes
+ * so "selected" never shows as the same red as "press this". Light mode uses pink for the same job.
+ */
+html[data-theme='dark'] {
+  --fs-bg: #0d0d0e;
+  --fs-surface: #151516;
+  --fs-surface-2: #1b1b1d;
+  --fs-surface-3: #242426;
+  --fs-border: #262628;
+  --fs-border-strong: #37373a;
+  --fs-text: #f4f1ec;
+  --fs-text-2: #a8a5a0;
+  --fs-text-3: #767470;
+  --fsd-guide: #7fd6c2;
+  --fs-accent-soft: rgba(127, 214, 194, 0.12);
+  --fs-accent-softer: rgba(127, 214, 194, 0.05);
+  --fs-accent-text: #7fd6c2;
+  --fs-success: #7fd6c2;
+  --fs-success-soft: rgba(127, 214, 194, 0.12);
+  --fs-ring: 0 0 0 3px rgba(127, 214, 194, 0.32);
+}
+html[data-theme='light'] {
+  /*
+   * Pink, to go with the light theme's pink-and-lilac bubbles. #db2777 is the pink that still reads as
+   * text on white (about 4.9:1, past WCAG AA) without turning maroon; lighter pinks look pretty and are
+   * missed.
+   */
+  --fsd-guide: #db2777;
+  --fs-accent-soft: rgba(219, 39, 119, 0.1);
+  --fs-accent-softer: rgba(219, 39, 119, 0.05);
+  --fs-accent-text: #db2777;
+  --fs-success: #db2777;
+  --fs-success-soft: rgba(219, 39, 119, 0.1);
+  --fs-ring: 0 0 0 3px rgba(219, 39, 119, 0.24);
+}
+
+/* Selected and switched-on states take the guide colour for their edge too, not only their fill. */
+html .fs-space-chip[aria-pressed='true'],
+html .fs-mode-chip[aria-pressed='true'],
+html .fs-topic[aria-pressed='true'],
+html .fs-mode-card[data-active='true'],
+html .fs-plan-card[data-tone='nudge'] {
+  border-color: var(--fsd-guide);
+}
+html .fs-mode-chip[aria-pressed='true'],
+html .fs-topic[aria-pressed='true'],
+html .fs-mode-card[data-active='true'] {
+  box-shadow: 0 0 0 1px var(--fsd-guide) inset;
+}
+html .fs-switch[aria-checked='true'] {
+  background: color-mix(in srgb, var(--fsd-guide) 80%, var(--fs-surface));
+}
+html .fs-input:focus,
+html .fs-select:focus,
+html .fs-textarea:focus,
+html .fs-tags:focus-within {
+  border-color: var(--fsd-guide);
+}
+html .fs-pick-on {
+  background: var(--fsd-guide);
+  color: var(--fs-bg);
+}
+/* A paid plan's name keeps the brand's red glow: it is FocusSpace's, not a state. */
+html[data-theme='dark'] .fs-plan-premium { color: #ff7b7b; }
+html[data-theme='light'] .fs-plan-premium { color: #b91c1c; }
+
+/* ─── Bubbles (Bubbles.tsx) ── behind everything, taking no clicks; the sidebar lets a little through. */
+.fs-bubbles {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+.fs-cursor-sparkle {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+.fs-app > :not(.fs-bubbles):not(.fs-sidebar):not(.fs-cursor-sparkle) {
+  position: relative;
+  z-index: 1;
+}
+.fs-app > .fs-sidebar {
+  z-index: 1;
+  background: color-mix(in srgb, var(--fs-surface) 86%, transparent);
+}
+
+/* ─── The sidebar's logo, alive ── as in the website's nav (web/src/site.css, .fsw-logo.is-animated). */
+.fs-mark.is-animated .fs-mark-ring,
+.fs-mark.is-animated .fs-mark-inner {
+  transform-box: view-box;
+  transform-origin: 16px 16px;
+}
+.fs-mark.is-animated .fs-mark-ring { animation: fs-mark-turn 24s linear infinite; }
+.fs-mark.is-animated .fs-mark-inner {
+  stroke-dasharray: 22.4 4;
+  animation: fs-mark-turn 14s linear infinite reverse;
+}
+.fs-mark.is-animated .fs-mark-play {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fs-mark-play-in 900ms var(--fs-ease) 120ms both;
+}
+@keyframes fs-mark-turn { to { transform: rotate(360deg); } }
+@keyframes fs-mark-play-in {
+  0% { transform: rotate(-270deg) scale(0.35); opacity: 0; }
+  55% { transform: rotate(24deg) scale(1.14); opacity: 1; }
+  78% { transform: rotate(-6deg) scale(0.97); }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+
+/* The name's sparks (NameSparkle.tsx), and "Space" breathing a faint red glow. */
+.fs-brand-word { position: relative; display: inline-flex; }
+.fs-name-sparkle {
+  position: absolute;
+  inset: -14px;
+  width: calc(100% + 28px);
+  height: calc(100% + 28px);
+  pointer-events: none;
+}
+.fs-sidebar-logo .fs-wordmark-accent { animation: fs-space-glow 3.6s ease-in-out infinite; }
+@keyframes fs-space-glow {
+  0%, 100% { text-shadow: 0 0 0 rgba(239, 68, 68, 0); }
+  50% { text-shadow: 0 0 10px rgba(239, 68, 68, 0.38); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-mark.is-animated .fs-mark-ring,
+  .fs-mark.is-animated .fs-mark-inner,
+  .fs-mark.is-animated .fs-mark-play,
+  .fs-sidebar-logo .fs-wordmark-accent { animation: none; }
+  /* At rest the mark is the logo exactly — a solid inner ring. */
+  .fs-mark.is-animated .fs-mark-inner { stroke-dasharray: none; }
+}

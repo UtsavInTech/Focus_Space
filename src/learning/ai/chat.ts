@@ -2,6 +2,7 @@ import type { ChatMessage } from '@/types/chat';
 import type { LearningContext } from '../context/context';
 import { contextBlock, LANGUAGE_RULE, SYSTEM as ACTION_SYSTEM, type AiPrompt } from './actions';
 import { isHomepageContext, type HomepageContext } from './homepage-context';
+import { outlineBlock } from '../outline/outline';
 
 /**
  * Multi-turn chat — the same context pipeline as the five point actions
@@ -21,6 +22,7 @@ const CHAT_SYSTEM = [
   ACTION_SYSTEM,
   "This is an ongoing conversation next to the video. Use earlier turns for continuity, but always answer about the current moment described below — the learner may have moved on since their last message.",
   'Answer the technical or academic question the learner actually asked. Only answer questions about the video/course structure, playlist position or navigation when the learner explicitly asks about those — otherwise stay on the subject matter.',
+  'When a whole-video outline is given, use it for questions about the video as a whole — what it covers, where or when a topic is taught, what comes later, a summary — and give the time range (mm:ss–mm:ss) of each part you point to. It lists topics only; for what is said at the current moment, the transcript excerpt is the evidence.',
 ].join(' ');
 
 const HOMEPAGE_SYSTEM = [
@@ -35,6 +37,21 @@ const HOMEPAGE_SYSTEM = [
   'If they ask about something the context genuinely does not cover, say so plainly instead of guessing.',
   'Be concise and concrete.',
 ].join(' ');
+
+/**
+ * With no response language chosen (the 'en' default), a chat answers in the language the learner asked
+ * in — a question in Hindi gets Hindi back, one in English gets English — whatever the transcript is in.
+ * An explicit Hindi/Hinglish setting (LANGUAGE_RULE) still wins.
+ */
+const REPLY_IN_ASKED_LANGUAGE = "Reply in the language the learner's question is written in (English, Hindi, Hinglish or any other). Keep technical terms in their usual English form.";
+const EVEN_IF_TRANSCRIPT_DIFFERS = ' This holds even when the transcript is in a different language.';
+
+/** The API's own ceiling (server/validate.ts MAX_QUESTION_CHARS); the composer allows the same. */
+const MAX_QUESTION_CHARS = 2000;
+
+function languageLine(language: LearningContext['language'], hasTranscript: boolean): string {
+  return `\n\n${LANGUAGE_RULE[language] || REPLY_IN_ASKED_LANGUAGE + (hasTranscript ? EVEN_IF_TRANSCRIPT_DIFFERS : '')}`;
+}
 
 /** Enough for continuity without letting a long conversation balloon the prompt. */
 const MAX_HISTORY_TURNS = 6;
@@ -62,15 +79,16 @@ function homepageBlock(context: HomepageContext): string {
 }
 
 function buildHomepageChatPrompt(context: HomepageContext, history: ChatMessage[], question: string): AiPrompt {
-  const language = LANGUAGE_RULE[context.language] ? `\n\n${LANGUAGE_RULE[context.language]}` : '';
-  const parts = [homepageBlock(context), historyBlock(history), `Learner's question: "${question.trim().slice(0, 500)}"`].filter(Boolean);
+  const language = languageLine(context.language, false);
+  const parts = [homepageBlock(context), historyBlock(history), `Learner's question: "${question.trim().slice(0, MAX_QUESTION_CHARS)}"`].filter(Boolean);
   return { system: HOMEPAGE_SYSTEM, user: `${parts.join('\n\n')}\n\nTask: Answer the learner's question above. Any video you recommend must come from the list; everything else, answer normally.${language}` };
 }
 
 export function buildChatPrompt(context: LearningContext | HomepageContext, history: ChatMessage[], question: string): AiPrompt {
   if (isHomepageContext(context)) return buildHomepageChatPrompt(context, history, question);
-  const language = LANGUAGE_RULE[context.language] ? `\n\n${LANGUAGE_RULE[context.language]}` : '';
-  const parts = [contextBlock(context), historyBlock(history), `Learner's question: "${question.trim().slice(0, 500)}"`].filter(Boolean);
+  const language = languageLine(context.language, !!context.transcriptWindow);
+  const outline = context.videoOutline?.length ? outlineBlock(context.videoOutline, context.currentTime) : '';
+  const parts = [contextBlock(context), outline, historyBlock(history), `Learner's question: "${question.trim().slice(0, MAX_QUESTION_CHARS)}"`].filter(Boolean);
   return { system: CHAT_SYSTEM, user: `${parts.join('\n\n')}\n\nTask: Answer the learner's question above.${language}` };
 }
 

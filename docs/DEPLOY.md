@@ -10,21 +10,29 @@ and `server/index.ts` against D1 and the Fetch API, not a config change.
 
 ## 1. Create the service
 
+Production runs as two Railway services built from this one repository:
+
+| Service | Built from | Serves |
+| --- | --- | --- |
+| `focusspace-api` | `Dockerfile` (`npm run build:server`) | The API on Node 22, SQLite on a volume |
+| `focusspace-web` | `Dockerfile.web` (`npm run build:web`) | The website as static files behind Caddy (`Caddyfile.web`) |
+
+Point each service at its Dockerfile. Railway's auto-detection otherwise picks
+`npm run build` — the *extension* — and serves `dist/` as a website, so the
+Dockerfiles are load-bearing: don't delete or rename them.
+
 ```bash
-railway init            # or: railway link, to attach to an existing project
-railway up              # builds and deploys from this directory
+railway link            # attach this directory to the existing project
+railway up              # build and deploy the linked service
 ```
 
-`railway.json` sets the build command, the start command and the
-`/v1/health` healthcheck.
+Set the healthcheck to `/v1/health` on the API service.
 
-> Railway is moving to Infrastructure as Code (`.railway/railway.ts`) and
-> deprecates `railway.json` on 2026-12-01. We deliberately stayed on
-> `railway.json`: the IaC file is the *whole* truth for a service, so adopting
-> it means declaring every variable and volume there too — and a file that
-> declares no secrets will happily delete the secrets you set in the
-> dashboard. Migrate when there is time to move variables and the volume
-> across in one go, not in the middle of a launch.
+> Railway deprecates `railway.json` on 2026-12-01 in favour of
+> Infrastructure as Code (`.railway/railway.ts`). The IaC file is the *whole*
+> truth for a service: one that declares no secrets deletes the secrets set in
+> the dashboard, and it tried to detach the volume when tested. Migrate when
+> there is time to move every variable and the volume across in one change.
 
 ## 2. Add a volume — before the first real user
 
@@ -47,6 +55,13 @@ Then set `DB_PATH=/data/focusspace.db` (below) so both database connections —
 | `RESEND_API_KEY` | `re_…` | Delivers verification codes. Without it **sign-up cannot complete**. |
 | `MAIL_FROM` | `FocusSpace <hello@yourdomain>` | Must be on a domain verified in Resend. Unset falls back to Resend's sandbox sender, which only delivers to your own address. |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Optional. |
+| `MAX_TOKENS` | `700` | Optional. Ceiling on one AI answer's length. |
+| `OUTLINE_DAILY_LIMIT` | `500` | Optional. Most new video outlines made per day across everyone (each ≈ ₹0.05–0.50 of AI). Stored outlines are reused free and never count. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | from Google Cloud | Google sign-in. Unset, Google sign-in is simply unavailable. |
+| `GOOGLE_REDIRECT_URI` | `https://api.focusspace.xyz/v1/auth/google/callback` | Must match the Google client *exactly*. |
+| `WEB_ORIGINS` | `https://focusspace.xyz` | Comma-separated allow-list of where a finished sign-in may return to. |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | from Razorpay | Checkout. |
+| `RAZORPAY_WEBHOOK_SECRET` | from the Razorpay webhook | Without it every webhook is rejected, so renewals are not recorded. |
 
 `PORT` is set by Railway; the server already reads it.
 

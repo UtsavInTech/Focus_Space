@@ -3,6 +3,7 @@ import type { YtChannel } from '@/integrations/youtube/innertube-parse';
 import type { FeedView } from '@/learning/feed-view';
 import type { ActionRequest, AiResult, AiStatus, ChatRequest, ChatResult } from '@/learning/ai/service';
 import type { NoteRequestInputs, NoteGenerationResult } from '@/learning/notes/generator';
+import type { OutlineRequest, OutlineSection } from '@/learning/outline/outline';
 import type { GeneratedNote, SavedNote } from '@/types/notes';
 import type { AuthState, AuthUser } from '@/types/auth';
 import type { UsageStatusView } from '@/types/usage';
@@ -39,6 +40,8 @@ export interface MessageMap {
   'notes/delete': { req: { videoId: string; id: string }; res: { ok: true } };
   /** YouTube page → background: one turn of the learning-companion chat (text or voice — same pipeline, see src/learning/ai/chat.ts). */
   'chat/send': { req: ChatRequest; res: ChatResult };
+  /** YouTube page → background: the whole-video outline for this transcript (server/outline), or null when unavailable. */
+  'outline/get': { req: OutlineRequest; res: OutlineSection[] | null };
   /** any → background: open the dashboard at a route. */
   'dashboard/open': { req: { route?: string }; res: { ok: true } | { ok: false; error: string } };
   /** any → background: current FocusSpace account state (null user = anonymous). Refreshes an about-to-expire access token first. */

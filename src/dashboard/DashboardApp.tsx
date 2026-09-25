@@ -1,6 +1,6 @@
 import { CircleUser, ExternalLink, History, House, Layers, Library, Settings as SettingsIcon, Users } from 'lucide-react';
 import { useDocumentTheme, useStorage } from '@/ui/hooks';
-import { Logo, Skeleton, Switch } from '@/ui/components/primitives';
+import { FocusMark, Skeleton, Switch, Wordmark } from '@/ui/components/primitives';
 import { SpaceIcon } from '@/ui/icons';
 import { activeModeOf, setFocusEnabled } from '@/modes/service';
 import { sendMessage } from '@/messaging/runtime';
@@ -13,6 +13,9 @@ import { HomePage } from './pages/HomePage';
 import { LibraryPage } from './pages/LibraryPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { AccountPage } from './pages/AccountPage';
+import { Bubbles } from './Bubbles';
+import { NameSparkle } from './NameSparkle';
+import { CursorSparkle } from './CursorSparkle';
 
 /**
  * The learning product's own home, modelled on NoteGPT's workspace: what you made (Library), what you
@@ -84,9 +87,18 @@ export function DashboardApp() {
 
   return (
     <div className="fs-app">
+      <Bubbles />
+      <CursorSparkle />
       <aside className="fs-sidebar">
         <a href="#/" className="fs-sidebar-logo" aria-label="FocusSpace home">
-          <Logo size={26} />
+          {/* As on the website's nav: the mark's rings turn, and the name sparkles — the ring gets no sparks. */}
+          <span className="fs-logo">
+            <FocusMark size={26} animated />
+            <span className="fs-brand-word">
+              <Wordmark />
+              <NameSparkle />
+            </span>
+          </span>
         </a>
         <nav className="fs-nav" aria-label="Main">
           {NAV.map(({ to, label, icon: Icon, match }) => (

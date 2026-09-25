@@ -1,9 +1,11 @@
 import { readVideoDuration } from '../data/knowledge';
+import { fetchOutline, outlineRequest } from '../data/outline';
 import { useEffect, useRef, useState } from 'react';
-import { Download, Maximize2, Network, NotebookPen, Save, Text, Trash2, X } from 'lucide-react';
+import { Cloud, Download, Maximize2, Network, NotebookPen, Save, Text, Trash2, X } from 'lucide-react';
 import type { LearningMode } from '@/types/domain';
 import type { GeneratedNote, MindMapNode, NoteFormat, NoteLanguage, SavedNote } from '@/types/notes';
 import type { KnowledgeMap, KnowledgeSource, TranscriptSegment } from '@/learning/knowledge/types';
+import type { OutlineSection } from '@/learning/outline/outline';
 import { formatTimestamp } from '@/learning/knowledge/timestamps';
 import type { LearningPath } from '@/learning/path/path';
 import type { NoteRequestInputs } from '@/learning/notes/generator';
@@ -12,8 +14,10 @@ import { sendMessage } from '@/messaging/runtime';
 import { Modal } from '@/ui/components/Modal';
 import { RichText } from '@/ui/components/RichText';
 import { FORMAT_NAME, noteLabel, noteStartSec } from '@/learning/notes/label';
-import { MindMapDiagram, MindMapOutline, downloadMindMapSvg } from '@/ui/mindmap/MindMapDiagram';
+import { MindMapDiagram, MindMapOutline, downloadMindMapSvg, type MindMapVariant } from '@/ui/mindmap/MindMapDiagram';
 import { MindMapCanvas } from '@/ui/mindmap/MindMapCanvas';
+import { useCanSave } from '@/ui/account/use-can-save';
+import { SignInToSave } from './SignInToSave';
 
 /**
  * "Make Notes": the minimum UI to pick a scope, a format and a language,
@@ -49,6 +53,10 @@ export interface NotesPanelProps {
   path: LearningPath | null;
   map: KnowledgeMap | null;
   transcript: TranscriptSegment[] | null;
+  /** The whole-video outline, when it has already arrived (content/data/outline.ts). */
+  outline?: OutlineSection[] | null;
+  /** Fetches the captions when they have not arrived yet (see ChatPanel's prop of the same name). */
+  loadTranscript?: () => Promise<TranscriptSegment[] | null>;
   durationSec: number | null;
   currentTime: () => number;
   defaultLanguage: NoteLanguage;
@@ -58,7 +66,7 @@ export interface NotesPanelProps {
 
 type GenState = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ready'; note: GeneratedNote; saved: boolean } | { kind: 'no-evidence'; reason: string } | { kind: 'error'; error: string; code?: string };
 
-export function NotesPanel({ video, mode, topicId, path, map, transcript, durationSec, currentTime, defaultLanguage, onSeek, onClose }: NotesPanelProps) {
+export function NotesPanel({ video, mode, topicId, path, map, transcript: known, outline, loadTranscript, durationSec, currentTime, defaultLanguage, onSeek, onClose }: NotesPanelProps) {
   const [scope, setScope] = useState<NoteScope>(SCOPE_OPTIONS[0].scope);
   const [format, setFormat] = useState<NoteFormat>('notes');
   const [language, setLanguage] = useState<NoteLanguage>(defaultLanguage);
@@ -66,6 +74,8 @@ export function NotesPanel({ video, mode, topicId, path, map, transcript, durati
   const [saved, setSaved] = useState<SavedNote[] | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  /** Generating is open to everyone; keeping the result needs an account (ui/account/save-gate.ts). */
+  const canSave = useCanSave();
 
   useEffect(() => {
     let alive = true;
@@ -81,7 +91,14 @@ export function NotesPanel({ video, mode, topicId, path, map, transcript, durati
     setGen({ kind: 'loading' });
     // The polled length can lag the player by a moment (e.g. just after an ad); ask the player directly rather than
     // turn an "Entire video" request into a watched-so-far note.
-    const inputs: NoteRequestInputs = { video, mode, topicId, path, map, transcript, currentTime: currentTime(), durationSec: durationSec ?? readVideoDuration(video.id), scope, format, language };
+    // Notes of a part never played still need its words: fetch the captions rather than write from chapters alone.
+    const transcript = known?.length || !loadTranscript ? known : await loadTranscript().catch(() => null);
+    const duration = durationSec ?? readVideoDuration(video.id);
+    // A map or notes of more than one section are organised by the video's topics. The first viewer's
+    // outline is still being made, so wait for it briefly rather than build this one without it.
+    const wide = scope.kind !== 'current-section';
+    const topics = outline ?? (wide && transcript?.length ? await fetchOutline(outlineRequest(video, transcript, duration, map)) : null);
+    const inputs: NoteRequestInputs = { video, mode, topicId, path, map, transcript, outline: topics, currentTime: currentTime(), durationSec: duration, scope, format, language };
     const result = await sendMessage('notes/generate', { inputs }).catch(() => null);
     if (!result) {
       setGen({ kind: 'error', error: 'FocusSpace couldn’t reach its AI service. Reload the page and try again.' });
@@ -97,7 +114,8 @@ export function NotesPanel({ video, mode, topicId, path, map, transcript, durati
   async function save() {
     if (gen.kind !== 'ready') return;
     const savedNote = await sendMessage('notes/save', { note: gen.note }).catch(() => null);
-    if (!savedNote) return;
+    // A refused save comes back as { ok: false, error }, not a rejection — it is not a note.
+    if (!savedNote || !('id' in savedNote)) return;
     setGen({ ...gen, saved: true });
     setSaved((prev) => [savedNote, ...(prev ?? [])]);
   }
@@ -161,9 +179,13 @@ export function NotesPanel({ video, mode, topicId, path, map, transcript, durati
             </div>
             {gen.note.markdown && <RichText text={gen.note.markdown} />}
             {gen.note.mindmap && <MindMapResult node={gen.note.mindmap} title={video.title} />}
-            <button type="button" className="fs-ai-chip" style={{ marginTop: 8 }} disabled={gen.saved} onClick={() => void save()}>
-              <Save size={14} aria-hidden /> {gen.saved ? 'Saved' : 'Save note'}
-            </button>
+            {canSave ? (
+              <button type="button" className="fs-ai-chip" style={{ marginTop: 8 }} disabled={gen.saved} onClick={() => void save()}>
+                <Save size={14} aria-hidden /> {gen.saved ? 'Saved' : gen.note.format === 'mindmap' ? 'Save mind map' : 'Save note'}
+              </button>
+            ) : (
+              canSave === false && <SignInToSave kind="note" />
+            )}
           </div>
         )}
 
@@ -212,49 +234,55 @@ export function NotesPanel({ video, mode, topicId, path, map, transcript, durati
 }
 
 /**
- * A generated mind map, as a diagram and as an outline — both, not one or the
- * other. The diagram is how you take the shape of a lecture in at a glance;
- * the outline is what you copy into your own notes and what a screen reader
- * can actually read. The view is remembered for the session, not persisted:
+ * A generated mind map, drawn two ways and written out once — all three, not
+ * one. The tree shows how ideas nest; the cloud shows what belongs together
+ * (ui/mindmap/cloud-layout.ts); the text outline is what you copy into your
+ * own notes and what a screen reader can actually read. The view is remembered for the session, not persisted:
  * it is a preference about this note, not about the learner.
  */
 function MindMapResult({ node, title }: { node: MindMapNode; title: string }) {
-  const [view, setView] = useState<'diagram' | 'text'>('diagram');
+  const [view, setView] = useState<MindMapVariant | 'text'>('tree');
   const [full, setFull] = useState(false);
   const holder = useRef<HTMLDivElement>(null);
   const fullHolder = useRef<HTMLDivElement>(null);
+  const drawing = view === 'text' ? null : view;
 
   const safeName = title.replace(/[^\w\s-]/g, '').trim().slice(0, 60).replace(/\s+/g, '-') || 'mind-map';
-  const filename = `${safeName}-mindmap.svg`;
+  const filename = `${safeName}-mindmap${view === 'cloud' ? '-cloud' : ''}.svg`;
+  const views: { id: MindMapVariant | 'text'; label: string; icon: JSX.Element }[] = [
+    { id: 'tree', label: 'Tree', icon: <Network size={14} aria-hidden /> },
+    { id: 'cloud', label: 'Cloud', icon: <Cloud size={14} aria-hidden /> },
+    { id: 'text', label: 'Text', icon: <Text size={14} aria-hidden /> },
+  ];
 
   return (
     <div style={{ marginTop: 8 }}>
       <div className="fs-ai-actions" role="group" aria-label="Mind map view">
-        <button type="button" className={`fs-ai-chip${view === 'diagram' ? ' is-active' : ''}`} aria-pressed={view === 'diagram'} onClick={() => setView('diagram')}>
-          <Network size={14} aria-hidden /> Diagram
-        </button>
-        <button type="button" className={`fs-ai-chip${view === 'text' ? ' is-active' : ''}`} aria-pressed={view === 'text'} onClick={() => setView('text')}>
-          <Text size={14} aria-hidden /> Text
-        </button>
+        {views.map((v) => (
+          <button key={v.id} type="button" className={`fs-ai-chip${view === v.id ? ' is-active' : ''}`} aria-pressed={view === v.id} onClick={() => setView(v.id)}>
+            {v.icon} {v.label}
+          </button>
+        ))}
         {/* The rail is ~300px wide; anything past the second level runs off the edge. */}
-        {view === 'diagram' && (
+        {drawing && (
           <button type="button" className="fs-ai-chip" onClick={() => setFull(true)}>
             <Maximize2 size={14} aria-hidden /> Expand
           </button>
         )}
-        {view === 'diagram' && (
+        {drawing && (
           <button type="button" className="fs-ai-chip" onClick={() => downloadMindMapSvg(holder.current, filename)}>
             <Download size={14} aria-hidden /> SVG
           </button>
         )}
       </div>
       <div ref={holder} style={{ marginTop: 8 }}>
-        {view === 'diagram' ? <MindMapDiagram root={node} /> : <MindMapOutline node={node} />}
+        {drawing ? <MindMapDiagram root={node} variant={drawing} /> : <MindMapOutline node={node} />}
+        {drawing && <p className="fs-mm-hint">Click a topic to open it · Expand for the full map</p>}
       </div>
 
       <Modal open={full} onClose={() => setFull(false)} title="Mind map" subtitle={title} width={1100}>
         <div ref={fullHolder} className="fs-mindmap-full">
-          <MindMapCanvas root={node} maxHeight="70vh" />
+          <MindMapCanvas root={node} maxHeight="70vh" variant={drawing ?? 'tree'} />
         </div>
         <div className="fs-ai-actions" style={{ marginTop: 12 }}>
           <button type="button" className="fs-ai-chip" onClick={() => downloadMindMapSvg(fullHolder.current, filename)}>

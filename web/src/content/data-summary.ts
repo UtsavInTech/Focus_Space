@@ -91,6 +91,16 @@ export const DATA_GROUPS: DataGroup[] = [
   },
 ];
 
+/**
+ * The whole of DATA_GROUPS in three lines, for /data (DataPage.tsx), which is read in seconds. Each line
+ * compresses a group above and claims nothing it does not: 'browser', 'ai', and 'account' in turn.
+ */
+export const DATA_DOES: string[] = [
+  'Keeps your Spaces, notes, mind maps and history in your browser.',
+  'Sends the AI only the moment you ask about — never your history or subscriptions.',
+  'Stores your account and plan only if you sign in.',
+];
+
 /** Stated as plainly as the rest, because "we don't do X" is the part people most want to hear. */
 export const DATA_NEVER: string[] = [
   'We do not sell your data, and there is no advertising in FocusSpace.',

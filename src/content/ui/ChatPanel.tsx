@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Check, Mic, NotebookPen, Send, Square, Volume2, X } from 'lucide-react';
 import type { LearningMode } from '@/types/domain';
 import type { NoteLanguage } from '@/types/notes';
 import type { ChatMessage } from '@/types/chat';
 import type { KnowledgeMap, TranscriptSegment } from '@/learning/knowledge/types';
+import type { OutlineSection } from '@/learning/outline/outline';
 import { buildLearningContext, type TranscriptSource } from '@/learning/context/context';
 import { createChatMessage } from '@/learning/ai/chat';
 import type { HomepageContext } from '@/learning/ai/homepage-context';
@@ -14,6 +15,8 @@ import { RichText } from '@/ui/components/RichText';
 import { FocusMark } from '@/ui/components/primitives';
 import { noteFromAnswer } from '@/learning/notes/from-answer';
 import { saveChatSession } from '@/storage/chat-store';
+import { useCanSave } from '@/ui/account/use-can-save';
+import { SignInToSave } from './SignInToSave';
 
 /**
  * FocusSpace AI's conversation: a genuine back-and-forth, distinct from the
@@ -27,7 +30,40 @@ import { saveChatSession } from '@/storage/chat-store';
  * learner to review/edit, exactly like typing — it is never auto-sent, and
  * the answer is never auto-spoken. Reading a reply aloud is one explicit tap
  * (the speaker icon on that message), never automatic.
+ *
+ * Sending ends dictation. The mic used to stay open after a spoken question
+ * went out, so whatever the learner said next — including reading the answer
+ * out loud, or the answer being read aloud to them — was typed straight back
+ * into the box.
  */
+
+/*
+ * The composer grows with what is typed so a long question stays readable, but only so far: it is a
+ * box beside a video, and a paragraph must never push the conversation off the panel. Up to
+ * ROOMY_LINES it grows at the normal size; past that the text steps down one size so more of it fits;
+ * past MAX_LINES (at that smaller size) it stops growing and scrolls.
+ */
+const COMPOSER_PAD = 16;
+const ROOMY_LINE = 20;
+const ROOMY_LINES = 5;
+const COMPACT_LINE = 18;
+const MAX_LINES = 8;
+/** The API's own ceiling (server/validate.ts MAX_QUESTION_CHARS). */
+const MAX_QUESTION_CHARS = 2000;
+
+function fitComposer(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.style.fontSize = '';
+  el.style.lineHeight = '';
+  el.style.height = 'auto';
+  if (el.scrollHeight > ROOMY_LINES * ROOMY_LINE + COMPOSER_PAD) {
+    el.style.fontSize = '13px';
+    el.style.lineHeight = `${COMPACT_LINE}px`;
+  }
+  const max = MAX_LINES * COMPACT_LINE + COMPOSER_PAD;
+  el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+  el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
+}
 
 interface SpeechResultLike {
   isFinal: boolean;
@@ -73,13 +109,20 @@ export interface ChatPanelProps {
   transcript?: TranscriptSegment[] | null;
   /** Whether those segments are uploaded captions or speech recognition — see TranscriptSource. */
   transcriptSource?: TranscriptSource | null;
+  /** The whole-video outline (content/data/outline.ts) — null until it arrives, or when there is none. */
+  outline?: OutlineSection[] | null;
+  /**
+   * Fetches the captions when they have not arrived yet. A question asked right after jumping into a
+   * long video used to go out before its transcript did, and was answered as if there were none.
+   */
+  loadTranscript?: () => Promise<TranscriptSegment[] | null>;
   currentTime?: () => number;
   homepage?: HomepageContext | null;
   language: NoteLanguage;
   onClose: () => void;
 }
 
-export function ChatPanel({ video, mode, topicId, path, map, transcript, transcriptSource, currentTime, homepage, language, onClose }: ChatPanelProps) {
+export function ChatPanel({ video, mode, topicId, path, map, transcript, transcriptSource, outline, loadTranscript, currentTime, homepage, language, onClose }: ChatPanelProps) {
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
@@ -98,6 +141,9 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
   questionRef.current = question;
   /** Answers already kept in the Library, so the button can say so. */
   const [saved, setSaved] = useState<string[]>([]);
+  /** Chatting is open to everyone; keeping the conversation needs an account (ui/account/save-gate.ts). */
+  const canSave = useCanSave();
+  const [savePromptDismissed, setSavePromptDismissed] = useState(false);
   /** The id of the answer being read aloud, or null. Speech is never started by anything but a press. */
   const [speakingId, setSpeakingId] = useState<string | null>(null);
 
@@ -116,9 +162,20 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
     setSpeakingId(null);
   }, []);
 
+  /** Ends dictation for good — no restart on silence, and any result still in flight is dropped. */
+  const stopListening = useCallback(() => {
+    wantsMic.current = false;
+    const recognition = recognitionRef.current;
+    recognitionRef.current = null;
+    recognition?.stop();
+    setListening(false);
+  }, []);
+
   const toggleSpeak = useCallback(
     (turn: ChatMessage) => {
       if (!speakSupported) return;
+      // An open mic would transcribe the answer as it is read out.
+      stopListening();
       // Always clear the queue first: pressing a different answer switches to it rather than queueing.
       window.speechSynthesis.cancel();
       if (speakingId === turn.id) return setSpeakingId(null);
@@ -128,16 +185,30 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
       setSpeakingId(turn.id);
       window.speechSynthesis.speak(utterance);
     },
-    [speakingId],
+    [speakingId, stopListening],
   );
 
-  // Nothing should keep talking into a panel that is gone, or over the next question.
-  useEffect(() => () => stopSpeaking(), [stopSpeaking]);
+  // Nothing should keep talking — or listening — into a panel that is gone, or over the next question.
+  useEffect(
+    () => () => {
+      stopSpeaking();
+      stopListening();
+    },
+    [stopSpeaking, stopListening],
+  );
+
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    fitComposer(inputRef.current);
+    // Dictation appends at the end; keep the newest words in view once the box is scrolling.
+    if (listening && inputRef.current) inputRef.current.scrollTop = inputRef.current.scrollHeight;
+  }, [question, listening]);
 
   async function submit(text: string) {
     const q = text.trim();
     if (!q || loading) return;
     stopSpeaking();
+    stopListening();
     const fromVoice = voiceOrigin;
     setError(null);
     setQuestion('');
@@ -151,7 +222,8 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
     setLoading(true);
     // Homepage/browse pages ground in HomepageContext, not the video pipeline — a video page keeps building
     // LearningContext exactly as before (buildLearningContext, untouched — see homepage-context.ts).
-    const context = homepage ?? buildLearningContext({ video: video ?? { id: '', title: '', channelTitle: '' }, mode: mode!, topicId: topicId ?? null, path: path ?? null, map: map ?? null, transcript: transcript ?? null, transcriptSource: transcriptSource ?? null, currentTime: at, language });
+    const segments = homepage || transcript?.length || !loadTranscript ? transcript : await loadTranscript().catch(() => null);
+    const context = homepage ?? buildLearningContext({ video: video ?? { id: '', title: '', channelTitle: '' }, mode: mode!, topicId: topicId ?? null, path: path ?? null, map: map ?? null, transcript: segments ?? null, transcriptSource: transcriptSource ?? null, outline: outline ?? null, currentTime: at, language });
     const result = await sendMessage('chat/send', { context, history, question: q, voice: fromVoice }).catch(() => null);
     setLoading(false);
     if (!result || !result.ok) {
@@ -161,7 +233,7 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
     // Text is the primary response — always. Speaking it aloud is a separate, explicit action (the speaker icon below), never automatic.
     const answered = [...nextHistory, createChatMessage('assistant', result.answer, videoId, at, fromVoice)];
     setHistory(answered);
-    void saveChatSession({ id: sessionId.current, videoId, modeId: mode?.id ?? '', title: video?.title || 'YouTube home', messages: answered }).catch(() => undefined);
+    if (canSave) void saveChatSession({ id: sessionId.current, videoId, modeId: mode?.id ?? '', title: video?.title || 'YouTube home', messages: answered }).catch(() => undefined);
   }
 
   /** Keeps an answer worth keeping — see learning/notes/from-answer.ts. */
@@ -184,12 +256,13 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
 
   function toggleMic() {
     if (listening) {
-      wantsMic.current = false;
-      recognitionRef.current?.stop();
+      stopListening();
       return;
     }
     const Ctor = speechRecognitionCtor();
     if (!Ctor) return;
+    // Dictating over an answer being read aloud would type the answer back in.
+    stopSpeaking();
     micBase.current = question.trim();
     wantsMic.current = true;
     setListening(true);
@@ -203,6 +276,8 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
     // Interim words appear as they are spoken; each event rebuilds the whole dictation, so nothing is doubled.
     recognition.interimResults = true;
     recognition.onresult = (event) => {
+      // stop() still delivers the last results; after a send they would refill the emptied box.
+      if (recognitionRef.current !== recognition) return;
       let heard = '';
       for (let i = 0; i < event.results.length; i++) heard += `${event.results[i][0]?.transcript ?? ''} `;
       const spoken = heard.replace(/\s+/g, ' ').trim();
@@ -211,10 +286,11 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
       setVoiceOrigin(true);
     };
     recognition.onerror = () => {
-      wantsMic.current = false;
-      setListening(false);
+      if (recognitionRef.current !== recognition) return;
+      stopListening();
     };
     recognition.onend = () => {
+      if (recognitionRef.current !== recognition) return;
       // Chrome ends a continuous session on a long silence; keep listening until the learner says stop.
       if (!wantsMic.current) {
         setListening(false);
@@ -279,7 +355,7 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
                     {speakingId === m.id ? <Square size={13} aria-hidden /> : <Volume2 size={14} aria-hidden />}
                   </button>
                 )}
-                {!!video?.id && (
+                {!!video?.id && canSave && (
                   <button
                     type="button"
                     className="fs-icon-plain"
@@ -295,6 +371,9 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
             </div>
           ),
         )}
+
+        {/* After an answer, never before: the learner sees what FocusSpace AI does, then why an account keeps it. */}
+        {canSave === false && !loading && !savePromptDismissed && history.some((m) => m.role === 'assistant') && <SignInToSave kind="chat" onDismiss={() => setSavePromptDismissed(true)} />}
 
         {loading && (
           <p className="fs-ai-thinking" aria-busy="true">
@@ -328,15 +407,23 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
           void submit(question);
         }}
       >
-        <input
+        <textarea
+          ref={inputRef}
+          rows={1}
           value={question}
           onChange={(e) => {
             setQuestion(e.target.value);
             setVoiceOrigin(false);
           }}
+          onKeyDown={(e) => {
+            // Enter sends, Shift+Enter breaks the line; never mid-composition (Hindi and other IMEs use Enter to commit).
+            if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
+            e.preventDefault();
+            void submit(question);
+          }}
           placeholder={listening ? 'Listening…' : homepage ? 'Ask about this page…' : 'Ask about this video…'}
           aria-label="Ask FocusSpace AI"
-          maxLength={500}
+          maxLength={MAX_QUESTION_CHARS}
         />
         {speechSupported && (
           <button type="button" className={`fs-ai-mic${listening ? ' is-listening' : ''}`} aria-label={listening ? 'Stop listening' : 'Ask by voice'} aria-pressed={listening} onClick={toggleMic}>
