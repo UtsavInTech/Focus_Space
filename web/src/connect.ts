@@ -28,7 +28,8 @@ const runtime = (): ChromeRuntime | null => (window as unknown as { chrome?: { r
 /** Written onto <html> by the extension's own content script on this origin (src/content/site-bridge.ts). */
 export const installedExtensionId = (): string | null => document.documentElement.dataset.focusspaceExtension ?? null;
 
-export type ConnectOutcome = 'connected' | 'no-extension' | 'failed';
+/** `returning`: signed in, and the extension is about to close this tab and bring back the YouTube tab that asked. */
+export type ConnectOutcome = 'connected' | 'returning' | 'no-extension' | 'failed';
 
 /**
  * Sends one handoff code to the extension and reports what happened. Never throws: every failure here is
@@ -42,7 +43,8 @@ export function sendHandoffToExtension(code: string): Promise<ConnectOutcome> {
     try {
       rt.sendMessage(id, { type: 'auth/handoff', code, origin: CONNECT_ORIGIN }, (response: unknown) => {
         if (rt.lastError) return resolve('failed');
-        resolve((response as { ok?: boolean } | undefined)?.ok ? 'connected' : 'failed');
+        const result = response as { ok?: boolean; data?: { returning?: boolean } } | undefined;
+        resolve(!result?.ok ? 'failed' : result.data?.returning ? 'returning' : 'connected');
       });
     } catch {
       resolve('failed');

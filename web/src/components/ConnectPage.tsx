@@ -65,6 +65,15 @@ export function ConnectPage() {
           </>
         )}
 
+        {state === 'returning' && (
+          <>
+            <h1>Login successful</h1>
+            <p className="fsw-auth-sub" role="status">
+              You’re signed in{auth.user?.email ? ` as ${auth.user.email}` : ''}. Taking you back to YouTube…
+            </p>
+          </>
+        )}
+
         {state === 'connected' && (
           <>
             <h1>You’re signed in</h1>
