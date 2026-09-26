@@ -9,8 +9,8 @@ import { spaNavigate } from '../youtube/spa';
 /**
  * A compact "FocusSpace" section in YouTube's own left sidebar.
  *
- * The heading is the way out to focusspace.app — the same move NoteGPT makes
- * with its logo, and the reason the section needs no separate link. Sign-in
+ * The heading is the way out to focusspace.xyz, which is why the section
+ * needs no separate link. Sign-in
  * used to live up here as a second control; it moved to the website, which is
  * where an account is actually set up and managed. Settings → Account still
  * has it for anyone already signed in.

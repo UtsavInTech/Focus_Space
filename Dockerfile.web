@@ -1,4 +1,4 @@
-# The FocusSpace website (focusspace.app) — static files behind Caddy.
+# The FocusSpace website (focusspace.xyz) — static files behind Caddy.
 #
 # Separate from the API's Dockerfile because they are separate things with
 # separate lifecycles: the site is a CDN-shaped bundle of static assets, the

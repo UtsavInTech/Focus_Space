@@ -18,7 +18,7 @@ import { NameSparkle } from './NameSparkle';
 import { CursorSparkle } from './CursorSparkle';
 
 /**
- * The learning product's own home, modelled on NoteGPT's workspace: what you made (Library), what you
+ * The learning product's own home: what you made (Library), what you
  * watched (History) and what organises it (Spaces), with Subscriptions and Settings below. The marketing
  * site keeps pricing, FAQ and the account; everything here is the learner's.
  */

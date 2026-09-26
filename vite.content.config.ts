@@ -8,7 +8,7 @@ const resolve = (...parts: string[]) => fileURLToPath(new URL(parts.join('/'), `
  * Builds #2, #3 and #4: classic IIFE scripts injected into pages.
  *   default mode      → content.js (youtube.com, isolated world: filters, UI, data)
  *   --mode bridge     → bridge.js  (youtube.com, main world: SPA navigation + page config)
- *   --mode site       → site.js    (focusspace.app: announces the extension's id)
+ *   --mode site       → site.js    (focusspace.xyz: announces the extension's id)
  */
 export default defineConfig(({ mode }) => {
   const bridge = mode === 'bridge';

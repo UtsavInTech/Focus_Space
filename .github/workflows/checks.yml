@@ -1,0 +1,32 @@
+# Runs on every pull request and every push to main: the same checks CONTRIBUTING.md §7 asks
+# for before hand-in. The e2e suite is left out — it drives live youtube.com in a browser.
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22: the API uses node:sqlite.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:fast
+      - run: npm run build:web
+      - run: npm run build:server

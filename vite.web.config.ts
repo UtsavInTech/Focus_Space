@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const resolve = (...parts: string[]) => fileURLToPath(new URL(parts.join('/'), `${import.meta.url.replace(/[^/]*$/, '')}`));
 
 /**
- * Build #4: the public website (focusspace.app) — the marketing home, pricing
+ * Build #4: the public website (focusspace.xyz) — the marketing home, pricing
  * and FAQ the YouTube launcher opens.
  *
  * Deliberately a separate build from the extension: the site ships to a CDN as

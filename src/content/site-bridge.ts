@@ -1,5 +1,5 @@
 /**
- * Runs on focusspace.app and tells the page that the extension is here.
+ * Runs on focusspace.xyz and tells the page that the extension is here.
  *
  * The website talks to the extension over `externally_connectable`, which needs
  * the extension's id — and an unpacked build's id differs on every machine, so

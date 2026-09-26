@@ -5,7 +5,7 @@ import { addMode, deleteMode, selectMode, setFocusEnabled } from '@/modes/servic
 import { inferModeIntent, modeFromSuggestion } from '@/modes/intent';
 
 /**
- * The bridge between focusspace.app and the extension.
+ * The bridge between focusspace.xyz and the extension.
  *
  * Spaces, subscriptions and settings live in `chrome.storage.local` and have
  * never left the browser. Rather than reverse that by uploading them, the

@@ -4,7 +4,7 @@
 
 FocusSpace is a Chrome extension (Manifest V3) with a website and an API behind it. Pick a **Space** — DSA, AI / ML, Punjabi music, anything — and YouTube is organised around it: your subscriptions first, the best matches from the rest of YouTube woven in, a learning rail instead of random suggestions, and Shorts and other attention traps gone. It still looks and behaves like YouTube.
 
-Live at [focusspace.xyz](https://focusspace.xyz) · API at `api.focusspace.xyz` · version 0.4.1.
+Live at [focusspace.xyz](https://focusspace.xyz) · API at `api.focusspace.xyz` · version 0.5.0.
 
 > **Proprietary.** This repository is not open source — see [LICENSE](LICENSE). Contributions are by invitation; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -143,10 +143,10 @@ Your Spaces, watch progress, notes and Library stay in `chrome.storage.local`, o
 
 Found in the first days after launch:
 
-1. In Chrome, some buttons do not respond after opening the extension.
-2. The website UI needs more clean-up.
-3. The FocusSpace AI bubble should hide when a video is played full screen.
+1. In Chrome, some buttons do not respond after opening the extension. (Now working)
+2. The website UI needs more clean-up. (Done)
+3. The FocusSpace AI bubble should hide when a video is played full screen (Working).
 
 ## License
 
-Copyright © 2026 UtsavInTech. All rights reserved. See [LICENSE](LICENSE).
+Copyright © 2026 Utsav Kumar (UtsavInTech). All rights reserved. See [LICENSE](LICENSE).

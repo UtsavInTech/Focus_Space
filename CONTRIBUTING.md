@@ -80,7 +80,19 @@ These are decisions, not suggestions. Changing one is a conversation with the ow
 
 ## 6. Working alongside others
 
-Several people and AI agents often work in this repository at the same time, on the same branch.
+Several people and AI agents often work on FocusSpace at the same time.
+
+**On GitHub** (collaborators working from their own clone):
+
+- **Work on your own branch**, named for the change (`fix/ai-bubble-fullscreen`,
+  `feat/notes-export`). Never push to `main` — every change reaches it through a reviewed pull
+  request.
+- **Keep your branch current.** Rebase on or merge `main` before asking for review, and resolve
+  conflicts on your branch, not in `main`.
+- **Never force-push a branch someone else is also working on.**
+
+**In a shared working copy** (people or AI agents in the same checkout, e.g. on the owner's
+machine):
 
 - **Look before you edit.** Run `git status` first. Files already modified are someone else's
   work in progress: don't revert, reformat or rewrite them. If you must change one, make the
@@ -89,6 +101,9 @@ Several people and AI agents often work in this repository at the same time, on 
   `git add -A` or `git clean` — each one can destroy or sweep up someone else's uncommitted work.
   Stage only the files you changed, by name.
 - **Don't commit or push unless the owner asks.** Work is reviewed before it is committed.
+
+**Everywhere:**
+
 - **Moving or renaming a file?** Update every reference to it in the same change, and call the move
   out in your hand-off.
 - **Hand off clearly:** what changed and why, which files, what you ran, and what you did not
@@ -109,7 +124,10 @@ Chromium. Update the README or the relevant doc when behaviour a reader relies o
 
 - One logical change per commit. The message is a plain sentence saying what changed — look at
   `git log` for the style ("Adopt the real FocusSpace logo: target mark and two-tone wordmark").
-- Branch from `main` for a pull request, and describe what changed, why, and how it was tested.
+- Branch from `main` for a pull request, and fill in the template: what changed, why, and how it
+  was tested. Keep a pull request to one topic — two unrelated changes are two pull requests.
+- The checks (typecheck, tests, all three builds) run on every pull request and must pass. A pull
+  request is merged by the owner after review.
 
 ## 9. Secrets and security
 
