@@ -12,7 +12,8 @@ describe('who is offered an upgrade', () => {
   it('each plan, at its limit, is offered the next rung', () => {
     expect(upgradeOffer('basic', { used: 15, limit: 15 })).toBe('Need more Spaces? Go Plus');
     expect(upgradeOffer('plus', { used: 24, limit: 25 })).toBe('Need more Spaces? Go Pro');
-    expect(upgradeOffer('pro', { used: 49, limit: 50 })).toBe('Need more Spaces? Go Max');
+    // Max is coming soon: nothing to sell a Pro learner yet, so nothing is offered.
+    expect(upgradeOffer('pro', { used: 49, limit: 50 })).toBeNull();
   });
 
   it('Free, at its limit, is offered Basic', () => {
