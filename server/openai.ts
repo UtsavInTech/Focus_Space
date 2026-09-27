@@ -95,6 +95,8 @@ export async function callOpenAIJson(prompt: AiPrompt, config: OpenAIConfig, sig
       body: JSON.stringify({
         model: config.model,
         max_tokens: config.maxTokens,
+        // Understanding, not writing: the same sentence should give the same actions every time.
+        temperature: 0.2,
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: prompt.system },
