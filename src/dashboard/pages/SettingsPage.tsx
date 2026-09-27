@@ -267,6 +267,9 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         "different from the detailed explanation".
       */}
       <Section id="privacy" title="Your data" description="Nothing is sold, and there is no advertising or tracking.">
+        <SettingRow title="Count me as an active user" description="Once a day, FocusSpace tells its server that this install was used, so it knows how many people use it and whether they come back. Nothing else is sent: no videos, no history, not your account.">
+          <Switch label="Count me as an active user" checked={settings.shareUsageCounts} onChange={(v) => patch({ shareUsageCounts: v })} />
+        </SettingRow>
         <SettingRow title="Your Spaces, notes and history stay in this browser" description={LOCAL_DATA_SUMMARY} />
         <SettingRow title={user ? 'Your account holds' : 'An account would hold'} description={ACCOUNT_DATA_FACTS.map((f) => f.label.replace(/^Your /, '').replace(/^The /, '')).join(' · ')} />
         <SettingRow title="The learning companion, only when you ask" description={aiDataSummary(usesHostedAi(settings.ai.endpointUrl) ? HOSTED_AI_LABEL : 'Your endpoint')} />

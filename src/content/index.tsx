@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client';
+import { sendMessage } from '@/messaging/runtime';
 import stylesCss from '@/ui/styles.css?inline';
 import { defaultsFor } from '@/storage/schema';
 import { bindToOwner, getItems, subscribe } from '@/storage/storage';
@@ -109,6 +110,8 @@ function main() {
     document.body.appendChild(slots.overlay.host);
     createRoot(slots.overlay.container).render(<ContentApp store={store} slots={slots} controller={controller} />);
     controller.startObservers();
+    // Counted once a day at most, and only if the learner hasn't turned it off (background/activity.ts).
+    void sendMessage('activity/ping', {}).catch(() => undefined);
   });
 }
 

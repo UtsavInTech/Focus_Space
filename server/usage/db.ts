@@ -181,6 +181,21 @@ CREATE TABLE IF NOT EXISTS voice_usage (
   PRIMARY KEY (key, period)
 );
 
+-- Active-use counts (server/usage/activity.ts). \`subject\` is a salted hash of the extension's random
+-- install id — never an account id, an address or anything about what was watched. One row per
+-- install per day it was used; first_day says when it was first seen, for retention.
+CREATE TABLE IF NOT EXISTS activity_subjects (
+  subject   TEXT PRIMARY KEY,
+  first_day TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS activity_days (
+  subject TEXT NOT NULL,
+  day     TEXT NOT NULL,
+  signed_in INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (subject, day)
+);
+CREATE INDEX IF NOT EXISTS activity_days_day_idx ON activity_days(day);
+
 CREATE UNIQUE INDEX IF NOT EXISTS usage_events_user_idem_idx ON usage_events(user_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
 CREATE INDEX IF NOT EXISTS usage_events_user_period_idx ON usage_events(user_id, period);
 `;
@@ -398,6 +413,45 @@ export class UsageDb {
     this.db
       .prepare('INSERT INTO voice_usage (key, period, seconds, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(key, period) DO UPDATE SET seconds = seconds + excluded.seconds, updated_at = excluded.updated_at')
       .run(key, period, Math.max(0, Math.round(seconds)), now);
+  }
+
+  /** Marks an install active on a day (idempotent) and remembers the first day it was seen. */
+  recordActivity(subject: string, day: string, signedIn: boolean): void {
+    this.db.prepare('INSERT OR IGNORE INTO activity_subjects (subject, first_day) VALUES (?, ?)').run(subject, day);
+    this.db
+      .prepare('INSERT INTO activity_days (subject, day, signed_in) VALUES (?, ?, ?) ON CONFLICT(subject, day) DO UPDATE SET signed_in = MAX(signed_in, excluded.signed_in)')
+      .run(subject, day, signedIn ? 1 : 0);
+  }
+
+  /** Distinct installs active on any day in [from, to] (ISO dates, inclusive); `signedIn` counts only those signed in. */
+  activeBetween(from: string, to: string, signedIn = false): number {
+    const row = this.db
+      .prepare(`SELECT COUNT(DISTINCT subject) AS n FROM activity_days WHERE day >= ? AND day <= ?${signedIn ? ' AND signed_in = 1' : ''}`)
+      .get(from, to) as { n: number };
+    return row.n;
+  }
+
+  /** New installs per first day, from `from` on. */
+  newSubjectsSince(from: string): { day: string; n: number }[] {
+    return this.db.prepare('SELECT first_day AS day, COUNT(*) AS n FROM activity_subjects WHERE first_day >= ? GROUP BY first_day ORDER BY first_day').all(from) as { day: string; n: number }[];
+  }
+
+  /** Installs first seen in [from, to], and how many of them were active again between `fromDays` and `toDays` after their own first day. */
+  cohortReturned(from: string, to: string, fromDays: number, toDays: number): { size: number; returned: number } {
+    const size = (this.db.prepare('SELECT COUNT(*) AS n FROM activity_subjects WHERE first_day >= ? AND first_day <= ?').get(from, to) as { n: number }).n;
+    const returned = (
+      this.db
+        .prepare(
+          "SELECT COUNT(DISTINCT s.subject) AS n FROM activity_subjects s JOIN activity_days d ON d.subject = s.subject WHERE s.first_day >= ? AND s.first_day <= ? AND d.day >= date(s.first_day, '+' || ? || ' days') AND d.day <= date(s.first_day, '+' || ? || ' days')",
+        )
+        .get(from, to, fromDays, toDays) as { n: number }
+    ).n;
+    return { size, returned };
+  }
+
+  /** Every entitlement row, to count who is paying now. */
+  allEntitlements(): EntitlementRow[] {
+    return this.db.prepare('SELECT * FROM entitlements').all() as unknown as EntitlementRow[];
   }
 }
 

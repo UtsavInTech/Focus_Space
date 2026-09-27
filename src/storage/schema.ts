@@ -227,6 +227,7 @@ export const DEFAULT_SETTINGS: Settings = {
   displayName: '',
   onboarded: false,
   debugRelevance: false,
+  shareUsageCounts: true,
   ai: { provider: 'auto', endpointUrl: '', language: 'en' },
   api: { baseUrl: '' },
   defaultSessionMinutes: 60,

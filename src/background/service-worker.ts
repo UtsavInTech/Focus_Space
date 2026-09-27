@@ -19,6 +19,7 @@ import { SITE_URL, siteUrl } from '@/config';
 import { registerExternalMessaging } from './external';
 import { rememberReturnTab } from './sign-in-return';
 import * as setupAssistant from './setup-assistant';
+import { markActive } from './activity';
 import { migrate } from './migrate';
 import { resolveClaim, startOwnership } from './ownership';
 import { canSave, SAVE_NEEDS_ACCOUNT } from '@/ui/account/save-gate';
@@ -192,6 +193,7 @@ listen({
       return { ok: false, error: err instanceof Error ? err.message : 'Could not open FocusSpace.' };
     }
   },
+  'activity/ping': () => markActive(),
   'setup/understand': (request) => setupAssistant.understand(request),
   'voice/transcribe': ({ audio, mime, hint, purpose }) => setupAssistant.transcribeSpeech(audio, mime, hint, purpose),
   'voice/speak': ({ text, purpose }) => setupAssistant.speakText(text, purpose),

@@ -48,6 +48,7 @@ Then set `DB_PATH=/data/focusspace.db` (below) so both database connections —
 | Variable | Value | Why |
 | --- | --- | --- |
 | `OPENAI_API_KEY` | `sk-…` | The one key the product runs on. Never in the extension. |
+| `ADMIN_TOKEN` | a long random string | Reads active users, retention and paying users (`GET /v1/admin/metrics`, `npm run metrics` with `FOCUSSPACE_ADMIN_TOKEN` in your local `.env`). Without it the numbers can't be read at all. |
 | `AUTH_TOKEN_SECRET` | `openssl rand -base64 32` | Signs access/refresh tokens. Changing it signs everyone out. |
 | `DB_PATH` | `/data/focusspace.db` | Must point at the mounted volume. |
 | `HOST` | `0.0.0.0` | The default `127.0.0.1` accepts nothing from outside the container. |

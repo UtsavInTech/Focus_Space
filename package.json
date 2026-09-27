@@ -22,7 +22,8 @@
     "ai-endpoint": "node scripts/ai-endpoint/server.mjs",
     "build:server": "vite build --config vite.server.config.ts",
     "ai-api": "npm run build:server && node --env-file-if-exists=.env dist-server/index.mjs",
-    "package": "node scripts/package.mjs"
+    "package": "node scripts/package.mjs",
+    "metrics": "node scripts/metrics.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

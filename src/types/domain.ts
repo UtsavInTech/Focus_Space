@@ -129,6 +129,8 @@ export interface Settings {
   onboarded: boolean;
   /** Developer aid: show why each video got its relevance score. */
   debugRelevance: boolean;
+  /** Tell FocusSpace, once a day, that this install was used — nothing else (background/activity.ts). */
+  shareUsageCounts: boolean;
   /** FocusSpace AI (only runs when the learner asks). */
   ai: AiSettings;
   /** The FocusSpace account/identity server (Layer 2B). Optional — see ApiSettings. */

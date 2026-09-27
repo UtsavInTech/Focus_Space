@@ -84,6 +84,8 @@ export interface MessageMap {
   'content/ping': { req: Record<string, never>; res: { ok: true } };
   /** any → background: open a page of the public site (src/config.ts) in a new tab, reusing one if it is already open. */
   'site/open': { req: { path?: string }; res: { ok: true } | { ok: false; error: string } };
+  /** content → background: FocusSpace was used on YouTube today (background/activity.ts). */
+  'activity/ping': { req: Record<string, never>; res: void };
   /** content → background: the setup assistant's understanding step (server/setup). */
   'setup/understand': { req: SetupRequest; res: { ok: true; answer: SetupAnswer } | { ok: false; error: string } };
   /** content → background: a recording (base64) → what was said. */

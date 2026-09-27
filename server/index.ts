@@ -52,6 +52,7 @@ import { loadSenders } from './notify/sender';
 import { getUsageDb } from './usage/db';
 import { anonymousKeys, assertAnonymousAllowed, commitUsage, parseInstallId, recordAnonymous, releaseUsage, reserveUsage, usageStatus } from './usage/service';
 import { registerSpace, spaceAllowance, unregisterSpace } from './usage/spaces';
+import { activitySubject, isAdmin, metrics, recordActive } from './usage/activity';
 import { assertVoiceAllowed, parsePurpose, recordVoice, secondsHeard, secondsToSay, voiceStatus, type VoiceCaller } from './usage/voice';
 import { resolvePlan } from './usage/entitlements';
 import { loadRazorpayConfig, verifyWebhookSignature } from './billing/razorpay';
@@ -112,6 +113,10 @@ const GOOGLE_CALLBACK_ROUTE = '/v1/auth/google/callback';
 const SETUP_ROUTE = '/v1/setup/understand';
 const VOICE_TRANSCRIBE_ROUTE = '/v1/voice/transcribe';
 const VOICE_SPEAK_ROUTE = '/v1/voice/speak';
+/** Active-use counts (server/usage/activity.ts): the extension's daily "used today", and the admin view of it. */
+const ACTIVITY_ROUTE = '/v1/activity';
+const ADMIN_METRICS_ROUTE = '/v1/admin/metrics';
+const activityLimiter = new RateLimiter(120, 60 * 60_000);
 /** A turn carries the learner's Spaces and their creators, or channel search results to choose from. */
 const SETUP_MAX_BODY_BYTES = 48 * 1024;
 /** ~30 s of browser webm/opus is well under 1 MB; base64 adds a third. */
@@ -308,6 +313,22 @@ const server = createServer(async (req, res) => {
         () => outlineLimiter.attempt(caller),
       );
       sendJson(res, 200, { ok: true, sections: result.sections, cached: result.cached });
+      return;
+    }
+
+    // ── Active use: one "used today" per install (hashed), and the numbers, for the admin only. ──
+    if (req.method === 'POST' && path === ACTIVITY_ROUTE) {
+      const installId = parseInstallId(req.headers['x-focusspace-install']);
+      if (!installId) throw new ApiError(400, 'invalid_request', 'No install id.');
+      if (!activityLimiter.attempt(clientIp(req, TRUST_PROXY))) throw new ApiError(429, 'rate_limited', 'Too many requests.');
+      const identity = authConfig ? tryAuthenticate(getDb(), authConfig, req.headers.authorization) : null;
+      recordActive(getUsageDb(), activitySubject(installId, authConfig?.tokenSecret ?? config.model), !!identity);
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+    if (req.method === 'GET' && path === ADMIN_METRICS_ROUTE) {
+      if (!isAdmin(req.headers.authorization, process.env.ADMIN_TOKEN)) throw new ApiError(401, 'unauthorized', 'Not authorised.');
+      sendJson(res, 200, { ok: true, metrics: metrics(getUsageDb()) });
       return;
     }
 
