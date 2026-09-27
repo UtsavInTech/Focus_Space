@@ -141,12 +141,14 @@ export function loadVoiceConfig(env: NodeJS.ProcessEnv = process.env): VoiceConf
 }
 
 /** Speech → text. `audio` is the recording's raw bytes (webm/opus from the browser's MediaRecorder). */
-export async function transcribe(audio: Buffer, mime: string, apiKey: string, voice: VoiceConfig, signal?: AbortSignal): Promise<string> {
+export async function transcribe(audio: Buffer, mime: string, apiKey: string, voice: VoiceConfig, prompt?: string, signal?: AbortSignal): Promise<string> {
   const form = new FormData();
   // OpenAI goes by the file name's extension, so it must match the bytes.
   const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') || mime.includes('m4a') ? 'mp4' : mime.includes('mpeg') || mime.includes('mp3') ? 'mp3' : mime.includes('wav') ? 'wav' : 'webm';
   form.append('file', new Blob([new Uint8Array(audio)], { type: mime }), `speech.${ext}`);
   form.append('model', voice.transcribeModel);
+  // Names and words to expect: the model spells "Telusko" rather than hearing "telescope".
+  if (prompt) form.append('prompt', prompt);
   let upstream: Response;
   try {
     upstream = await fetch('https://api.openai.com/v1/audio/transcriptions', { method: 'POST', headers: { authorization: `Bearer ${apiKey}` }, body: form, signal });

@@ -21,7 +21,7 @@
 import { createServer } from 'node:http';
 import { ApiError, clientIp, CORS_HEADERS, readJsonBody, readTextBody, sendJson, type ApiErrorResponse } from './http';
 import { callOpenAI, callOpenAIJson, loadOpenAIConfig, loadVoiceConfig, speak, transcribe } from './openai';
-import { parseSetupAnswer, setupPrompt, validateSetupRequest, validateSpeechText } from './setup/service';
+import { parseSetupAnswer, setupPrompt, transcriptionHint, validateSetupRequest, validateSpeechText } from './setup/service';
 import { orchestrate } from './orchestrator';
 import { validateAiApiRequest } from './validate';
 import { getDb } from './auth/db';
@@ -111,6 +111,8 @@ const GOOGLE_CALLBACK_ROUTE = '/v1/auth/google/callback';
 const SETUP_ROUTE = '/v1/setup/understand';
 const VOICE_TRANSCRIBE_ROUTE = '/v1/voice/transcribe';
 const VOICE_SPEAK_ROUTE = '/v1/voice/speak';
+/** A turn carries the learner's Spaces and their creators, or channel search results to choose from. */
+const SETUP_MAX_BODY_BYTES = 48 * 1024;
 /** ~30 s of browser webm/opus is well under 1 MB; base64 adds a third. */
 const VOICE_MAX_BODY_BYTES = 1_500_000;
 
@@ -153,11 +155,13 @@ const outlineLimiter = new RateLimiter(40, 24 * 60 * 60_000);
  * per caller (account, install or address), enough for a long, chatty setup and nowhere near enough to
  * use as a general-purpose transcription or text-to-speech service.
  */
-const setupLimiter = new RateLimiter(40, 30 * 60_000);
+const setupLimiter = new RateLimiter(80, 30 * 60_000);
 const listenLimiter = new RateLimiter(40, 30 * 60_000);
 const speakLimiter = new RateLimiter(60, 30 * 60_000);
 const voiceDailyLimiter = new RateLimiter(200, 24 * 60 * 60_000);
 const voice = loadVoiceConfig();
+/** Reading a setup turn — corrections, several actions at once — needs more care than chat; measured on real turns. */
+const SETUP_MODEL = process.env.SETUP_MODEL ?? 'gpt-4.1-mini';
 /** Railway fronts the API with a proxy; its record of the client's address is the one to trust there (http.ts clientIp). */
 const TRUST_PROXY = process.env.TRUST_PROXY ? process.env.TRUST_PROXY === '1' : process.env.NODE_ENV === 'production';
 
@@ -312,20 +316,22 @@ const server = createServer(async (req, res) => {
       const slowDown = () => new ApiError(429, 'rate_limited', 'That’s a lot of talking for one setup — give it a few minutes and try again.');
 
       if (path === SETUP_ROUTE) {
-        const request = validateSetupRequest(await readJsonBody(req, AUTH_MAX_BODY_BYTES));
+        const request = validateSetupRequest(await readJsonBody(req, SETUP_MAX_BODY_BYTES));
         if (!setupLimiter.attempt(caller)) throw slowDown();
-        const { data } = await callOpenAIJson(setupPrompt(request), { ...config, maxTokens: request.task === 'spaces' ? 1800 : 300 });
+        const maxTokens = request.task === 'spaces' || request.task === 'turn' ? 2600 : 300;
+        const { data } = await callOpenAIJson(setupPrompt(request), { ...config, model: SETUP_MODEL, maxTokens });
         sendJson(res, 200, { ok: true, answer: parseSetupAnswer(request, data) });
         return;
       }
 
       if (path === VOICE_TRANSCRIBE_ROUTE) {
-        const body = (await readJsonBody(req, VOICE_MAX_BODY_BYTES)) as { audio?: unknown; mime?: unknown } | null;
+        const body = (await readJsonBody(req, VOICE_MAX_BODY_BYTES)) as { audio?: unknown; mime?: unknown; hint?: unknown } | null;
         const audio = typeof body?.audio === 'string' ? Buffer.from(body.audio, 'base64') : null;
         const mime = typeof body?.mime === 'string' && /^audio\/[a-z0-9.+-]+(;.*)?$/i.test(body.mime) ? body.mime.split(';')[0] : 'audio/webm';
         if (!audio || audio.length < 1_000) throw new ApiError(400, 'invalid_request', 'The recording was empty.');
         if (!listenLimiter.attempt(caller) || !voiceDailyLimiter.attempt(caller)) throw slowDown();
-        sendJson(res, 200, { ok: true, text: await transcribe(audio, mime, config.apiKey, voice) });
+        const hint = typeof body?.hint === 'string' ? body.hint.slice(0, 300) : '';
+        sendJson(res, 200, { ok: true, text: await transcribe(audio, mime, config.apiKey, voice, transcriptionHint(hint)) });
         return;
       }
 

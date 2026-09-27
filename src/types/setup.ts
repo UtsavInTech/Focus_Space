@@ -18,11 +18,49 @@ export interface SetupSpacePlan {
   searchHint: string;
 }
 
+/** What the assistant knows when it reads a turn: the person's Spaces and what it last asked. */
+export interface SetupTurnState {
+  /** Every Space they have, with the creators already in it; `isNew` = made in this conversation. */
+  spaces: { name: string; channels: string[]; isNew: boolean }[];
+  /** The question it is waiting on, if any. */
+  asking: { kind: 'subjects' } | { kind: 'channels'; space: string } | null;
+}
+
+/** One thing to do about what was said. The extension carries these out; the server only decides. */
+export type SetupAction =
+  | { type: 'create_space'; space: SetupSpacePlan }
+  | { type: 'add_channels'; space: string; names: string[] }
+  | { type: 'remove_channels'; space: string; names: string[] }
+  | { type: 'remove_space'; space: string }
+  /** "No / skip" to the favourite-creator question for this Space. */
+  | { type: 'no_channels'; space: string };
+
+export interface SetupTurnAnswer {
+  reply: string;
+  actions: SetupAction[];
+}
+
+export interface ChannelCandidate {
+  title: string;
+  handle: string | null;
+  subscribers: string;
+  description: string;
+}
+
+/** For each name asked for, the index of the search result they meant, or null when none of them is it. */
+export interface SetupPickAnswer {
+  picks: (number | null)[];
+}
+
 export type SetupRequest =
   /** "I want system design, Spanish and French" → the Spaces to create. */
   | { task: 'spaces'; text: string; existing: string[]; catalog: { id: string; name: string }[] }
   /** "Striver and Love Babbar" (about the DSA Space) → the channel names to look up. */
-  | { task: 'channels'; text: string; space: string };
+  | { task: 'channels'; text: string; space: string }
+  /** One turn of the conversation, read against everything so far — including corrections. */
+  | { task: 'turn'; text: string; state: SetupTurnState; catalog: { id: string; name: string }[] }
+  /** "Telusko" + YouTube's search results → which result is the channel they mean. */
+  | { task: 'pick'; text: string; space: string; items: { name: string; candidates: ChannelCandidate[] }[] };
 
 export interface SetupSpacesAnswer {
   /** What the assistant says back, in one or two spoken-style sentences. */
@@ -38,7 +76,7 @@ export interface SetupChannelsAnswer {
   channels: string[];
 }
 
-export type SetupAnswer = SetupSpacesAnswer | SetupChannelsAnswer;
+export type SetupAnswer = SetupSpacesAnswer | SetupChannelsAnswer | SetupTurnAnswer | SetupPickAnswer;
 
 /** Longest thing a learner can say or type in one turn. */
 export const SETUP_MAX_TEXT = 1_000;

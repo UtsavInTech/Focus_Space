@@ -53,3 +53,55 @@ describe('parseSetupAnswer', () => {
     expect(parseSetupAnswer({ task: 'channels', text: 'no', space: 'DSA' }, { channels: 'nope' })).toEqual({ reply: 'No problem.', channels: [] });
   });
 });
+
+describe('a setup turn', () => {
+  const turn: SetupRequest = {
+    task: 'turn',
+    text: 'wait, in DSA I said Telusko',
+    state: { spaces: [{ name: 'DSA', channels: ['India Telescope Shop'], isNew: true }], asking: { kind: 'channels', space: 'System Design' } },
+    catalog: [{ id: 'dsa', name: 'DSA' }],
+  };
+
+  it('tells the model what is being asked and what each Space already has', () => {
+    const user = JSON.parse(setupPrompt(turn).user);
+    expect(user).toMatchObject({ said: 'wait, in DSA I said Telusko', answeringFor: 'System Design', spaces: [{ name: 'DSA', creators: ['India Telescope Shop'] }] });
+  });
+
+  it('keeps well-formed actions in order and drops the rest', () => {
+    const answer = parseSetupAnswer(turn, {
+      reply: 'Swapping it.',
+      actions: [
+        { type: 'remove_channels', space: 'DSA', names: ['India Telescope Shop'] },
+        { type: 'add_channels', space: 'DSA', names: ['Telusko'] },
+        { type: 'create_space', space: { name: 'DSA' } },
+        { type: 'create_space', space: { name: 'Cooking', topics: [{ name: 'Knife Skills', keywords: [] }] } },
+        { type: 'delete_everything' },
+        { type: 'add_channels', space: 'DSA', names: [] },
+        { type: 'no_channels', space: 'System Design' },
+      ],
+    });
+    expect(answer).toMatchObject({
+      reply: 'Swapping it.',
+      actions: [
+        { type: 'remove_channels', space: 'DSA', names: ['India Telescope Shop'] },
+        { type: 'add_channels', space: 'DSA', names: ['Telusko'] },
+        { type: 'create_space', space: { name: 'Cooking' } },
+        { type: 'no_channels', space: 'System Design' },
+      ],
+    });
+  });
+
+  it('validates turns and picks', () => {
+    expect(validateSetupRequest({ task: 'turn', text: 'hi', state: { spaces: [{ name: 'DSA', channels: ['x'], isNew: 1 }], asking: { kind: 'channels', space: 'DSA' } } })).toMatchObject({ state: { spaces: [{ name: 'DSA', channels: ['x'], isNew: false }], asking: { kind: 'channels', space: 'DSA' } } });
+    expect(() => validateSetupRequest({ task: 'pick', text: 'x', space: 'DSA', items: [] })).toThrow();
+  });
+});
+
+describe('choosing a channel from search results', () => {
+  const pick: SetupRequest = { task: 'pick', text: 'telusko', space: 'DSA', items: [{ name: 'Telusko', candidates: [{ title: 'Telusko', handle: '@Telusko', subscribers: '2M', description: 'Java' }] }, { name: 'X', candidates: [{ title: 'Y', handle: null, subscribers: '', description: '' }] }] };
+  it('accepts an index in range or null, nothing else', () => {
+    expect(parseSetupAnswer(pick, { picks: [0, 3] })).toEqual({ picks: [0, null] });
+    expect(parseSetupAnswer(pick, { picks: 'first' })).toEqual({ picks: [null, null] });
+  });
+});
+
