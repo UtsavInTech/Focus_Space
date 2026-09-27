@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { BASIC_UPGRADE_CREDIT, PLAN_RANK, PLANS, RETIRED_PLANS, currentPlanId, priceOf, type BillingPeriod, type CurrencyCode, type Plan, type PlanId, type RecurringPeriod } from '@/billing/plans';
+import { BASIC_UPGRADE_CREDIT, BASIC_UPGRADE_PLANS, PLUS_INCLUDES_BASIC, PLAN_RANK, PLANS, RETIRED_PLANS, currentPlanId, priceOf, type BillingPeriod, type CurrencyCode, type Plan, type PlanId, type RecurringPeriod } from '@/billing/plans';
 import { ApiError } from '../http';
 import type { CheckoutRow, UsageDb } from '../usage/db';
 import { cancelSubscription, createOrder, createPlan, createSubscription, fetchSubscription, verifyPaymentSignature, verifySubscriptionSignature, type RazorpayConfig } from './razorpay';
@@ -23,7 +23,7 @@ import { cancelSubscription, createOrder, createPlan, createSubscription, fetchS
  */
 
 /** Only these can be bought. 'free' is the absence of a payment, not a purchase. */
-const PURCHASABLE: PlanId[] = ['basic', 'plus', 'pro', 'max'];
+const PURCHASABLE: PlanId[] = PLANS.filter((p) => p.id !== 'free' && !p.comingSoon).map((p) => p.id);
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PERIOD_DAYS: Record<RecurringPeriod, number> = { monthly: 30, annual: 365 };
@@ -89,6 +89,8 @@ export interface Quote {
   startsNow: boolean;
   /** The renewing subscription this purchase replaces, stopped once it is paid for. */
   replacesSubscription: string | null;
+  /** Someone new buying Plus: Basic for life comes with it. */
+  includesBasic: boolean;
 }
 
 /**
@@ -96,15 +98,18 @@ export interface Quote {
  *
  * - Moving up (Plus → Pro, Pro monthly → Pro yearly, …) credits what is left of the current period,
  *   pro rata to what was paid for it, and the new plan starts from today.
- * - A Basic owner's first renewing plan is `BASIC_UPGRADE_CREDIT` cheaper.
+ * - A Basic owner's first month of Plus is `BASIC_UPGRADE_CREDIT` cheaper; someone new who buys Plus
+ *   gets Basic for life with it instead.
  * - Moving down waits for the current period to end: its days are already paid for.
  *
  * The server decides this and the browser only shows it; checkout charges exactly `chargeMinor`.
  */
 export function quote(db: UsageDb, userId: string, plan: Plan, period: BillingPeriod, currency: CurrencyCode, now = Date.now()): Quote {
   const fullMinor = fullPrice(plan, period, currency);
-  const base: Quote = { planId: plan.id, period, currency, fullMinor, creditMinor: 0, chargeMinor: fullMinor, creditNote: null, startsNow: false, replacesSubscription: null };
+  const base: Quote = { planId: plan.id, period, currency, fullMinor, creditMinor: 0, chargeMinor: fullMinor, creditNote: null, startsNow: false, replacesSubscription: null, includesBasic: false };
   const current = db.getEntitlement(userId);
+  const ownsBasic = currentPlanId(current?.lifetime_plan) === 'basic';
+  base.includesBasic = PLUS_INCLUDES_BASIC && plan.id === 'plus' && period !== 'lifetime' && !ownsBasic;
 
   if (period === 'lifetime') {
     if (currentPlanId(current?.lifetime_plan) === plan.id) throw new ApiError(409, 'conflict', `You already have ${plan.name} for life.`);
@@ -134,7 +139,7 @@ export function quote(db: UsageDb, userId: string, plan: Plan, period: BillingPe
     return { ...base, creditMinor, chargeMinor, creditNote: `Unused ${activeName} time`, startsNow: true, replacesSubscription: current.auto_renew === 1 ? current.subscription_id : null };
   }
 
-  if (currentPlanId(current?.lifetime_plan) === 'basic' && !db.hasRecurringPayment(userId)) {
+  if (ownsBasic && BASIC_UPGRADE_PLANS.includes(plan.id) && !db.hasRecurringPayment(userId)) {
     const creditMinor = minorUnits(currency === 'INR' ? BASIC_UPGRADE_CREDIT.inr : BASIC_UPGRADE_CREDIT.usd);
     return { ...base, creditMinor, chargeMinor: Math.max(fullMinor - creditMinor, MIN_CHARGE_MINOR[currency]), creditNote: 'Basic owner offer' };
   }
@@ -159,7 +164,7 @@ export function quotes(db: UsageDb, userId: string, currency: CurrencyCode, now 
 
 const describe = (plan: Plan, period: BillingPeriod, q: Quote, renewing: boolean) => {
   const what = period === 'lifetime' ? 'for life' : renewing ? `renews ${period === 'annual' ? 'yearly' : 'monthly'}` : period === 'annual' ? '12 months' : '1 month';
-  return `FocusSpace ${plan.name} · ${what}${q.creditMinor ? ` · ${q.creditNote} taken off` : ''}`;
+  return `FocusSpace ${plan.name} · ${what}${q.creditMinor ? ` · ${q.creditNote} taken off` : ''}${q.includesBasic ? ' · Basic for life included' : ''}`;
 };
 
 export async function startCheckout(config: RazorpayConfig, db: UsageDb, userId: string, request: CheckoutRequest, now = Date.now()): Promise<CheckoutSession> {
@@ -202,18 +207,21 @@ const TOTAL_CYCLES: Record<RecurringPeriod, number> = { monthly: 120, annual: 10
 const RAZORPAY_PERIOD: Record<RecurringPeriod, 'monthly' | 'yearly'> = { monthly: 'monthly', annual: 'yearly' };
 
 /**
- * The Razorpay Plan for a (plan, period, currency), created once and
+ * The Razorpay Plan for a (plan, period, currency, price), created once and
  * remembered. The key includes the Razorpay key id because test-mode and
  * live-mode plans are different objects living in different worlds — caching
  * them under one key would hand a live subscription a test plan id.
  */
 async function ensureRemotePlan(config: RazorpayConfig, db: UsageDb, plan: Plan, period: RecurringPeriod, currency: CurrencyCode, now: number): Promise<string> {
-  const key = `${config.keyId}:${plan.id}:${period}:${currency}`;
+  // The amount is part of the key: a Razorpay Plan charges a fixed amount forever, so a changed price
+  // (Pro yearly ₹2,388 → ₹2,990) needs a new Plan, never the old one charging the old price.
+  const amountMinor = fullPrice(plan, period, currency);
+  const key = `${config.keyId}:${plan.id}:${period}:${currency}:${amountMinor}`;
   const cached = db.getRemotePlan(key);
   if (cached) return cached;
 
   const created = await createPlan(config, {
-    amountMinor: fullPrice(plan, period, currency),
+    amountMinor,
     currency,
     period: RAZORPAY_PERIOD[period],
     name: `FocusSpace ${plan.name} (${period === 'annual' ? 'yearly' : 'monthly'})`,
@@ -347,6 +355,7 @@ export function grantPlan(db: UsageDb, input: GrantInput, now = Date.now()): Gra
   const subscriptionId = input.subscriptionId ?? (input.startsNow ? null : current?.subscription_id ?? null);
   const autoRenew = input.subscriptionId ? true : input.startsNow ? false : current?.auto_renew === 1;
   db.setPlan(input.userId, input.planId, now, expiresAt, input.paymentId, subscriptionId, autoRenew);
+  if (PLUS_INCLUDES_BASIC && input.planId === 'plus' && !current?.lifetime_plan) db.setLifetimePlan(input.userId, 'basic', now);
   return { plan: input.planId, expiresAt, granted: true, autoRenew };
 }
 
@@ -452,13 +461,14 @@ function canApplyWebhookCharge(db: UsageDb, planId: PlanId, userId: string, orde
   if (!PLANS.some((p) => p.id === planId && p.id !== 'free')) return false;
   if (subscriptionId) {
     const entitled = db.findBySubscription(subscriptionId);
-    if (entitled?.user_id === userId && entitled.plan === planId) return true;
+    // Rows written before a plan was retired (Unlimited) still read as the plan that replaced it.
+    if (entitled?.user_id === userId && currentPlanId(entitled.plan) === planId) return true;
     const recorded = db.getCheckout(subscriptionId);
-    if (recorded?.kind === 'subscription' && recorded.user_id === userId && recorded.plan === planId) return true;
+    if (recorded?.kind === 'subscription' && recorded.user_id === userId && currentPlanId(recorded.plan) === planId) return true;
   }
   if (orderId) {
     const recorded = db.getCheckout(orderId);
-    if (recorded?.user_id === userId && recorded.plan === planId) return true;
+    if (recorded?.user_id === userId && currentPlanId(recorded.plan) === planId) return true;
   }
   return false;
 }

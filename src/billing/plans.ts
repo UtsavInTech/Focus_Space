@@ -72,12 +72,8 @@ export interface Plan {
 /** Plans no longer sold whose entitlements still exist: they get the plan that replaced them. */
 export const RETIRED_PLANS: Record<string, PlanId> = { unlimited: 'max' };
 
-/**
- * The annual discount differs slightly by currency, because every displayed
- * figure is held to a .99 ending in both — so the toggle advertises the best
- * of them and each card states its own exact saving.
- */
-export const ANNUAL_DISCOUNT_LABEL = 'Save up to 33%';
+/** A year costs ten months: the toggle says so, and each card states its own exact saving. */
+export const ANNUAL_DISCOUNT_LABEL = '2 months free';
 
 /**
  * Without an account there is no server-side allowance, so these two are
@@ -119,10 +115,17 @@ export const FREE_SAVED_NOTES = 5;
 /**
  * Basic is paid for once and kept for life, so every allowance it has is a ceiling FocusSpace can afford
  * forever on ₹99: at most ~300 AI actions a month (about ₹25 of AI at worst), a handful of quiz questions,
- * the free half hour of voice. Past that, the way on is Plus, and a Basic owner's first paid month is
- * ₹100 cheaper (`BASIC_UPGRADE_CREDIT`).
+ * the free half hour of voice. Past that, the way on is Plus, and a Basic owner's first month of Plus is
+ * ₹100 cheaper (`BASIC_UPGRADE_CREDIT`). Pro is never discounted: at ₹299 it has no room for it.
+ *
+ * The other way round: someone new who buys Plus straight away gets Basic for life with it
+ * (`PLUS_INCLUDES_BASIC`), so ₹149 is ₹99 of Basic plus a first month of Plus, and nobody who chose the
+ * bigger plan ends up with less than someone who bought Basic.
  */
 export const BASIC_UPGRADE_CREDIT: Amount = { inr: 100, usd: 1 };
+export const BASIC_UPGRADE_PLANS: readonly PlanId[] = ['plus'];
+export const PLUS_INCLUDES_BASIC = true;
+const PLUS_MONTHLY: Amount = { usd: 1.99, inr: 149 };
 
 export const PLANS: Plan[] = [
   {
@@ -155,7 +158,7 @@ export const PLANS: Plan[] = [
       '15 notes and mind maps kept in your Library',
       '20 AI credits a day, up to 300 a month',
       '10 quiz questions a month',
-      `₹${BASIC_UPGRADE_CREDIT.inr} off your first month of Plus, Pro or Max`,
+      `Your first month of Plus for ₹${PLUS_MONTHLY.inr - BASIC_UPGRADE_CREDIT.inr}`,
     ],
     cta: 'Get Basic for life',
   },
@@ -163,8 +166,8 @@ export const PLANS: Plan[] = [
     id: 'plus',
     name: 'Plus',
     tagline: 'For a subject you study every week.',
-    // Annual totals are 12 x a .99 monthly figure, so the "/month" line stays clean.
-    price: { monthly: { usd: 1.99, inr: 149 }, annual: { usd: 17.88, inr: 1188 } },
+    // Yearly is ten months' price: two months free, never so deep that a month drops below what it costs us.
+    price: { monthly: PLUS_MONTHLY, annual: { usd: 19.9, inr: 1490 } },
     limits: { modes: 25, aiCredits: 1000, aiCreditsPerDay: null, voiceMinutes: 60, quizQuestions: 60, savedNotes: null },
     features: ['Everything in Basic', '25 Spaces', '1,000 AI credits a month, no daily cap', '1 hour of voice a month', '60 quiz questions a month, with difficulty and score', 'Unlimited notes and mind maps'],
     cta: 'Get Plus',
@@ -173,7 +176,7 @@ export const PLANS: Plan[] = [
     id: 'pro',
     name: 'Pro',
     tagline: 'For everything you are learning at once.',
-    price: { monthly: { usd: 3.99, inr: 299 }, annual: { usd: 35.88, inr: 2388 } },
+    price: { monthly: { usd: 3.99, inr: 299 }, annual: { usd: 39.9, inr: 2990 } },
     featured: true,
     limits: { modes: 50, aiCredits: 2500, aiCreditsPerDay: null, voiceMinutes: 120, quizQuestions: 150, savedNotes: null },
     features: ['Everything in Plus', '50 Spaces', '2,500 AI credits a month', '2 hours of voice a month', '150 quiz questions a month, with difficulty and score', 'Email support'],
@@ -182,11 +185,21 @@ export const PLANS: Plan[] = [
   {
     id: 'max',
     name: 'Max',
-    tagline: 'No counting, for people who live on YouTube to learn.',
-    price: { monthly: { usd: 7.99, inr: 599 }, annual: { usd: 71.88, inr: 4788 } },
+    tagline: 'The most capable FocusSpace, for learning every day.',
+    // Coming soon: priced for what it will carry (the strongest AI model, notes kept on our servers).
+    price: { monthly: { usd: 12.99, inr: 999 }, annual: { usd: 129.9, inr: 9990 } },
     limits: { modes: null, aiCredits: null, aiCreditsPerDay: null, voiceMinutes: 300, quizQuestions: 600, savedNotes: null },
-    features: ['Everything in Pro', 'Unlimited Spaces', 'Unlimited AI credits (fair use)', '5 hours of voice a month', '600 quiz questions a month', 'Priority support'],
+    features: [
+      'Everything in Pro',
+      'The most capable AI model for notes, mind maps and chat',
+      'Your notes and Library kept on FocusSpace’s servers, safe if you reinstall',
+      'Unlimited Spaces and AI credits (fair use)',
+      '5 hours of voice a month',
+      '600 quiz questions a month',
+      'Priority support',
+    ],
     cta: 'Get Max',
+    comingSoon: true,
   },
 ];
 

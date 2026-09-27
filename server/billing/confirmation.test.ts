@@ -85,13 +85,13 @@ describe('one-off payments', async () => {
   });
 
   it('the grant comes from the recorded purchase even when the browser names nothing', async () => {
-    const { orderId } = await startCheckout(config, usageDb, alice, { planId: 'max', period: 'annual', currency: 'INR' });
+    const { orderId } = await startCheckout(config, usageDb, alice, { planId: 'pro', period: 'annual', currency: 'INR' });
     const grant = await confirmPayment(config, usageDb, alice, { orderId, paymentId: 'pay_1', signature: sign(orderId, 'pay_1') });
-    expect(grant.plan).toBe('max');
+    expect(grant.plan).toBe('pro');
   });
 
   it("someone else's paid order cannot be confirmed onto your account", async () => {
-    const { orderId } = await startCheckout(config, usageDb, alice, { planId: 'max', period: 'monthly', currency: 'INR' });
+    const { orderId } = await startCheckout(config, usageDb, alice, { planId: 'pro', period: 'monthly', currency: 'INR' });
     await expect(confirmPayment(config, usageDb, bob, { orderId, paymentId: 'pay_1', signature: sign(orderId, 'pay_1') })).rejects.toThrow(/could not be verified/);
     expect(planOf(bob)).toBe('free');
   });
@@ -124,14 +124,14 @@ describe('subscriptions', async () => {
   });
 
   it('refused when Razorpay says the subscription charges a different plan than the one recorded', async () => {
-    const { subscriptionId } = await startSubscription(config, usageDb, alice, { planId: 'max', period: 'monthly', currency: 'INR' });
+    const { subscriptionId } = await startSubscription(config, usageDb, alice, { planId: 'pro', period: 'monthly', currency: 'INR' });
     remoteSubscriptionPlan = 'plan_for_something_cheaper';
     await expect(confirmSubscription(config, usageDb, alice, { subscriptionId, paymentId: 'pay_s1', signature: sign('pay_s1', subscriptionId) })).rejects.toThrow(/could not be verified/);
     expect(planOf(alice)).toBe('free');
   });
 
   it("someone else's subscription cannot be confirmed onto your account", async () => {
-    const { subscriptionId } = await startSubscription(config, usageDb, alice, { planId: 'max', period: 'monthly', currency: 'INR' });
+    const { subscriptionId } = await startSubscription(config, usageDb, alice, { planId: 'pro', period: 'monthly', currency: 'INR' });
     remoteSubscriptionPlan = usageDb.getCheckout(subscriptionId)?.remote_plan_id ?? undefined;
     await expect(confirmSubscription(config, usageDb, bob, { subscriptionId, paymentId: 'pay_s1', signature: sign('pay_s1', subscriptionId) })).rejects.toThrow();
     expect(planOf(bob)).toBe('free');
@@ -141,10 +141,11 @@ describe('subscriptions', async () => {
 describe('retired Unlimited', async () => {
   const DAY = 24 * 60 * 60 * 1000;
 
-  it('cannot be bought any more; Basic, Plus, Pro and Max can', async () => {
+  it('cannot be bought any more, nor can Max yet; Basic, Plus and Pro can', async () => {
+    await expect(startSubscription(config, usageDb, alice, { planId: 'max', period: 'monthly', currency: 'INR' })).rejects.toThrow(/That plan cannot be purchased/);
     await expect(startCheckout(config, usageDb, alice, { planId: 'unlimited', period: 'monthly', currency: 'INR' })).rejects.toThrow(/That plan cannot be purchased/);
     await expect(startSubscription(config, usageDb, alice, { planId: 'unlimited', period: 'monthly', currency: 'INR' })).rejects.toThrow(/That plan cannot be purchased/);
-    for (const planId of ['plus', 'pro', 'max']) await expect(startSubscription(config, usageDb, alice, { planId, period: 'monthly', currency: 'INR' })).resolves.toMatchObject({ planId });
+    for (const planId of ['plus', 'pro']) await expect(startSubscription(config, usageDb, alice, { planId, period: 'monthly', currency: 'INR' })).resolves.toMatchObject({ planId });
     await expect(startCheckout(config, usageDb, alice, { planId: 'basic', period: 'lifetime', currency: 'INR' })).resolves.toMatchObject({ planId: 'basic', amountMinor: 9900 });
     await expect(startSubscription(config, usageDb, alice, { planId: 'basic', period: 'lifetime', currency: 'INR' })).rejects.toThrow(/does not renew/);
     await expect(startCheckout(config, usageDb, alice, { planId: 'basic', period: 'monthly', currency: 'INR' })).rejects.toThrow(/single payment/);

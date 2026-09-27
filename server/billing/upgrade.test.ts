@@ -87,39 +87,59 @@ describe('Basic, for life', () => {
     expect(planOf(NOW + 40 * DAY)).toBe('basic');
   });
 
-  it('takes ₹100 off the first paid month, once', async () => {
+  it('takes ₹100 off the first month of Plus, once, and never off Pro', async () => {
     await buyOnce('basic', 'lifetime', NOW, 'pay_basic');
     const plus = quote(usageDb, alice, planById('plus'), 'monthly', 'INR', NOW);
-    expect(plus).toMatchObject({ fullMinor: 14900, creditMinor: 10000, chargeMinor: 4900, creditNote: 'Basic owner offer', startsNow: false });
+    expect(plus).toMatchObject({ fullMinor: 14900, creditMinor: 10000, chargeMinor: 4900, creditNote: 'Basic owner offer', startsNow: false, includesBasic: false });
+    expect(quote(usageDb, alice, planById('pro'), 'monthly', 'INR', NOW)).toMatchObject({ creditMinor: 0, chargeMinor: 29900 });
     const { session } = await buyOnce('plus', 'monthly', NOW, 'pay_plus');
     expect(session.amountMinor).toBe(4900);
-    // Plus has run out; the offer was for the first paid month only.
-    expect(quote(usageDb, alice, planById('pro'), 'monthly', 'INR', NOW + 40 * DAY).creditMinor).toBe(0);
+    // Plus has run out; the offer was for the first month only.
+    expect(quote(usageDb, alice, planById('plus'), 'monthly', 'INR', NOW + 40 * DAY).creditMinor).toBe(0);
+  });
+});
+
+describe('Plus for someone new', () => {
+  it('₹149 is Basic for life plus a first month of Plus', async () => {
+    expect(quote(usageDb, alice, planById('plus'), 'monthly', 'INR', NOW)).toMatchObject({ chargeMinor: 14900, includesBasic: true });
+    const { session } = await buyOnce('plus', 'monthly', NOW, 'pay_plus');
+    expect(session.description).toContain('Basic for life included');
+    expect(planOf(NOW + DAY)).toBe('plus');
+    // Cancelled or run out: Basic is theirs.
+    expect(planOf(NOW + 40 * DAY)).toBe('basic');
+    // The next month of Plus is full price, and Basic is not sold to them again.
+    expect(quote(usageDb, alice, planById('plus'), 'monthly', 'INR', NOW + 40 * DAY)).toMatchObject({ chargeMinor: 14900, includesBasic: false });
+    await expect(startCheckout(config, usageDb, alice, { planId: 'basic', period: 'lifetime', currency: 'INR' }, NOW + 40 * DAY)).rejects.toThrow(/already have Basic/);
+  });
+
+  it('Pro does not come with Basic', async () => {
+    await buyOnce('pro', 'monthly', NOW, 'pay_pro');
+    expect(planOf(NOW + 40 * DAY)).toBe('free');
   });
 });
 
 describe('moving up pays only the difference', () => {
   it('credits the unused days of the current plan, and the new plan starts today', async () => {
-    await buyOnce('pro', 'monthly', NOW, 'pay_pro');
+    await buyOnce('plus', 'monthly', NOW, 'pay_plus');
     const at = NOW + 10 * DAY; // 20 of 30 days left
-    const q = quote(usageDb, alice, planById('max'), 'monthly', 'INR', at);
-    expect(q.creditMinor).toBe(Math.floor((29900 * 20) / 30));
-    expect(q.chargeMinor).toBe(59900 - q.creditMinor);
-    expect(q.creditNote).toBe('Unused Pro time');
+    const q = quote(usageDb, alice, planById('pro'), 'monthly', 'INR', at);
+    expect(q.creditMinor).toBe(Math.floor((14900 * 20) / 30));
+    expect(q.chargeMinor).toBe(29900 - q.creditMinor);
+    expect(q.creditNote).toBe('Unused Plus time');
 
-    const { session, grant } = await buyOnce('max', 'monthly', at, 'pay_max');
+    const { session, grant } = await buyOnce('pro', 'monthly', at, 'pay_pro');
     expect(session.amountMinor).toBe(q.chargeMinor);
-    expect(grant.plan).toBe('max');
+    expect(grant.plan).toBe('pro');
     expect(grant.expiresAt).toBe(at + 30 * DAY); // not the old expiry plus a month: those days were credited
 
-    const receipt = buildReceipt(usageDb, { id: alice, email: 'a@example.com' }, 'pay_max').html;
-    expect(receipt).toContain('Unused Pro time');
-    expect(receipt).toContain('₹599');
+    const receipt = buildReceipt(usageDb, { id: alice, email: 'a@example.com' }, 'pay_pro').html;
+    expect(receipt).toContain('Unused Plus time');
+    expect(receipt).toContain('₹299');
   });
 
   it('refuses to move down mid-period, and says when it can', async () => {
-    await buyOnce('max', 'monthly', NOW, 'pay_max');
-    await expect(startCheckout(config, usageDb, alice, { planId: 'pro', period: 'monthly', currency: 'INR' }, NOW + DAY)).rejects.toThrow(/You’re on Max until .* move to Pro when it ends/);
+    await buyOnce('pro', 'monthly', NOW, 'pay_pro');
+    await expect(startCheckout(config, usageDb, alice, { planId: 'plus', period: 'monthly', currency: 'INR' }, NOW + DAY)).rejects.toThrow(/You’re on Pro until .* move to Plus when it ends/);
   });
 
   it('renewing the same plan early adds a period after the current one, at full price', async () => {
@@ -166,5 +186,17 @@ describe('moving up pays only the difference', () => {
     }, NOW + 40 * DAY);
     expect(renewal).toMatchObject({ plan: 'pro', granted: true, expiresAt: NOW + 10 * DAY + 60 * DAY });
     expect(usageDb.getPayment('pay_pro_2')).toMatchObject({ amount_minor: 29900, credit_minor: 0 });
+  });
+});
+
+describe('Razorpay Plans follow the price', () => {
+  it('a price change creates a new Razorpay Plan instead of charging the old amount', async () => {
+    // A Plan cached before the price changed, under the old key shape.
+    usageDb.putRemotePlan(`${config.keyId}:pro:annual:INR`, 'plan_old_2388', NOW);
+    await startSubscription(config, usageDb, alice, { planId: 'pro', period: 'annual', currency: 'INR' }, null, NOW);
+    const created = calls.find((c) => c.url.endsWith('/plans'))!.body!;
+    expect(created.item).toMatchObject({ amount: 299000 });
+    const subscription = calls.filter((c) => c.url.endsWith('/subscriptions') && c.body).pop()!.body!;
+    expect(subscription.plan_id).not.toBe('plan_old_2388');
   });
 });
