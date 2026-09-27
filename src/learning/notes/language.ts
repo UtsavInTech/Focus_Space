@@ -9,7 +9,7 @@ import { normalizeText } from '../text';
  */
 export const LANGUAGE_INSTRUCTION: Record<NoteLanguage, string> = {
   en: 'Write the notes in English.',
-  hi: 'Write the notes in Hindi (Devanagari script). Keep technical terms — concept names, data structures, syntax, APIs, formulas, code identifiers — exactly as spoken, in English/Roman script; translate only the explanatory prose around them naturally, the way a fluent bilingual instructor would. Do not transliterate or translate the technical terms themselves.',
+  hi: 'Write the notes in Hindi (Devanagari script). Keep technical terms, concept names, data structures, syntax, APIs, formulas, code identifiers, exactly as spoken, in English/Roman script; translate only the explanatory prose around them naturally, the way a fluent bilingual instructor would. Do not transliterate or translate the technical terms themselves.',
   hinglish: 'Write the notes in Hinglish (Roman-script conversational Hindi/English mix, the way Indian instructors commonly explain on YouTube). Keep technical terms in English exactly as spoken.',
 };
 

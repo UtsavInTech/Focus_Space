@@ -84,8 +84,8 @@ export function FocusPill({ on }: { on: boolean }) {
         data-on={on ? 'true' : undefined}
         style={style}
         {...presence}
-        aria-label={`FocusSpace is ${on ? 'on' : 'off'} — show the switch`}
-        title={`FocusSpace is ${on ? 'on' : 'off'} — drag to move, click to show`}
+        aria-label={`FocusSpace is ${on ? 'on' : 'off'}, show the switch`}
+        title={`FocusSpace is ${on ? 'on' : 'off'}. Drag to move, click to show`}
         {...drag.handlers}
         onClick={() => !drag.dragging && collapse(false)}
       >

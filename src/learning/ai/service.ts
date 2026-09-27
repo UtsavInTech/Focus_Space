@@ -2,8 +2,8 @@ import type { ChatMessage } from '@/types/chat';
 import type { ProviderCapabilities, ProviderId } from '@/types/ai-provider';
 import type { LearningContext } from '../context/context';
 import { CONTEXT_VERSION } from '../context/context';
+import { buildPrompt, buildQuizMorePrompt, reviewAnswer, type AiAction, type AiPrompt, type QuizMore } from './actions';
 import { hashString } from '../knowledge/text';
-import { buildPrompt, reviewAnswer, type AiAction, type AiPrompt } from './actions';
 import { buildChatPrompt } from './chat';
 import type { HomepageContext } from './homepage-context';
 import { approxTokens, type UsageSink } from './usage';
@@ -48,7 +48,8 @@ export interface AiRequest {
 export interface ActionRequest {
   action: AiAction;
   context: LearningContext;
-  question?: string;
+  /** Quiz only: a "More questions" round over a wider span, without repeating what was asked. */
+  quiz?: QuizMore;
 }
 
 export interface ChatRequest {
@@ -91,13 +92,14 @@ export const capabilitiesOf = (provider: AiProvider): ProviderCapabilities => pr
  * Same question about the same moment → same answer. Explanations are keyed to
  * the concept and a ~20 s window; "what" and quizzes to the concept only.
  */
-export function aiCacheKey(request: AiRequest): string {
+export function aiCacheKey(request: AiRequest & { quiz?: QuizMore }): string {
   // aiCacheKey backs only the point-action cache (run()) — chat/homepage turns never go through it.
   const ctx = request.context as LearningContext;
   const where = ctx.conceptId ?? `t${Math.floor(ctx.currentTime / 60)}`;
   const moment = request.action === 'what' || request.action === 'quiz' ? where : `${where}@${Math.floor(ctx.currentTime / 20)}`;
-  const question = request.action === 'ask' ? hashString((request.question ?? '').trim().toLowerCase().replace(/\s+/g, ' ')) : '';
-  return [CONTEXT_VERSION, request.action, ctx.videoId, ctx.mode.id, moment, question].join('|');
+  // A "More questions" round is its own answer: keyed by its span and by what it must not repeat.
+  const quiz = request.quiz ? `${request.quiz.scope}:${hashString(request.quiz.previous.join('\n'))}` : '';
+  return [CONTEXT_VERSION, request.action, ctx.videoId, ctx.mode.id, moment, quiz].join('|');
 }
 
 export function createAiService(options: { providers: () => Promise<AiProvider[]> | AiProvider[]; ttlMs?: number; maxEntries?: number; now?: () => number; usage?: UsageSink }) {
@@ -125,7 +127,6 @@ export function createAiService(options: { providers: () => Promise<AiProvider[]
     },
 
     run(request: ActionRequest, signal?: AbortSignal): Promise<AiResult> {
-      if (request.action === 'ask' && !request.question?.trim()) return Promise.resolve({ ok: false, code: 'failed', error: 'Type a question first.' });
       const key = aiCacheKey(request);
       const hit = cache.get(key);
       if (hit && now() - hit.at < ttl) {
@@ -141,7 +142,7 @@ export function createAiService(options: { providers: () => Promise<AiProvider[]
           return { ok: false, code: 'unavailable', error: found?.availability === 'downloadable' || found?.availability === 'downloading' ? 'The on-device model is not downloaded yet.' : 'No AI provider is set up.' };
         }
         try {
-          const prompt = buildPrompt(request.action, request.context, request.question);
+          const prompt = request.action === 'quiz' && request.quiz ? buildQuizMorePrompt(request.context, request.quiz) : buildPrompt(request.action, request.context);
           let answer = (await found.provider.complete(prompt, request, signal)).trim();
           if (!answer) return { ok: false, code: 'failed', error: 'The AI returned an empty answer.' };
           // One revision when the draft breaks the action's rules (e.g. quiz questions about the course instead of the subject).

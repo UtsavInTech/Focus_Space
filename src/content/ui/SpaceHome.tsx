@@ -18,7 +18,7 @@ import { Button } from '@/ui/components/primitives';
 import { Modal } from '@/ui/components/Modal';
 import { TemplateCreators } from '@/ui/components/TemplateCreators';
 import type { PickedChannel } from '@/ui/components/ChannelPicker';
-import { useContinueWatching, useDiscovery, useFeedView } from '../data/hooks';
+import { useBecauseYouPlayed, useContinueWatching, useDiscovery, useFeedView } from '../data/hooks';
 import { continueToVisible, discoveredToVisible, libraryToVisible, publishContinueWatching, publishFeedVideos } from '../data/visible-feed';
 import { CardSkeletons, ContinueCard, FeedCard, SpotlightCard, type CardData } from './FeedCard';
 
@@ -88,7 +88,7 @@ function FirstRun({ modes, onCreate }: { modes: LearningMode[]; onCreate: () => 
   return (
     <div className="fs-first-run fs-animate-in">
       <h1>What do you want to focus on?</h1>
-      <p>FocusSpace organises YouTube around it — your subscriptions first, then the best matches from the rest of YouTube. You can switch anytime.</p>
+      <p>FocusSpace organises YouTube around it: your subscriptions first, then the best matches from the rest of YouTube. You can switch anytime.</p>
 
       {modes.length > 0 && (
         <div className="fs-first-run-group">
@@ -140,14 +140,14 @@ function FirstRun({ modes, onCreate }: { modes: LearningMode[]; onCreate: () => 
         <button type="button" className="fs-link" onClick={() => void browseNormally()}>
           Just browse YouTube
         </button>
-        <span className="fs-caption">FocusSpace turns off. Nothing is hidden, nothing is reordered — turn it back on whenever you want.</span>
+        <span className="fs-caption">FocusSpace turns off. Nothing is hidden, nothing is reordered. Turn it back on whenever you want.</span>
       </div>
 
       <Modal
         open={!!pendingTemplate}
         onClose={() => setPendingTemplate(null)}
         title={pendingTemplate ? `Creators for ${pendingTemplate.name}` : 'Creators'}
-        subtitle="Optional — you can skip this and change it later."
+        subtitle="Optional. You can skip this and change it later."
         width={560}
       >
         {pendingTemplate && (
@@ -346,6 +346,7 @@ function SpaceFeed({ mode, topicId }: { mode: LearningMode; topicId: string | nu
   return (
     <>
       {!topic && <ContinueRow mode={mode} view={view} />}
+      {!topic && mode.kind !== 'learning' && <BecauseYouPlayed mode={mode} />}
       {topic && <TopicPlaylist mode={mode} topic={topic} />}
 
       <section className="fs-section" aria-label={heading}>
@@ -364,7 +365,7 @@ function SpaceFeed({ mode, topicId }: { mode: LearningMode; topicId: string | nu
         )}
         {noChannels && (
           <div className="fs-note">
-            No subscriptions in FocusSpace yet — {mode.discovery ? "we're showing great matches from across YouTube." : 'turn on discovery or import them.'}
+            No subscriptions in FocusSpace yet. {mode.discovery ? "We're showing great matches from across YouTube." : 'Turn on discovery or import them.'}
             <button type="button" className="fs-link" onClick={() => void sendMessage('subscriptions/import', {})}>
               Import my subscriptions
             </button>
@@ -389,7 +390,7 @@ function SpaceFeed({ mode, topicId }: { mode: LearningMode; topicId: string | nu
         {empty && (
           <div className="fs-empty-yt">
             <h3>{topic ? `No clear ${topic.name} videos yet` : `No clear ${mode.name} videos yet`}</h3>
-            <p>FocusSpace only shows videos that clearly match — it never fills the page with guesses.</p>
+            <p>FocusSpace only shows videos that clearly match. It never fills the page with guesses.</p>
             <YtLink href={searchUrl(topic ? `${topic.name} ${mode.searchHint || mode.name}` : mode.searchHint || mode.name)} className="fs-btn fs-btn-secondary">
               Search YouTube for “{topic ? topic.name : mode.name}”
             </YtLink>
@@ -399,6 +400,43 @@ function SpaceFeed({ mode, topicId }: { mode: LearningMode; topicId: string | nu
       </section>
 
       {!topic && <ChannelsSection mode={mode} view={view} discovered={discovery.items} channelIds={channelIds} />}
+    </>
+  );
+}
+
+/** Music and other just-for-you Spaces: more like what was played here, from YouTube's own "up next". */
+function BecauseYouPlayed({ mode }: { mode: LearningMode }) {
+  const rows = useBecauseYouPlayed(mode);
+  if (!rows.length) return null;
+  return (
+    <>
+      {rows.map((row) => (
+        <section key={row.seed.videoId} className="fs-section" aria-label={`Because you played ${row.seed.title}`}>
+          <div className="fs-section-head">
+            <h2>Because you played</h2>
+            <span>{row.seed.title}</span>
+          </div>
+          <div className="fs-grid fs-grid-row">
+            {row.videos.slice(0, 4).map((v) => (
+              <FeedCard
+                key={v.id}
+                card={{
+                  id: v.id,
+                  title: v.title,
+                  channelTitle: v.channelTitle,
+                  views: v.views,
+                  time: v.publishedText,
+                  durationSec: v.durationSec,
+                  progress: v.watchedPercent !== null ? v.watchedPercent / 100 : null,
+                  tier: 'strong',
+                  source: 'discovery',
+                  why: `Because you played ${row.seed.title}`,
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
     </>
   );
 }

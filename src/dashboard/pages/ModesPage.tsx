@@ -145,7 +145,7 @@ export function ModesPage({ data, openCreate }: { data: DashboardData; openCreat
         open={!!pendingTemplate}
         onClose={() => setPendingTemplate(null)}
         title={pendingTemplate ? `Creators for ${pendingTemplate.name}` : 'Creators'}
-        subtitle="Optional — you can skip this and change it later."
+        subtitle="Optional. You can skip this and change it later."
         width={580}
       >
         {pendingTemplate && (

@@ -72,7 +72,7 @@ describe('endpointProvider: the exact wire contract a FocusSpace-compatible serv
     await provider.complete({ system: 's', user: 'u' }, { action: 'mindmap', context: ctx, question: undefined });
     expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).not.toHaveProperty('question');
 
-    await provider.complete({ system: 's', user: 'u' }, { action: 'ask', context: ctx, question: 'why?' });
+    await provider.complete({ system: 's', user: 'u' }, { action: 'chat', context: ctx, question: 'why?' });
     expect(JSON.parse(fetchMock.mock.calls[1][1].body as string)).toMatchObject({ question: 'why?' });
   });
 

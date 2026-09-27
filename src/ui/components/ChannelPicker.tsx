@@ -122,7 +122,7 @@ export function ChannelPicker({
           </span>
         )}
       </div>
-      {status === 'error' && <span className="fs-caption">Channel search is unavailable right now — you can skip this and add creators later.</span>}
+      {status === 'error' && <span className="fs-caption">Channel search is unavailable right now. You can skip this and add creators later.</span>}
       {searching && status === 'idle' && list.length === 0 && <span className="fs-caption">No channels found for “{query.trim()}”.</span>}
       {list.length > 0 && (
         <div className="fs-channel-results" role="listbox" aria-label="Channels">

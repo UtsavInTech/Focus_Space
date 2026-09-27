@@ -209,6 +209,13 @@ export function seriesItems(state: SeriesState): NextLearningItem[] {
 }
 
 /** Missed first (it's easy to forget), then resume, then next — de-duplicated. */
+/** Takes turns between lists — each series gets its "next" in before any series gets a second. */
+export function interleave<T>(lists: T[][]): T[] {
+  const out: T[] = [];
+  for (let i = 0; lists.some((l) => i < l.length); i++) for (const l of lists) if (i < l.length) out.push(l[i]);
+  return out;
+}
+
 export function mergeNextItems(lists: NextLearningItem[][], limit = 6): NextLearningItem[] {
   const order: Record<NextKind, number> = { missed: 0, resume: 1, next: 2 };
   const seen = new Set<string>();
@@ -217,4 +224,16 @@ export function mergeNextItems(lists: NextLearningItem[][], limit = 6): NextLear
     .sort((a, b) => order[a.kind] - order[b.kind])
     .filter((i) => (seen.has(i.videoId) ? false : (seen.add(i.videoId), true)))
     .slice(0, limit);
+}
+
+/**
+ * What to type into YouTube to find episode `n` of the series `title` belongs to — for when the
+ * channel's latest uploads don't reach back far enough ("Lecture 102" of a 150-lecture course).
+ * "Lecture 104: Deep Copy… || Linked List Series Day-27" → "CodeHelp - by Babbar Lecture 105".
+ */
+export function seriesSearchQuery(title: string, channelTitle: string, n: number): string | null {
+  const word = title.match(/\b(lecture|lec|episode|ep|part|day|chapter|module|class|session|lesson|video)\s*[-.#:]?\s*\d{1,3}\b/i)?.[1] ?? (/^\s*l\s*[-.]?\s*\d{1,3}\b/i.test(title) ? 'L' : null);
+  if (!word) return null;
+  const label = word.length <= 2 ? word.toUpperCase() : word[0].toUpperCase() + word.slice(1).toLowerCase();
+  return `${channelTitle} ${label} ${n}`.trim();
 }

@@ -4,7 +4,9 @@ import { selectMode } from '@/modes/service';
 import { SpaceIcon } from '@/ui/icons';
 import { FocusMark, Wordmark } from '@/ui/components/primitives';
 import { sendMessage } from '@/messaging/runtime';
+import { useStorage } from '@/ui/hooks';
 import { spaNavigate } from '../youtube/spa';
+import { welcomeStep } from './welcome-step';
 
 /**
  * A compact "FocusSpace" section in YouTube's own left sidebar.
@@ -22,10 +24,13 @@ export function GuideSpaces({ settings, modes, onCreate }: { settings: Settings;
   };
   // FocusSpace's own Home (Library, History, Spaces) — the marketing site is for people who do not have it yet.
   const openHome = () => void sendMessage('dashboard/open', { route: '/' }).catch(() => undefined);
+  // The welcome guide's last step points here, so the heading it names is the one that stands out.
+  const store = useStorage(['welcome', 'auth'] as const);
+  const pointedAt = !!store && welcomeStep(store.welcome, !!store.auth.user, true) === 'channels';
 
   return (
     <nav className="fs-guide" aria-label="FocusSpace spaces">
-      <button type="button" className="fs-guide-title" onClick={openHome} title="Open FocusSpace — your Library, history and account">
+      <button type="button" className={`fs-guide-title${pointedAt ? ' is-pointed' : ''}`} onClick={openHome} title="Open FocusSpace: your Library, history and account">
         {/* Turning, as it does on the website's nav — the one place in YouTube's sidebar that is ours. */}
         <FocusMark size={22} active />
         <Wordmark />

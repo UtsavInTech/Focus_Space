@@ -28,6 +28,8 @@ export function words(text: string): string[] {
     .filter(Boolean);
 }
 
+export const isStopWord = (word: string) => STOP.has(word);
+
 export function conceptTokens(text: string): string[] {
   return words(text)
     .filter((w) => !STOP.has(w) && (w.length > 1 || /\d/.test(w)))

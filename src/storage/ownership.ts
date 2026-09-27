@@ -14,7 +14,7 @@ import { defaultsFor, normalize, storageKeys, type Ownership, type StorageKey } 
  */
 
 /** Keys that describe the device or the session rather than a person. Everything else is owned. */
-const DEVICE_KEYS: readonly StorageKey[] = ['schemaVersion', 'auth', 'ownership', 'pendingClaim', 'installId'];
+const DEVICE_KEYS: readonly StorageKey[] = ['schemaVersion', 'auth', 'ownership', 'pendingClaim', 'installId', 'welcome'];
 
 /** Every key that belongs to a person — any key added to the schema later is owned unless listed above. */
 let owned: readonly StorageKey[] | null = null;

@@ -168,7 +168,7 @@ function PaymentsSection({ signedIn }: { signedIn: boolean }) {
           </SettingRow>
         </>
       ) : (
-        <p className="fs-hint" style={{ padding: '10px 0' }}>No payments yet — FocusSpace's free plan needs no card.</p>
+        <p className="fs-hint" style={{ padding: '10px 0' }}>No payments yet. FocusSpace's free plan needs no card.</p>
       )}
     </Section>
   );
@@ -240,7 +240,7 @@ export function SignInSection({ settings, flow: flowProp }: { settings: Settings
     <Section
       id="signin"
       title={user ? 'Account' : 'Sign in to FocusSpace'}
-      description={user ? undefined : 'A free account raises your Space and AI allowance, and keeps your plan, payments and receipts in one place — wherever you sign in.'}
+      description={user ? undefined : 'A free account raises your Space and AI allowance, and keeps your plan, payments and receipts in one place, wherever you sign in.'}
     >
       {user ? (
         <>
@@ -285,7 +285,7 @@ export function SignInSection({ settings, flow: flowProp }: { settings: Settings
         <>
           {!hasServer && (
             <p className="fs-account-form-rows fs-hint">
-              Accounts are unavailable in this build — it ships without a FocusSpace server. Everything else works signed out. If you run your own server, add
+              Accounts are unavailable in this build. It ships without a FocusSpace server. Everything else works signed out. If you run your own server, add
               its address under Advanced below.
             </p>
           )}
@@ -334,7 +334,7 @@ export function SignInSection({ settings, flow: flowProp }: { settings: Settings
 
               {step.view === 'email-signup' && (
                 <>
-                  <p className="fs-hint">Step {step.step === 'email' ? '1 of 3 — confirm your email' : step.step === 'code' ? '2 of 3 — enter the code' : '3 of 3 — choose a password'}</p>
+                  <p className="fs-hint">Step {step.step === 'email' ? '1 of 3: confirm your email' : step.step === 'code' ? '2 of 3: enter the code' : '3 of 3: choose a password'}</p>
                   {step.step === 'email' && (
                     <div className="fs-row-wrap">
                       <TextInput value={fields.email} onChange={(e) => set({ email: e.target.value })} placeholder="you@example.com" type="email" autoComplete="username" aria-label="Email" style={{ width: 220 }} />
@@ -397,7 +397,7 @@ export function SignInSection({ settings, flow: flowProp }: { settings: Settings
 
               {devCode && (
                 <p className="fs-hint">
-                  Development server — no email or SMS provider is configured, so your code is <b>{devCode}</b>.
+                  Development server: no email or SMS provider is configured, so your code is <b>{devCode}</b>.
                 </p>
               )}
             </div>

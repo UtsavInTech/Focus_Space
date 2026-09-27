@@ -1,4 +1,4 @@
-import { condenseTranscript, transcriptKey, type OutlineRequest, type OutlineSection } from '@/learning/outline/outline';
+import { condenseForOutline, transcriptKey, type OutlineRequest, type OutlineSection } from '@/learning/outline/outline';
 import { apiBaseUrl, status as authStatus } from './auth';
 import { installId } from './install-id';
 
@@ -14,8 +14,8 @@ const pending = new Map<string, Promise<OutlineSection[] | null>>();
 
 export async function videoOutline(full: OutlineRequest): Promise<OutlineSection[] | null> {
   const base = await apiBaseUrl();
-  // Only the condensed transcript travels (learning/outline condenseTranscript) — a long lecture's full captions are megabytes.
-  const request = { ...full, segments: condenseTranscript(full.segments) };
+  // Only the condensed transcript travels (learning/outline condenseForOutline) — a long lecture's full captions are megabytes.
+  const request = { ...full, segments: condenseForOutline(full.segments) };
   if (!base || request.segments.length < 3) return null;
   const key = await transcriptKey(request.segments);
   const id = `${request.videoId}:${key}`;

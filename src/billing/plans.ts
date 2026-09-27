@@ -100,10 +100,10 @@ export const PLANS: Plan[] = [
       'Relevance-ranked subscriptions and discovery',
       'Learning path, knowledge map and Shorts removal',
       `${FREE_MONTHLY_AI_CREDITS} AI credits a month with a free account (${GUEST_DAILY_AI_CREDITS} a day without one)`,
-      `Talk to FocusSpace AI — ${FREE_MONTHLY_VOICE_MINUTES} minutes of voice a month with a free account`,
+      `Talk to FocusSpace AI: ${FREE_MONTHLY_VOICE_MINUTES} minutes of voice a month with a free account`,
       'Notes and mind maps in English, हिंदी or Hinglish',
     ],
-    cta: 'Add to Chrome — Free',
+    cta: 'Add to Chrome for free',
   },
   {
     id: 'pro',

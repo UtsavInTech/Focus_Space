@@ -77,7 +77,7 @@ function LibraryList({ tab, notes, chats, modes }: { tab: Tab; notes: SavedNote[
       <div className="fs-page-head">
         <div>
           <h1 className="fs-h1">Library</h1>
-          <p>Every note, mind map and AI conversation you saved while watching — kept in this browser for your account.</p>
+          <p>Every note, mind map and AI conversation you saved while watching, kept in this browser for your account.</p>
         </div>
       </div>
       {/* Anything saved before signing out is still shown below; only new saves need an account (ui/account/save-gate.ts). */}
@@ -119,7 +119,7 @@ function LibraryList({ tab, notes, chats, modes }: { tab: Tab; notes: SavedNote[
           title={q ? 'Nothing matches that search' : tab === 'chats' ? 'No AI chats yet' : tab === 'mindmaps' ? 'No mind maps yet' : 'No notes yet'}
           actions={q ? undefined : <Button onClick={() => openYouTube()}>Open YouTube</Button>}
         >
-          {q ? 'Try a word from the video title or the note.' : tab === 'chats' ? 'Ask FocusSpace AI about a video, or use the bubble on YouTube’s home — conversations are kept here.' : 'On any video, open FocusSpace’s panel, choose Make Notes, then Save.'}
+          {q ? 'Try a word from the video title or the note.' : tab === 'chats' ? 'Ask FocusSpace AI about a video, or use the bubble on YouTube’s home. Conversations are kept here.' : 'On any video, open FocusSpace’s panel, choose Make Notes, then Save.'}
         </EmptyState>
       ) : (
         grouped.map(({ space: s, items }) => (

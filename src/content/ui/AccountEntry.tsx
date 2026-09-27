@@ -270,7 +270,7 @@ function Steps({ current, labels }: { current: number; labels: string[] }) {
 function DevCode({ code }: { code: string }) {
   return (
     <p className="fs-account-note">
-      Development server — no email or SMS provider is configured, so the code is <b>{code}</b>.
+      Development server: no email or SMS provider is configured, so the code is <b>{code}</b>.
     </p>
   );
 }

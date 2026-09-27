@@ -90,6 +90,69 @@ export interface StorageSchema {
   ownership: Ownership;
   /** A signed-in learner who has not yet said whether this browser's guest data should become theirs. */
   pendingClaim: PendingClaim | null;
+  /** The first-run guide on YouTube (content/ui/WelcomeGuide.tsx). Device data: it must survive the sign-in it asks for. */
+  welcome: WelcomeState;
+}
+
+/**
+ * `active` is switched on once, when the extension is installed, and off when the guide is finished or
+ * closed — so an update never shows it to someone who has been using FocusSpace for months. Which step
+ * the guide is on is not stored: it is read off the account and the Spaces, so it can never disagree
+ * with them.
+ */
+export interface WelcomeState {
+  active: boolean;
+  /** "Maybe later" on the sign-in step. */
+  signInSkipped: boolean;
+  /** The setup conversation (content/ui/SetupChat.tsx), kept so a refresh or a new tab picks it up where it was. */
+  chat: WelcomeChat | null;
+}
+
+export interface WelcomeChat {
+  phase: 'subjects' | 'channels' | 'done';
+  /** Spaces the conversation created, and the creators added to each. */
+  made: { id: string; name: string; channels: string[] }[];
+  /** Ids of Spaces still to be asked about favourite creators; the first is the open question. */
+  pending: string[];
+  lines: WelcomeLine[];
+  /** They moved on to the last step. */
+  finished: boolean;
+}
+
+export interface WelcomeLine {
+  id: number;
+  from: 'bot' | 'you';
+  text: string;
+  /** "Added Telusko to DSA" can be taken back with one tap. */
+  undo?: { modeId: string; channels: { id: string; title: string; handle?: string }[] };
+}
+
+/** Only the recent part of a conversation is kept; it is a guide, not a transcript. */
+export const WELCOME_CHAT_MAX_LINES = 40;
+
+function normalizeWelcomeChat(raw: unknown): WelcomeChat | null {
+  const c = raw as Partial<WelcomeChat> | null | undefined;
+  if (!c || typeof c !== 'object' || !['subjects', 'channels', 'done'].includes(c.phase as string)) return null;
+  const made = Array.isArray(c.made)
+    ? c.made.filter((m) => m && typeof m.id === 'string' && typeof m.name === 'string').map((m) => ({ id: m.id, name: m.name, channels: Array.isArray(m.channels) ? m.channels.filter((x) => typeof x === 'string') : [] }))
+    : [];
+  const lines = Array.isArray(c.lines)
+    ? c.lines
+        .filter((l) => l && typeof l.id === 'number' && (l.from === 'bot' || l.from === 'you') && typeof l.text === 'string')
+        .map((l) => {
+          const u = l.undo;
+          const undo = u && typeof u.modeId === 'string' && Array.isArray(u.channels) ? { modeId: u.modeId, channels: u.channels.filter((ch) => ch && typeof ch.id === 'string' && typeof ch.title === 'string') } : undefined;
+          return { id: l.id, from: l.from, text: l.text, ...(undo?.channels.length ? { undo } : {}) };
+        })
+        .slice(-WELCOME_CHAT_MAX_LINES)
+    : [];
+  const ids = new Set(made.map((m) => m.id));
+  // Older saves kept a position in `made` instead of a queue.
+  const legacy = (c as { channelIndex?: unknown }).channelIndex;
+  const pending = Array.isArray(c.pending) ? c.pending.filter((id) => typeof id === 'string' && ids.has(id)) : typeof legacy === 'number' ? made.slice(legacy).map((m) => m.id) : [];
+  // A conversation waiting on a creator question for no Space moves on to the report.
+  const phase = c.phase === 'channels' && !pending.length ? 'done' : c.phase!;
+  return { phase, made, pending, lines, finished: c.finished === true };
 }
 
 /**
@@ -207,6 +270,7 @@ function allDefaults(): StorageSchema {
     installId: '',
     ownership: { owner: 'guest', epoch: 0 },
     pendingClaim: null,
+    welcome: { active: false, signInSkipped: false, chat: null },
   };
 }
 
@@ -319,6 +383,10 @@ export function normalize<K extends StorageKey>(key: K, raw: unknown): StorageSc
     case 'pendingClaim': {
       const c = raw as Partial<PendingClaim>;
       return (typeof c.userId === 'string' && c.userId ? { userId: c.userId, email: typeof c.email === 'string' ? c.email : null } : null) as StorageSchema[K];
+    }
+    case 'welcome': {
+      const w = raw as Partial<WelcomeState>;
+      return { active: w.active === true, signInSkipped: w.signInSkipped === true, chat: normalizeWelcomeChat(w.chat) } as StorageSchema[K];
     }
     default:
       return raw as StorageSchema[K];

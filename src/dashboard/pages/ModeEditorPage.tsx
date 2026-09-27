@@ -106,7 +106,7 @@ export function ModeEditorPage({ data, modeId }: { data: DashboardData; modeId: 
       <section className="fs-card fs-editor-section">
         <header>
           <h2 className="fs-h3">Channels</h2>
-          <p>Videos from these channels always count in this space — you don't need to be subscribed.</p>
+          <p>Videos from these channels always count in this space. You don't need to be subscribed.</p>
         </header>
         <ChannelPicker
           selected={picked}
@@ -345,7 +345,7 @@ function ClassifierTester({ draft, modeId }: { draft: Draft; modeId: string }) {
           <div className="fs-row-wrap">
             <Badge tone={tone[result.classification.strength]}>{result.classification.strength === 'blocked' ? 'Blocked' : TIER_LABEL[result.classification.tier]}</Badge>
             <span className="fs-body-sm">
-              Topic: <b>{result.mode.topics.find((t) => t.id === result.classification.topicId)?.name ?? '—'}</b>
+              Topic: <b>{result.mode.topics.find((t) => t.id === result.classification.topicId)?.name ?? 'None'}</b>
             </span>
             <span className="fs-body-sm fs-muted fs-mono">score {result.classification.relevance.toFixed(2)}</span>
             <span className="fs-caption">{result.classification.relevance >= FEED_MIN_SCORE ? 'Shown in this space' : 'Not shown'}</span>

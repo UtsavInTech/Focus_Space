@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Check, Mic, NotebookPen, Send, Square, Volume2, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AudioLines, Check, Mic, NotebookPen, Square, Volume2, X } from 'lucide-react';
 import type { LearningMode } from '@/types/domain';
 import type { NoteLanguage } from '@/types/notes';
 import type { ChatMessage } from '@/types/chat';
@@ -7,8 +7,8 @@ import type { KnowledgeMap, TranscriptSegment } from '@/learning/knowledge/types
 import type { OutlineSection } from '@/learning/outline/outline';
 import { buildLearningContext, type TranscriptSource } from '@/learning/context/context';
 import { createChatMessage } from '@/learning/ai/chat';
+import { looksLikeCommand, runCommand } from './ai-commands';
 import type { HomepageContext } from '@/learning/ai/homepage-context';
-import { prepareForSpeech } from '@/learning/ai/voice';
 import type { LearningPath } from '@/learning/path/path';
 import { sendMessage } from '@/messaging/runtime';
 import { RichText } from '@/ui/components/RichText';
@@ -16,25 +16,25 @@ import { FocusMark } from '@/ui/components/primitives';
 import { noteFromAnswer } from '@/learning/notes/from-answer';
 import { saveChatSession } from '@/storage/chat-store';
 import { useCanSave } from '@/ui/account/use-can-save';
+import { LimitActions } from './LimitActions';
 import { SignInToSave } from './SignInToSave';
+import { Composer } from './Composer';
+import { FREE_MONTHLY_VOICE_MINUTES } from '@/billing/plans';
+import { openSignIn } from '@/ui/account/use-can-save';
+import { audioContext, blobToBase64, MicrophoneBlockedError, prepareFillers, speakOnce, stopSpeech, VoiceConversation, type VoiceState } from './voice';
 
 /**
- * FocusSpace AI's conversation: a genuine back-and-forth, distinct from the
- * single-shot "Ask about this moment". Every turn rebuilds the
+ * FocusSpace AI's conversation: a genuine back-and-forth about the video,
+ * next to the single-shot actions (Explain, Example, Quiz me). Every turn rebuilds the
  * LearningContext at the *current* playback time (buildLearningContext —
  * the same function every other AI surface uses), so the conversation stays
  * timestamp-aware even as the learner keeps watching.
  *
- * Voice is speech-to-text into this same pipeline, not a separate
- * conversational-assistant mode: recognised speech fills the input for the
- * learner to review/edit, exactly like typing — it is never auto-sent, and
- * the answer is never auto-spoken. Reading a reply aloud is one explicit tap
- * (the speaker icon on that message), never automatic.
- *
- * Sending ends dictation. The mic used to stay open after a spoken question
- * went out, so whatever the learner said next — including reading the answer
- * out loud, or the answer being read aloud to them — was typed straight back
- * into the box.
+ * Talking is this same pipeline, spoken: Talk opens a hands-free conversation inside the panel
+ * (./voice.ts) — what you say is transcribed by FocusSpace's server and sent exactly like a typed
+ * question, the answer appears in the thread and is spoken in the same natural voice as the setup guide,
+ * then it listens again. You can talk over it; End (or typing) stops it. Every answer also has a
+ * speaker button that reads it in that voice — never the browser's robotic one.
  */
 
 /*
@@ -65,33 +65,16 @@ function fitComposer(el: HTMLTextAreaElement | null) {
   el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden';
 }
 
-interface SpeechResultLike {
-  isFinal: boolean;
-  [alternative: number]: { transcript: string };
-}
+/** Asked of spoken questions, so the answer is something to listen to, not a page to read. */
+const SPOKEN_STYLE = '\n\n(Spoken conversation: answer in two or three short, natural sentences, no lists or headings.)';
 
-interface SpeechEventLike {
-  results: { length: number; [index: number]: SpeechResultLike };
-}
+const synthesize = async (text: string) => {
+  const res = await sendMessage('voice/speak', { text, purpose: 'chat' }).catch(() => null);
+  return res?.ok ? res.audio : null;
+};
 
-interface SpeechRecognitionLike extends EventTarget {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  start(): void;
-  stop(): void;
-  onresult: ((event: SpeechEventLike) => void) | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-}
-
-function speechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
-  const w = window as unknown as { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-}
-
-const speechSupported = typeof window !== 'undefined' && !!speechRecognitionCtor();
-const speakSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+/** Voice in FocusSpace AI is part of an account (server/usage/voice.ts); this is what a guest is told. */
+const VOICE_NEEDS_ACCOUNT = `Talking with FocusSpace AI needs a free account. It includes ${FREE_MONTHLY_VOICE_MINUTES} minutes of voice a month. Typing works as it is.`;
 
 export interface ChatPanelProps {
   /**
@@ -117,28 +100,28 @@ export interface ChatPanelProps {
    */
   loadTranscript?: () => Promise<TranscriptSegment[] | null>;
   currentTime?: () => number;
+  /** Moves the player to a time an answer cites — the same seek the Knowledge Map uses. Absent on pages without a video. */
+  onSeek?: (sec: number) => void;
+  /** The video's length, so a cited time past its end is never offered as a link. */
+  durationSec?: number | null;
   homepage?: HomepageContext | null;
   language: NoteLanguage;
   onClose: () => void;
 }
 
-export function ChatPanel({ video, mode, topicId, path, map, transcript, transcriptSource, outline, loadTranscript, currentTime, homepage, language, onClose }: ChatPanelProps) {
+export function ChatPanel({ video, mode, topicId, path, map, transcript, transcriptSource, outline, loadTranscript, currentTime, onSeek, durationSec, homepage, language, onClose }: ChatPanelProps) {
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ text: string; code?: string } | null>(null);
-  const [listening, setListening] = useState(false);
-  /** Whether the current text in the box came from speech recognition, untouched since — cleared the moment the learner edits it. Provenance only; never triggers anything automatic. */
-  const [voiceOrigin, setVoiceOrigin] = useState(false);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  /** A spoken conversation is running (Talk), and where it is. */
+  const [talking, setTalking] = useState(false);
+  const [talkState, setTalkState] = useState<VoiceState>('idle');
+  const convo = useRef<VoiceConversation | null>(null);
+  const filler = useRef<() => string | null>(() => null);
+  const orbRef = useRef<HTMLSpanElement>(null);
   /** One saved conversation per panel opened — the Library shows it as it ends. */
   const sessionId = useRef(`chat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`);
-  /** What was in the box when dictation started — speech is added to it, never over it. */
-  const micBase = useRef('');
-  /** True between the two presses of the mic: a session that ends on silence is restarted, not abandoned. */
-  const wantsMic = useRef(false);
-  const questionRef = useRef('');
-  questionRef.current = question;
   /** Answers already kept in the Library, so the button can say so. */
   const [saved, setSaved] = useState<string[]>([]);
   /** Chatting is open to everyone; keeping the conversation needs an account (ui/account/save-gate.ts). */
@@ -148,89 +131,116 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
   const [speakingId, setSpeakingId] = useState<string | null>(null);
 
   /*
-   * Reading an answer aloud is a toggle, and only ever a toggle.
-   *
-   * `speechSynthesis` is a single global queue shared with the whole page, so the old fire-and-forget
-   * version had two real problems: pressing the speaker twice stacked a second utterance behind the
-   * first (it read the answer again instead of stopping), and nothing on screen said it was speaking, so
-   * a stray press was invisible until sound came out. Now one answer speaks at a time, the button shows
-   * which, and pressing it again — or closing the panel, or asking something new — stops it at once.
+   * Reading an answer aloud is a toggle, and only ever a toggle: one answer speaks at a time, the button
+   * shows which, and pressing it again — or closing the panel, or asking something new — stops it.
    */
   const stopSpeaking = useCallback(() => {
-    if (!speakSupported) return;
-    window.speechSynthesis.cancel();
+    stopSpeech();
     setSpeakingId(null);
-  }, []);
-
-  /** Ends dictation for good — no restart on silence, and any result still in flight is dropped. */
-  const stopListening = useCallback(() => {
-    wantsMic.current = false;
-    const recognition = recognitionRef.current;
-    recognitionRef.current = null;
-    recognition?.stop();
-    setListening(false);
   }, []);
 
   const toggleSpeak = useCallback(
     (turn: ChatMessage) => {
-      if (!speakSupported) return;
-      // An open mic would transcribe the answer as it is read out.
-      stopListening();
-      // Always clear the queue first: pressing a different answer switches to it rather than queueing.
-      window.speechSynthesis.cancel();
-      if (speakingId === turn.id) return setSpeakingId(null);
-      const utterance = new SpeechSynthesisUtterance(prepareForSpeech(turn.text));
-      utterance.onend = () => setSpeakingId((id) => (id === turn.id ? null : id));
-      utterance.onerror = () => setSpeakingId((id) => (id === turn.id ? null : id));
+      if (speakingId === turn.id) return stopSpeaking();
+      if (!canSave) return setError({ text: VOICE_NEEDS_ACCOUNT, code: 'sign_in' });
+      convo.current?.interrupt();
       setSpeakingId(turn.id);
-      window.speechSynthesis.speak(utterance);
+      speakOnce(turn.text, synthesize, (speaking) => {
+        if (!speaking) setSpeakingId((id) => (id === turn.id ? null : id));
+      });
     },
-    [speakingId, stopListening],
+    [speakingId, stopSpeaking, canSave],
   );
 
-  // Nothing should keep talking — or listening — into a panel that is gone, or over the next question.
+  const endTalk = useCallback(() => {
+    convo.current?.close();
+    convo.current = null;
+    setTalking(false);
+    setTalkState('idle');
+  }, []);
+
+  // Nothing should keep talking — or listening — into a panel that is gone.
   useEffect(
     () => () => {
-      stopSpeaking();
-      stopListening();
+      stopSpeech();
+      convo.current?.close();
     },
-    [stopSpeaking, stopListening],
+    [],
   );
 
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  useLayoutEffect(() => {
-    fitComposer(inputRef.current);
-    // Dictation appends at the end; keep the newest words in view once the box is scrolling.
-    if (listening && inputRef.current) inputRef.current.scrollTop = inputRef.current.scrollHeight;
-  }, [question, listening]);
+  const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
 
-  async function submit(text: string) {
+  // Opening FocusSpace AI means asking something: the cursor is in the box straight away (Talk is beside it).
+  useEffect(() => {
+    inputRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  /*
+   * The thread scrolls on its own, so the newest turn has to be brought into view: a question to the
+   * bottom, and an answer to its first line — a long answer is read from the top, not the end.
+   */
+  const lastId = history[history.length - 1]?.id;
+  useEffect(() => {
+    const thread = threadRef.current;
+    const turns = thread?.querySelectorAll<HTMLElement>('.fs-ai-turn');
+    const last = turns?.[turns.length - 1];
+    if (!thread || !last) return;
+    if (last.classList.contains('fs-ai-turn-ai')) thread.scrollTop += last.getBoundingClientRect().top - thread.getBoundingClientRect().top - 8;
+    else thread.scrollTop = thread.scrollHeight;
+  }, [lastId, loading]);
+
+  async function submit(text: string, spoken = false) {
     const q = text.trim();
     if (!q || loading) return;
     stopSpeaking();
-    stopListening();
-    const fromVoice = voiceOrigin;
+    if (!spoken) convo.current?.interrupt();
+    const fromVoice = spoken;
     setError(null);
-    setQuestion('');
-    micBase.current = '';
-    setVoiceOrigin(false);
+    if (!spoken) setQuestion('');
     const at = currentTime?.() ?? 0;
     const videoId = video?.id ?? '';
     const learnerTurn = createChatMessage('learner', q, videoId, at, fromVoice);
     const nextHistory = [...history, learnerTurn];
     setHistory(nextHistory);
     setLoading(true);
+    // "Change the mode to music and play …" is something to do, not something to answer (./ai-commands.ts).
+    if (looksLikeCommand(q)) {
+      const done = await runCommand(q).catch(() => null);
+      if (done) {
+        setLoading(false);
+        setHistory([...nextHistory, createChatMessage('assistant', done.reply, videoId, at, fromVoice)]);
+        if (done.navigating) {
+          // Long enough to read (or hear the start of) what it did; the page it opened is the real answer.
+          void convo.current?.say(done.reply);
+          window.setTimeout(() => {
+            endTalk();
+            onClose();
+          }, 1400);
+        } else if (spoken) {
+          void convo.current?.say(done.reply);
+          convo.current?.listenAfterSpeaking();
+        }
+        return;
+      }
+    }
     // Homepage/browse pages ground in HomepageContext, not the video pipeline — a video page keeps building
     // LearningContext exactly as before (buildLearningContext, untouched — see homepage-context.ts).
     const segments = homepage || transcript?.length || !loadTranscript ? transcript : await loadTranscript().catch(() => null);
-    const context = homepage ?? buildLearningContext({ video: video ?? { id: '', title: '', channelTitle: '' }, mode: mode!, topicId: topicId ?? null, path: path ?? null, map: map ?? null, transcript: segments ?? null, transcriptSource: transcriptSource ?? null, outline: outline ?? null, currentTime: at, language });
-    const result = await sendMessage('chat/send', { context, history, question: q, voice: fromVoice }).catch(() => null);
+    // The question goes in too, so the context carries what is said about it elsewhere in the video (knowledge/passages.ts) — found here, locally.
+    const context = homepage ?? buildLearningContext({ video: video ?? { id: '', title: '', channelTitle: '' }, mode: mode!, topicId: topicId ?? null, path: path ?? null, map: map ?? null, transcript: segments ?? null, transcriptSource: transcriptSource ?? null, outline: outline ?? null, currentTime: at, language, question: q });
+    const result = await sendMessage('chat/send', { context, history, question: spoken ? q + SPOKEN_STYLE : q, voice: fromVoice }).catch(() => null);
     setLoading(false);
     if (!result || !result.ok) {
       setError(!result ? { text: 'FocusSpace couldn’t reach its AI service. Reload the page and try again.' } : { text: result.error, code: result.code });
+      if (spoken) convo.current?.idle();
       return;
     }
-    // Text is the primary response — always. Speaking it aloud is a separate, explicit action (the speaker icon below), never automatic.
+    if (spoken && convo.current) {
+      void convo.current.say(result.answer);
+      convo.current.listenAfterSpeaking();
+    }
+    // Typed questions get text only; a spoken one (Talk) is answered out loud as well, above.
     const answered = [...nextHistory, createChatMessage('assistant', result.answer, videoId, at, fromVoice)];
     setHistory(answered);
     if (canSave) void saveChatSession({ id: sessionId.current, videoId, modeId: mode?.id ?? '', title: video?.title || 'YouTube home', messages: answered }).catch(() => undefined);
@@ -254,60 +264,47 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
     if (stored) setSaved((ids) => [...ids, turn.id]);
   }
 
-  function toggleMic() {
-    if (listening) {
-      stopListening();
+  /** Talk: a hands-free spoken conversation, inside this panel. */
+  async function startTalk() {
+    if (convo.current) return endTalk();
+    if (!canSave) return setError({ text: VOICE_NEEDS_ACCOUNT, code: 'sign_in' });
+    audioContext(); // unlocked by this click, so the answer can be heard
+    stopSpeaking();
+    const conversation = new VoiceConversation({
+      synthesize,
+      transcribe: async (audio, mime) => {
+        const hint = homepage ? 'Asking FocusSpace AI about the YouTube home page, or asking it to switch Space or play something.' : `Asking about the video “${video?.title ?? ''}”.`;
+        const res = await sendMessage('voice/transcribe', { audio: await blobToBase64(audio), mime, hint, purpose: 'chat' }).catch(() => null);
+        if (res && !res.ok) setError({ text: res.error });
+        return res?.ok ? res.text : null;
+      },
+      onState: setTalkState,
+      onLevel: (l) => orbRef.current?.style.setProperty('--fs-level', l.toFixed(3)),
+      onHeard: (said) => {
+        conversation.sayPrepared(filler.current());
+        void submit(said, true);
+      },
+    });
+    try {
+      await conversation.start();
+    } catch (err) {
+      setError({ text: err instanceof MicrophoneBlockedError ? 'The microphone is blocked for YouTube. Allow it from the icon at the left of the address bar, or type instead.' : 'Your browser won’t let FocusSpace listen right now, type instead.' });
       return;
     }
-    const Ctor = speechRecognitionCtor();
-    if (!Ctor) return;
-    // Dictating over an answer being read aloud would type the answer back in.
-    stopSpeaking();
-    micBase.current = question.trim();
-    wantsMic.current = true;
-    setListening(true);
-    startRecognition(Ctor);
+    convo.current = conversation;
+    filler.current = prepareFillers(synthesize);
+    setTalking(true);
+    setError(null);
+    conversation.listen();
   }
 
-  function startRecognition(Ctor: new () => SpeechRecognitionLike) {
-    const recognition = new Ctor();
-    recognition.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
-    recognition.continuous = true;
-    // Interim words appear as they are spoken; each event rebuilds the whole dictation, so nothing is doubled.
-    recognition.interimResults = true;
-    recognition.onresult = (event) => {
-      // stop() still delivers the last results; after a send they would refill the emptied box.
-      if (recognitionRef.current !== recognition) return;
-      let heard = '';
-      for (let i = 0; i < event.results.length; i++) heard += `${event.results[i][0]?.transcript ?? ''} `;
-      const spoken = heard.replace(/\s+/g, ' ').trim();
-      if (!spoken) return;
-      setQuestion([micBase.current, spoken].filter(Boolean).join(' '));
-      setVoiceOrigin(true);
-    };
-    recognition.onerror = () => {
-      if (recognitionRef.current !== recognition) return;
-      stopListening();
-    };
-    recognition.onend = () => {
-      if (recognitionRef.current !== recognition) return;
-      // Chrome ends a continuous session on a long silence; keep listening until the learner says stop.
-      if (!wantsMic.current) {
-        setListening(false);
-        return;
-      }
-      micBase.current = questionRef.current.trim();
-      try {
-        startRecognition(Ctor);
-      } catch {
-        setListening(false);
-      }
-    };
-    recognitionRef.current = recognition;
-    recognition.start();
+  function tapOrb() {
+    const c = convo.current;
+    if (!c) return;
+    if (talkState === 'listening') c.stopListening();
+    else if (!loading && talkState !== 'hearing') c.listen();
   }
 
-  const empty = history.length === 0;
 
   /*
    * Three parts, and only three: a header, a thread that scrolls, and a composer that does not. The
@@ -327,12 +324,7 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
         </button>
       </header>
 
-      <div className="fs-ai-thread">
-        {empty && (
-          <p className="fs-ai-empty">
-            {homepage ? 'Ask anything about this page — what to watch, or what to learn next.' : 'Ask anything about this video. FocusSpace knows where you are in it.'}
-          </p>
-        )}
+      <div ref={threadRef} className="fs-ai-thread">
 
         {history.map((m) =>
           m.role === 'learner' ? (
@@ -341,20 +333,18 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
             </div>
           ) : (
             <div key={m.id} className={`fs-ai-turn fs-ai-turn-ai${speakingId === m.id ? ' is-speaking' : ''}`}>
-              <RichText text={m.text} />
+              <RichText text={m.text} onSeek={homepage ? undefined : onSeek} maxSec={durationSec} />
               <div className="fs-ai-turn-actions">
-                {speakSupported && (
-                  <button
-                    type="button"
-                    className={`fs-icon-plain${speakingId === m.id ? ' is-speaking' : ''}`}
-                    aria-label={speakingId === m.id ? 'Stop reading aloud' : 'Read this answer aloud'}
-                    title={speakingId === m.id ? 'Stop reading' : 'Read aloud'}
-                    aria-pressed={speakingId === m.id}
-                    onClick={() => toggleSpeak(m)}
-                  >
-                    {speakingId === m.id ? <Square size={13} aria-hidden /> : <Volume2 size={14} aria-hidden />}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className={`fs-icon-plain${speakingId === m.id ? ' is-speaking' : ''}`}
+                  aria-label={speakingId === m.id ? 'Stop reading aloud' : 'Read this answer aloud'}
+                  title={speakingId === m.id ? 'Stop reading' : 'Read aloud'}
+                  aria-pressed={speakingId === m.id}
+                  onClick={() => toggleSpeak(m)}
+                >
+                  {speakingId === m.id ? <Square size={13} aria-hidden /> : <Volume2 size={14} aria-hidden />}
+                </button>
                 {!!video?.id && canSave && (
                   <button
                     type="button"
@@ -387,9 +377,10 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
         {error && (
           <p className={`fs-ai-note${error.code === 'quota_exceeded' ? '' : ' fs-error'}`}>
             {error.text}
-            {error.code === 'quota_exceeded' && (
-              <button type="button" className="fs-link" onClick={() => void sendMessage('site/open', { path: '/pricing' })}>
-                See plans
+            {error.code === 'quota_exceeded' && <LimitActions />}
+            {error.code === 'sign_in' && (
+              <button type="button" className="fs-link" onClick={openSignIn}>
+                Sign in
               </button>
             )}
           </p>
@@ -400,40 +391,40 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
        * One composer, one outline. The border belongs to the form; the input inside it is transparent
        * and borderless, so focus moves a single ring rather than lighting up a box within a box.
        */}
-      <form
-        className={`fs-ai-composer fs-focus-host${listening ? ' is-listening' : ''}`}
-        onSubmit={(event) => {
-          event.preventDefault();
-          void submit(question);
-        }}
-      >
-        <textarea
-          ref={inputRef}
-          rows={1}
-          value={question}
-          onChange={(e) => {
-            setQuestion(e.target.value);
-            setVoiceOrigin(false);
-          }}
-          onKeyDown={(e) => {
-            // Enter sends, Shift+Enter breaks the line; never mid-composition (Hindi and other IMEs use Enter to commit).
-            if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
-            e.preventDefault();
-            void submit(question);
-          }}
-          placeholder={listening ? 'Listening…' : homepage ? 'Ask about this page…' : 'Ask about this video…'}
-          aria-label="Ask FocusSpace AI"
-          maxLength={MAX_QUESTION_CHARS}
-        />
-        {speechSupported && (
-          <button type="button" className={`fs-ai-mic${listening ? ' is-listening' : ''}`} aria-label={listening ? 'Stop listening' : 'Ask by voice'} aria-pressed={listening} onClick={toggleMic}>
-            <Mic size={16} aria-hidden />
+      {talking ? (
+        <div className="fs-ai-talk" data-state={loading && talkState !== 'speaking' ? 'thinking' : talkState}>
+          <button type="button" className="fs-ai-talk-orb" onClick={tapOrb} aria-label={talkState === 'listening' ? 'Done talking' : 'Talk'}>
+            <span ref={orbRef} aria-hidden>
+              {talkState === 'speaking' ? <AudioLines size={16} aria-hidden /> : talkState === 'listening' ? <Square size={12} aria-hidden /> : <Mic size={16} aria-hidden />}
+            </span>
           </button>
-        )}
-        <button type="submit" className="fs-ai-send" aria-label="Send" disabled={!question.trim() || loading}>
-          <Send size={15} aria-hidden />
-        </button>
-      </form>
+          <p className="fs-ai-talk-status" role="status">
+            {talkState === 'listening' ? 'Listening… just talk' : talkState === 'hearing' || loading ? 'Thinking…' : talkState === 'speaking' ? 'Speaking. Talk over me any time' : 'Tap to talk'}
+          </p>
+          <button type="button" className="fs-ai-talk-end" onClick={endTalk}>
+            End
+          </button>
+        </div>
+      ) : (
+        <Composer
+          className="fs-ai-composer"
+          multiline
+          fit={fitComposer}
+          inputRef={inputRef}
+          value={question}
+          onChange={setQuestion}
+          onSend={() => void submit(question)}
+          onTalk={() => void startTalk()}
+          placeholder="Ask anything"
+          label="Ask FocusSpace AI"
+          maxLength={MAX_QUESTION_CHARS}
+          purpose="chat"
+          voiceAllowed={!!canSave}
+          onNeedSignIn={() => setError({ text: VOICE_NEEDS_ACCOUNT, code: 'sign_in' })}
+          hint={homepage ? 'A question for FocusSpace AI about YouTube, or asking it to switch Space or play something.' : `A question about the video “${video?.title ?? ''}”.`}
+          onError={(text) => setError({ text })}
+        />
+      )}
     </div>
   );
 }

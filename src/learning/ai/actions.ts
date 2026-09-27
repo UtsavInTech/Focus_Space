@@ -13,23 +13,20 @@ import { formatTimestamp } from '../knowledge/timestamps';
  * and never the subject of a question — see QUIZ rules and reviewQuiz().
  */
 
-export type AiAction = 'what' | 'explain' | 'example' | 'ask' | 'quiz';
+export type AiAction = 'what' | 'explain' | 'example' | 'quiz';
 
 export interface AiActionSpec {
   id: AiAction;
   label: string;
-  /** Needs the learner to type a question. */
-  needsQuestion: boolean;
   /** Can be answered from local data when no AI provider is available. */
   local: boolean;
 }
 
 export const AI_ACTIONS: AiActionSpec[] = [
-  { id: 'what', label: 'What am I learning?', needsQuestion: false, local: true },
-  { id: 'explain', label: 'Explain this', needsQuestion: false, local: false },
-  { id: 'example', label: 'Give an example', needsQuestion: false, local: false },
-  { id: 'quiz', label: 'Quiz me', needsQuestion: false, local: false },
-  { id: 'ask', label: 'Ask about this moment', needsQuestion: true, local: false },
+  { id: 'what', label: 'What am I learning?', local: true },
+  { id: 'explain', label: 'Explain this', local: false },
+  { id: 'example', label: 'Give an example', local: false },
+  { id: 'quiz', label: 'Quiz me', local: false },
 ];
 
 /**
@@ -39,7 +36,6 @@ export const AI_ACTIONS: AiActionSpec[] = [
  */
 export const WINDOW_FOR: Record<AiAction, { beforeSec?: number; afterSec?: number; maxChars?: number; minLeadSec?: number }> = {
   what: {},
-  ask: { beforeSec: 120 },
   example: { beforeSec: 120 },
   explain: { beforeSec: 180, maxChars: 3200, minLeadSec: 60 },
   quiz: { beforeSec: 420, afterSec: 15, maxChars: 4500, minLeadSec: 150 },
@@ -50,13 +46,17 @@ export interface AiPrompt {
   user: string;
 }
 
+/** Everything FocusSpace writes for people reads like a person wrote it: no long dashes. */
+export const NO_DASH = 'Never use the long dash (—) or the en dash as punctuation; use a full stop, comma, colon or brackets instead.';
+
 export const SYSTEM = [
   'You are FocusSpace, a learning companion shown next to a YouTube video.',
   'Answer about the exact moment described in the context. Use the transcript excerpt as the primary evidence of what the instructor is teaching.',
   'If the context does not contain enough information, say so briefly instead of guessing. Never invent what the video says.',
-  'The transcript may be in Hindi or another language. Read it in that language and use it as evidence exactly as you would an English one — never treat a non-English transcript as missing or unusable.',
+  'The transcript may be in Hindi or another language. Read it in that language and use it as evidence exactly as you would an English one, never treat a non-English transcript as missing or unusable.',
   'The course position, section names, previous and upcoming topics and the instructor are orientation only: use them to understand what is being studied, not as subject matter.',
   'Be concise and concrete. Plain text; short lists and small code blocks are fine.',
+  NO_DASH,
 ].join(' ');
 
 /**
@@ -67,16 +67,18 @@ export const SYSTEM = [
  */
 export const LANGUAGE_RULE: Record<NoteLanguage, string> = {
   en: '',
-  hi: 'Respond in Hindi (Devanagari script). Keep technical terms — concept names, syntax, APIs, formulas, code — exactly as spoken, in English/Roman script; translate only the explanation around them naturally, the way a fluent bilingual instructor would.',
+  hi: 'Respond in Hindi (Devanagari script). Keep technical terms, concept names, syntax, APIs, formulas, code, exactly as spoken, in English/Roman script; translate only the explanation around them naturally, the way a fluent bilingual instructor would.',
   hinglish: 'Respond in Hinglish (Roman-script conversational Hindi/English mix, the way Indian instructors commonly explain on YouTube). Keep technical terms in English exactly as spoken.',
 };
 
 /** English output (the default) over a non-English transcript: say so, or the model drifts into the transcript's language. */
 const ENGLISH_FROM_OTHER = 'Respond in English, translating what you use from the transcript. Give technical terms their usual English names, even where the captions spell them in another script.';
 
-const QUIZ = `Write a 3-question quiz that checks whether the learner understands the subject matter being taught at this moment — questions that would be useful in a university exam, a technical interview or a placement test.
+/** Questions in one quiz round — the first one and every "More questions" after it. */
+export const QUIZ_QUESTIONS = 5;
 
-What to test:
+/** The rules every quiz round follows, whatever part of the video it draws on. */
+const QUIZ_RULES = `What to test:
 - The subject itself: what a concept does, how it behaves, differences between similar concepts, correct syntax or usage, reading a short code snippet or query and predicting its result, edge cases, applying the idea to a small problem.
 - Ground every question in the transcript excerpt and the current concept. Do not test anything the context gives no evidence of. If the excerpt is short, use the current concept and the part it belongs to.
 - Match the difficulty of the material: introductory material gets accessible questions, advanced material gets questions that need reasoning. At least one question must require reasoning (for example predicting a result or choosing the correct snippet), not just recall.
@@ -95,17 +97,49 @@ Format (plain text, no markdown):
    C) …
    D) …
 2. …
-3. …
 Answers:
-1. B — one-line reason
-2. …
-3. …`;
+1. B, why B is right, and why the most tempting wrong option is wrong, in one or two short sentences
+2. …`;
+
+const QUIZ = `Write a ${QUIZ_QUESTIONS}-question quiz that checks whether the learner understands the subject matter being taught at this moment, questions that would be useful in a university exam, a technical interview or a placement test.
+
+${QUIZ_RULES}`;
+
+/** A "More questions" round: which part of the video it draws on, and what has been asked already. */
+export interface QuizMore {
+  /** 'section': the part being taught now, beyond the moment. 'video': the whole video. */
+  scope: 'section' | 'video';
+  /** Questions already asked in this quiz — never asked again. */
+  previous: string[];
+}
+
+/** At most this many earlier questions go into the prompt (the newest), each cut short: enough to avoid repeats, never enough to crowd out the transcript. */
+const QUIZ_PREVIOUS_MAX = 20;
+const QUIZ_PREVIOUS_CHARS = 110;
+
+/**
+ * The prompt for "More questions". The context it is given already covers the wider span — the
+ * section, or a sample of the whole video (see LearningPanel) — so this only says what to cover
+ * and what not to repeat. Same rules and format as the first round.
+ */
+export function buildQuizMorePrompt(ctx: LearningContext, more: QuizMore): AiPrompt {
+  const span = ctx.transcriptWindow ? `${formatTimestamp(ctx.transcriptWindow.startSec)}–${formatTimestamp(ctx.transcriptWindow.endSec)}` : '';
+  const scope =
+    more.scope === 'section'
+      ? `the whole part of the video being taught around this moment${span ? ` (${span})` : ''}`
+      : 'the whole video, the transcript below samples it from start to end; spread the questions across different topics';
+  const previous = more.previous.slice(-QUIZ_PREVIOUS_MAX).map((q) => `- ${q.replace(/\s+/g, ' ').slice(0, QUIZ_PREVIOUS_CHARS)}`);
+  const task = `Write ${QUIZ_QUESTIONS} NEW quiz questions on ${scope}, useful in a university exam, a technical interview or a placement test.
+${previous.length ? `\nThe learner has already answered these. Do not repeat them or ask the same thing in other words, test different ideas:\n${previous.join('\n')}\n` : ''}
+${QUIZ_RULES}`;
+  const language = LANGUAGE_RULE[ctx.language] ? `\n\n${LANGUAGE_RULE[ctx.language]}` : ctx.transcriptWindow && transcriptLanguage(ctx.transcriptWindow.text) ? `\n\n${ENGLISH_FROM_OTHER}` : '';
+  return { system: SYSTEM, user: `${contextBlock(ctx)}\n\nTask: ${task}${language}` };
+}
 
 const TASK: Record<AiAction, string> = {
   what: 'In one sentence of at most 25 words, say what this part teaches in plain words. Do not mention previous or next topics, the course or the instructor.',
   explain: 'Explain what the instructor is explaining at this moment, simply, as if to a student seeing it for the first time. Under 150 words.',
   example: 'Give one small, concrete example that illustrates the concept being taught at this moment (a short code snippet if it is a programming topic). Under 150 words.',
-  ask: 'Answer the learner’s question specifically in the context of this moment of the video. Under 180 words.',
   quiz: QUIZ,
 };
 
@@ -127,7 +161,7 @@ export function transcriptLanguage(text: string): string | null {
 /** Context as compact labelled lines, split into orientation vs. what is being taught. */
 export function contextBlock(ctx: LearningContext): string {
   const orientation = [
-    `Video: ${ctx.videoTitle}${ctx.channel ? ` — ${ctx.channel}` : ''}`,
+    `Video: ${ctx.videoTitle}${ctx.channel ? `, ${ctx.channel}` : ''}`,
     ctx.learningPath.currentTopic ? `Space: ${ctx.mode.name} (topic: ${ctx.learningPath.currentTopic})` : '',
     ctx.learningPath.topics.length ? `Learning path: ${ctx.learningPath.topics.join(' → ')}` : '',
     ctx.playlist ? `Course: ${ctx.playlist.title}${ctx.playlist.position ? `, video #${ctx.playlist.position} of ${ctx.playlist.total}` : ''}${ctx.playlist.next ? `; next: ${ctx.playlist.next}` : ''}` : '',
@@ -139,16 +173,15 @@ export function contextBlock(ctx: LearningContext): string {
     `Timestamp: ${ctx.timestamp}`,
     ctx.conceptPath.length ? `Current concept: ${ctx.conceptPath.join(' › ')}` : 'Current concept: unknown',
     ctx.transcriptWindow
-      ? `${ctx.transcriptSource === 'asr' ? 'Auto-generated captions (speech recognition — technical terms and names may be misheard)' : 'Transcript'}${spoken ? `, in ${spoken}` : ''} ${formatTimestamp(ctx.transcriptWindow.startSec)}–${formatTimestamp(ctx.transcriptWindow.endSec)}:\n"""${ctx.transcriptWindow.text}"""`
+      ? `${ctx.transcriptSource === 'asr' ? 'Auto-generated captions (speech recognition, technical terms and names may be misheard)' : 'Transcript'}${spoken ? `, in ${spoken}` : ''} ${formatTimestamp(ctx.transcriptWindow.startSec)}–${formatTimestamp(ctx.transcriptWindow.endSec)}:\n"""${ctx.transcriptWindow.text}"""`
       : 'Transcript: not available for this moment',
   ];
   return ['[Orientation — context only, not subject matter]', ...orientation.filter(Boolean), '', '[Being taught now]', ...now].join('\n');
 }
 
-export function buildPrompt(action: AiAction, ctx: LearningContext, question?: string): AiPrompt {
-  const ask = action === 'ask' ? `\n\nLearner's question: "${(question ?? '').trim().slice(0, 500)}"` : '';
+export function buildPrompt(action: AiAction, ctx: LearningContext): AiPrompt {
   const language = LANGUAGE_RULE[ctx.language] ? `\n\n${LANGUAGE_RULE[ctx.language]}` : ctx.transcriptWindow && transcriptLanguage(ctx.transcriptWindow.text) ? `\n\n${ENGLISH_FROM_OTHER}` : '';
-  return { system: SYSTEM, user: `${contextBlock(ctx)}${ask}\n\nTask: ${TASK[action]}${language}` };
+  return { system: SYSTEM, user: `${contextBlock(ctx)}\n\nTask: ${TASK[action]}${language}` };
 }
 
 /* ─── Quiz review ──────────────────────────────────────────────────────────── */

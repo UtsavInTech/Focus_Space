@@ -7,6 +7,7 @@ import type { OutlineRequest, OutlineSection } from '@/learning/outline/outline'
 import type { GeneratedNote, SavedNote } from '@/types/notes';
 import type { AuthState, AuthUser } from '@/types/auth';
 import type { UsageStatusView } from '@/types/usage';
+import type { SetupAnswer, SetupRequest, VoicePurpose } from '@/types/setup';
 import type { CodeSent, PaymentRecord, ProfilePatch, SignupTicket, SpaceAllowanceView, SpaceAuthorization } from '@/types/account';
 
 /**
@@ -83,6 +84,12 @@ export interface MessageMap {
   'content/ping': { req: Record<string, never>; res: { ok: true } };
   /** any → background: open a page of the public site (src/config.ts) in a new tab, reusing one if it is already open. */
   'site/open': { req: { path?: string }; res: { ok: true } | { ok: false; error: string } };
+  /** content → background: the setup assistant's understanding step (server/setup). */
+  'setup/understand': { req: SetupRequest; res: { ok: true; answer: SetupAnswer } | { ok: false; error: string } };
+  /** content → background: a recording (base64) → what was said. */
+  'voice/transcribe': { req: { audio: string; mime: string; hint?: string; purpose: VoicePurpose }; res: { ok: true; text: string } | { ok: false; error: string } };
+  /** content → background: a sentence → natural speech (base64 MP3). */
+  'voice/speak': { req: { text: string; purpose: VoicePurpose }; res: { ok: true; audio: string; mime: string } | { ok: false; error: string } };
 }
 
 export type MessageType = keyof MessageMap;

@@ -74,15 +74,14 @@ describe('learning context', () => {
 
   it('builds prompts from the moment only', () => {
     const ctx = contextAt(1052);
-    const prompt = buildPrompt('ask', ctx, 'Why is prev required here?');
+    const prompt = buildPrompt('explain', ctx);
     expect(prompt.user).toContain('Timestamp: 17:32');
     expect(prompt.user).toContain('Current concept: Insertion › Insertion at beginning');
-    expect(prompt.user).toContain('Why is prev required here?');
     expect(prompt.user).toContain('Course: Java DSA Complete Series, video #18 of 22; next: Lecture 19');
     expect(prompt.user.length).toBeLessThan(4000); // 3 hours of transcript never reach the model
     expect(prompt.system).toMatch(/never invent/i);
     const quiz = buildPrompt('quiz', ctx).user;
-    expect(quiz).toContain('3-question quiz');
+    expect(quiz).toContain('5-question quiz');
     expect(quiz).toContain('Never ask about');
     expect(quiz.indexOf('[Orientation')).toBeLessThan(quiz.indexOf('Course: Java DSA'));
     expect(quiz.indexOf('[Being taught now]')).toBeLessThan(quiz.indexOf('Current concept:'));
@@ -115,10 +114,6 @@ describe('AI service', () => {
     expect(first).toMatchObject({ ok: true, answer: 'answer 1', cached: false });
     expect(again).toMatchObject({ ok: true, answer: 'answer 1', cached: true });
     expect(calls).toHaveLength(1);
-    await ai.run({ action: 'ask', context: contextAt(1060), question: 'Why prev?' });
-    await ai.run({ action: 'ask', context: contextAt(1060), question: '  why   PREV? ' });
-    await ai.run({ action: 'ask', context: contextAt(1060), question: 'What is head?' });
-    expect(calls).toHaveLength(3);
   });
 
   it('shares one request between identical concurrent asks', async () => {
@@ -135,11 +130,10 @@ describe('AI service', () => {
     expect(await ai.run({ action: 'explain', context: contextAt(1052) })).toMatchObject({ ok: false, code: 'unavailable' });
     expect(await ai.status()).toMatchObject({ provider: 'endpoint', availability: 'downloadable' });
     expect(await createAiService({ providers: () => [] }).status()).toMatchObject({ provider: null, availability: 'unavailable' });
-    expect(await ai.run({ action: 'ask', context: contextAt(1052), question: '   ' })).toMatchObject({ ok: false });
     expect(calls).toHaveLength(0);
   });
 
-  it('keys answers by moment: nearby seconds share, other concepts and questions do not', () => {
+  it('keys answers by moment: nearby seconds share, other concepts do not', () => {
     const at = (t: number, extra: Partial<AiRequest> = {}) => aiCacheKey({ action: 'explain', context: contextAt(t), ...extra });
     expect(at(1060)).toBe(at(1075));
     expect(at(1060)).not.toBe(at(1265));

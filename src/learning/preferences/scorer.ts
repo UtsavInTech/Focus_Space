@@ -129,7 +129,7 @@ export function explainChannelAffinity(modeId: string, channelId: string, signal
   ];
 
   if (sampleSize < minSamples) {
-    lines.push({ label: `below the minimum sample size (${minSamples}) — score is 0 until then`, value: 0 });
+    lines.push({ label: `below the minimum sample size (${minSamples}), score is 0 until then`, value: 0 });
     return { channelId, modeId, score: 0, sampleSize, lines };
   }
 

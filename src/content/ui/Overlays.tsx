@@ -39,7 +39,7 @@ export function OffTrackNudge({ mode, assessment, strict, channel, onStay, onWat
             onWatch();
           }}
         >
-          This channel belongs in {mode.name} — always allow it
+          Always allow this channel in {mode.name}
         </button>
       )}
     </div>

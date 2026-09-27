@@ -41,7 +41,7 @@ const EMPTY: AccountFields = { email: '', password: '', code: '', phone: '' };
  */
 export const CLAIM_COPY = {
   title: 'Keep what’s in this browser?',
-  body: 'You used FocusSpace here before signing in. Keep those Spaces, notes and watch history with this account, or start fresh — they will be here again if you sign out.',
+  body: 'You used FocusSpace here before signing in. Keep those Spaces, notes and watch history with this account, or start fresh. They will be here again if you sign out.',
   keep: 'Keep with my account',
   fresh: 'Start fresh',
 } as const;

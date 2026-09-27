@@ -1,6 +1,7 @@
 import type { LearningMode, Settings } from '@/types/domain';
 import { getItem, updateItem } from '@/storage/storage';
 import { redeemHandoff } from './auth';
+import { returnAfterSignIn } from './sign-in-return';
 import { addMode, deleteMode, selectMode, setFocusEnabled } from '@/modes/service';
 import { inferModeIntent, modeFromSuggestion } from '@/modes/intent';
 
@@ -108,7 +109,7 @@ async function updateSettings(patch: Partial<Settings>): Promise<void> {
   }));
 }
 
-async function handle(request: ExternalRequest): Promise<ExternalResponse> {
+async function handle(request: ExternalRequest, sender: chrome.runtime.MessageSender): Promise<ExternalResponse> {
   switch (request.type) {
     case 'ping':
       // How the site knows the extension exists at all, before it renders anything.
@@ -156,7 +157,9 @@ async function handle(request: ExternalRequest): Promise<ExternalResponse> {
        * Spaces is asked whether to keep them, an account that has been here before gets its own data
        * back, and nothing is ever merged or discarded on its own.
        */
-      return { ok: true, data: { email: result.state.user?.email ?? null } };
+      // `returning` tells the page it is about to close and hand back to the YouTube tab that asked.
+      const returning = await returnAfterSignIn(sender.tab?.id).catch(() => false);
+      return { ok: true, data: { email: result.state.user?.email ?? null, returning } };
     }
     default:
       return { ok: false, error: 'Unknown request.' };
@@ -164,10 +167,10 @@ async function handle(request: ExternalRequest): Promise<ExternalResponse> {
 }
 
 export function registerExternalMessaging(): void {
-  chrome.runtime.onMessageExternal.addListener((message: ExternalRequest, _sender, sendResponse) => {
+  chrome.runtime.onMessageExternal.addListener((message: ExternalRequest, sender, sendResponse) => {
     if (!message || typeof message.type !== 'string') return false;
     Promise.resolve()
-      .then(() => handle(message))
+      .then(() => handle(message, sender))
       .then(sendResponse, (err: unknown) => sendResponse({ ok: false, error: err instanceof Error ? err.message : 'Something went wrong.' }));
     return true; // async response
   });

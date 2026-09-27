@@ -40,7 +40,7 @@ export const ACCOUNT_DATA_FACTS: readonly DataFact[] = [
   },
   {
     id: 'profile',
-    label: 'Your phone number, name and city — only if you add them',
+    label: 'Your phone number, name and city, only if you add them',
     detail: 'All optional, all blank until you fill them in, and shown only to you.',
   },
   {
@@ -59,6 +59,11 @@ export const ACCOUNT_DATA_FACTS: readonly DataFact[] = [
     detail: 'Which kind of action you ran, the credits it cost, the model, and the token counts the provider reported. Never your prompts or the answers.',
   },
   {
+    id: 'voice',
+    label: 'How much you talked',
+    detail: 'Seconds of voice per month, so your plan’s voice allowance applies. Never the recordings, or what was said.',
+  },
+  {
     id: 'spaces',
     label: 'The names of your Spaces',
     detail: 'Names and ids only, so your plan’s Space limit applies wherever you sign in. Never what is in them.',
@@ -67,11 +72,11 @@ export const ACCOUNT_DATA_FACTS: readonly DataFact[] = [
 
 /** The part that needs no account, and never leaves the browser. */
 export const LOCAL_DATA_SUMMARY =
-  'Your Spaces and everything in them, your notes, mind maps and AI chats, what you watched, your channel choices and your settings all stay in this browser. FocusSpace cannot read them — they are never uploaded.';
+  'Your Spaces and everything in them, your notes, mind maps and AI chats, what you watched, your channel choices and your settings all stay in this browser. FocusSpace cannot read them. They are never uploaded.';
 
 /** What one AI request carries. `who` is the endpoint's own name, so the sentence names what it talks to. */
 export const aiDataSummary = (who: string): string =>
-  `${who} receives only the moment you ask about: the video and channel, your timestamp, the nearby outline, your Space and topic names, a short transcript excerpt and your question. Never your history, and never the whole transcript.`;
+  `${who} receives only the moment you ask about: the video and channel, your timestamp, the nearby outline, your Space and topic names, a short transcript excerpt and your question, for a chat message, also a few short passages from the same video that match it. Never your history, and never the whole transcript. To outline a video no one has outlined yet, its captions are sent to FocusSpace once; only the outline is kept.`;
 
 /** Signed out, the AI still has to be metered somehow — and this is the whole of how. */
 export const ANONYMOUS_AI_SUMMARY =

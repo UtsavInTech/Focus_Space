@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowRight, BookOpen, Check, ChevronDown, ChevronUp, Circle, CircleDot, CircleHelp, Lightbulb, ListChecks, MessageCircle, MessageCircleQuestion, NotebookPen, Play, Send, SkipForward, Sparkles, X } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, ChevronDown, ChevronUp, Circle, CircleDot, CircleHelp, Lightbulb, ListChecks, MessageCircle, NotebookPen, Play, SkipForward, Sparkles, X } from 'lucide-react';
 import type { AiSettings, LearningMode } from '@/types/domain';
 import type { WatchPage } from '@/integrations/youtube/innertube-client';
 import { positionLabel } from '@/learning/next';
@@ -16,7 +16,11 @@ import { YtLink } from '@/ui/nav';
 import { useKnowledge, usePlaybackConcept, useVideoDuration } from '../data/knowledge';
 import { useVideoOutline } from '../data/outline';
 import { ChatPanel } from './ChatPanel';
+import { FitToScreen } from './FitToScreen';
+import { LimitActions } from './LimitActions';
 import { NotesPanel } from './NotesPanel';
+import { QuizCards, type QuizMoreResult } from './QuizCards';
+import { parseQuiz } from '@/learning/ai/quiz-format';
 import { RichText } from '@/ui/components/RichText';
 
 const watchUrl = (id: string, list: string | null) => `https://www.youtube.com/watch?v=${id}${list ? `&list=${list}` : ''}`;
@@ -118,13 +122,13 @@ const SOURCE_SHORT: Record<KnowledgeSource, string> = {
   ai: 'Suggested by AI',
 };
 
-const ACTIONS: { id: Exclude<AiAction, 'ask'>; label: string; icon: ReactNode }[] = [
+const ACTIONS: { id: AiAction; label: string; icon: ReactNode }[] = [
   { id: 'what', label: 'What am I learning?', icon: <BookOpen size={14} aria-hidden /> },
   { id: 'explain', label: 'Explain', icon: <Lightbulb size={14} aria-hidden /> },
   { id: 'example', label: 'Example', icon: <Sparkles size={14} aria-hidden /> },
   { id: 'quiz', label: 'Quiz me', icon: <ListChecks size={14} aria-hidden /> },
 ];
-const ACTION_TITLE: Record<AiAction, string> = { what: 'What you’re learning', explain: 'Explanation', example: 'Example', quiz: 'Quiz', ask: 'Answer' };
+const ACTION_TITLE: Record<AiAction, string> = { what: 'What you’re learning', explain: 'Explanation', example: 'Example', quiz: 'Quiz' };
 const PROVIDER_NAME: Record<string, string> = { chrome: 'on-device AI', endpoint: 'your AI endpoint' };
 
 type Answer =
@@ -164,7 +168,6 @@ export function NowLearning({
   const duration = useVideoDuration(video.id);
   const knowledge = useKnowledge(video.id, page, mode, duration);
   const { position, currentTime, seek } = usePlaybackConcept(video.id, knowledge.stops);
-  const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [status, setStatus] = useState<AiStatus | null>(null);
   const [panel, setPanel] = useState<'notes' | 'chat' | null>(null);
@@ -180,7 +183,6 @@ export function NowLearning({
   useEffect(() => {
     runId.current++;
     setAnswer(null);
-    setQuestion('');
     setPanel(null);
   }, [video.id]);
 
@@ -200,7 +202,7 @@ export function NowLearning({
   const readingOutline = !!page && page.videoId === video.id && !map;
   const visibleCount = knowledge.stops.length;
 
-  async function run(action: AiAction, q?: string) {
+  async function run(action: AiAction) {
     setPanel(null);
     const id = ++runId.current;
     const at = currentTime();
@@ -228,7 +230,7 @@ export function NowLearning({
     const transcript = knowledge.transcript ?? (await knowledge.requestTranscript());
     if (id !== runId.current) return;
     const context = contextWith(transcript?.segments ?? null);
-    const result = await sendMessage('ai/run', { action, context, question: q }).catch((): AiResult => ({ ok: false, code: 'failed', error: 'FocusSpace couldn’t reach its AI service. Reload the page and try again.' }));
+    const result = await sendMessage('ai/run', { action, context }).catch((): AiResult => ({ ok: false, code: 'failed', error: 'FocusSpace couldn’t reach its AI service. Reload the page and try again.' }));
     if (id !== runId.current) return;
 
     if (action === 'what') {
@@ -238,6 +240,32 @@ export function NowLearning({
     if (result.ok) setAnswer({ kind: 'answer', action, at, text: result.answer, provider: result.provider });
     else if (result.code === 'unavailable') setAnswer({ kind: 'fallback', action, at, excerpt: context.transcriptWindow?.text ?? null, setup: ai.provider === 'off' ? 'off' : status?.availability === 'downloadable' ? 'download' : 'configure' });
     else setAnswer({ kind: 'error', action, at, error: result.error, code: result.code });
+  }
+
+  /*
+   * "More questions": the first round is the moment; the next draws on the part being taught (the
+   * outermost Knowledge Map concept around the moment); every round after, a sample of the whole video.
+   */
+  const part = position?.ancestors[0] ?? current;
+  const partRange = part ? { startSec: part.startSec, endSec: part.endSec ?? part.startSec + 900 } : null;
+  const hasSection = !!partRange && partRange.endSec - partRange.startSec >= 180;
+  async function moreQuiz(previous: string[], scope: 'section' | 'video'): Promise<QuizMoreResult> {
+    const id = runId.current;
+    const transcript = knowledge.transcript ?? (await knowledge.requestTranscript());
+    const segments = transcript?.segments ?? null;
+    const end = duration ?? (segments?.length ? segments[segments.length - 1].startSec + segments[segments.length - 1].durSec : null);
+    const range = scope === 'section' && partRange ? partRange : end ? { startSec: 0, endSec: end } : null;
+    const context = buildLearningContext({
+      video, mode, topicId, path, map, stops: knowledge.stops, transcript: segments,
+      transcriptSource: transcript?.kind ?? null,
+      currentTime: currentTime(),
+      range,
+      // Room for the earlier questions and the rules inside the API's prompt limit.
+      window: { maxChars: scope === 'section' ? 9000 : 12000 },
+    });
+    const result = await sendMessage('ai/run', { action: 'quiz', context, quiz: { scope, previous } }).catch((): AiResult => ({ ok: false, code: 'failed', error: 'FocusSpace couldn’t reach its AI service. Reload the page and try again.' }));
+    if (id !== runId.current) return { ok: false, error: 'This quiz belongs to an earlier moment.' };
+    return result.ok ? { ok: true, text: result.answer } : { ok: false, error: result.error, code: result.code };
   }
 
   const aiState =
@@ -263,19 +291,6 @@ export function NowLearning({
             <MessageCircle size={14} aria-hidden /> Ask FocusSpace AI
           </button>
         </div>
-        <form
-          className="fs-ask fs-focus-host"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (question.trim()) void run('ask', question.trim());
-          }}
-        >
-          <MessageCircleQuestion size={16} aria-hidden />
-          <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Ask about this moment…" aria-label="Ask about this moment" maxLength={500} />
-          <button type="submit" className="fs-icon-plain" aria-label="Ask" disabled={!question.trim()}>
-            <Send size={16} aria-hidden />
-          </button>
-        </form>
         {panel === 'notes' ? (
           <NotesPanel
             video={video}
@@ -293,6 +308,8 @@ export function NowLearning({
             onClose={() => setPanel(null)}
           />
         ) : panel === 'chat' ? (
+          // Ends where the window ends: the conversation scrolls inside it and the question box stays in view.
+          <FitToScreen className="fs-chat-frame">
           <ChatPanel
             video={video}
             mode={mode}
@@ -304,20 +321,28 @@ export function NowLearning({
             outline={outline}
             loadTranscript={loadTranscript}
             currentTime={currentTime}
+            onSeek={seek}
+            durationSec={duration}
             language={ai.language}
             onClose={() => setPanel(null)}
           />
+          </FitToScreen>
         ) : (
           answer && (
+            // Same for an answer or a quiz: it scrolls inside, and the page (and the video) stay put.
+            <FitToScreen className="fs-answer-frame">
             <AnswerView
               answer={answer}
               providerLabel={status?.label ?? null}
               onSeek={seek}
+              onQuizMore={moreQuiz}
+              hasSection={hasSection}
               onClose={() => {
                 runId.current++;
                 setAnswer(null);
               }}
             />
+            </FitToScreen>
           )
         )}
       </section>
@@ -461,7 +486,27 @@ function KnowledgeMapSection({ map, stops, position, onSeek, debug }: { map: Kno
   );
 }
 
-function AnswerView({ answer, providerLabel, onSeek, onClose }: { answer: Answer; providerLabel: string | null; onSeek: (sec: number) => void; onClose: () => void }) {
+/** A quiz reads as one card per question; anything else — or a quiz the parser cannot read — as text. */
+function AnswerText({ action, text, onQuizMore, hasSection }: { action: AiAction; text: string; onQuizMore: (previous: string[], scope: 'section' | 'video') => Promise<QuizMoreResult>; hasSection: boolean }) {
+  const quiz = action === 'quiz' ? parseQuiz(text) : null;
+  return quiz ? <QuizCards key={text} questions={quiz} onMore={onQuizMore} hasSection={hasSection} /> : <RichText text={text} />;
+}
+
+function AnswerView({
+  answer,
+  providerLabel,
+  onSeek,
+  onQuizMore,
+  hasSection,
+  onClose,
+}: {
+  answer: Answer;
+  providerLabel: string | null;
+  onSeek: (sec: number) => void;
+  onQuizMore: (previous: string[], scope: 'section' | 'video') => Promise<QuizMoreResult>;
+  hasSection: boolean;
+  onClose: () => void;
+}) {
   const provider = answer.kind === 'answer' ? answer.provider : answer.kind === 'local' ? answer.provider : null;
   return (
     <div className="fs-answer" role="region" aria-live="polite" aria-label={ACTION_TITLE[answer.action]}>
@@ -486,13 +531,13 @@ function AnswerView({ answer, providerLabel, onSeek, onClose }: { answer: Answer
 
         {answer.kind === 'local' && <MomentSummary answer={answer} onSeek={onSeek} />}
 
-        {answer.kind === 'answer' && <RichText text={answer.text} />}
+        {answer.kind === 'answer' && <AnswerText action={answer.action} text={answer.text} onQuizMore={onQuizMore} hasSection={hasSection} />}
 
         {answer.kind === 'fallback' && (
           <>
             <p className="fs-answer-note">
               <CircleHelp size={14} aria-hidden />{' '}
-              {answer.setup === 'off' ? 'AI is turned off — turn it back on in Settings → FocusSpace AI.' : answer.setup === 'download' ? 'The on-device AI model needs a one-time download — Settings → FocusSpace AI.' : 'FocusSpace couldn’t reach its AI just now. Try again in a moment.'}
+              {answer.setup === 'off' ? 'AI is turned off. Turn it back on in Settings → FocusSpace AI.' : answer.setup === 'download' ? 'The on-device AI model needs a one-time download, Settings → FocusSpace AI.' : 'FocusSpace couldn’t reach its AI just now. Try again in a moment.'}
             </p>
             {answer.excerpt && (
               <>
@@ -508,9 +553,7 @@ function AnswerView({ answer, providerLabel, onSeek, onClose }: { answer: Answer
           <p className={`fs-answer-note${answer.code === 'quota_exceeded' ? '' : ' fs-error'}`}>
             {answer.error}
             {answer.code === 'quota_exceeded' && (
-              <button type="button" className="fs-link" onClick={() => void sendMessage('site/open', { path: '/pricing' })}>
-                See plans
-              </button>
+              <LimitActions />
             )}
           </p>
         )}

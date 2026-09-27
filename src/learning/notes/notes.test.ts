@@ -335,7 +335,7 @@ describe('notes and mind maps organised by the whole-video outline', () => {
   it('lists the outline topics in range and uses them as the mind map branches', () => {
     const request = buildNoteRequest(inputs({ scope: { kind: 'full-video' }, format: 'mindmap', outline: outline.slice(0, 5) }));
     expect(request.prompt.user).toContain('Topics in this part of the video');
-    expect(request.prompt.user).toContain('3:00–4:30 Topic 2 — What topic 2 teaches');
+    expect(request.prompt.user).toContain('3:00–4:30 Topic 2, What topic 2 teaches');
     expect(request.prompt.user).toMatch(/as the main branches, in that order/);
     expect(request.prompt.user).toMatch(/about 5 main branches/);
     expect(request.prompt.user).toMatch(/Never put more than 6 lines directly under any one line/);

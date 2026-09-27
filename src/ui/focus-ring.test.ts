@@ -24,13 +24,14 @@ describe('the global focus ring', () => {
 
   it('is used by every composite control that owns a focus state', () => {
     // A container styling :focus-within is, by definition, showing focus for something inside it.
-    const composites = ['.fs-ai-composer', '.fs-ask', '.fs-tags'];
+    const composites = ['.fs-ai-composer', '.fs-tags', '.fs-welcome-input'];
     for (const selector of composites) {
       const css = selector === '.fs-tags' ? styles : content;
       expect(css, `${selector} should style its own focus`).toContain(`${selector}:focus-within`);
     }
     // …and each one must be marked as the host in the markup.
-    const markup = [read('../content/ui/ChatPanel.tsx'), read('../content/ui/LearningPanel.tsx'), read('./components/TagInput.tsx')].join('\n');
+    // FocusSpace AI and the guide share one message box (content/ui/Composer.tsx), which marks itself.
+    const markup = [read('../content/ui/Composer.tsx'), read('../content/ui/LearningPanel.tsx'), read('./components/TagInput.tsx')].join('\n');
     expect(markup.match(/fs-focus-host/g)?.length).toBe(3);
   });
 

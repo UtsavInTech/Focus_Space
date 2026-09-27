@@ -5,10 +5,11 @@ import { fingerprintOf, isRelevant } from '@/learning/classifier';
 import { getClassifier } from '@/ai/registry';
 import { discoveryQueriesFor, rankDiscovery, type DiscoveredVideo, type DiscoveryCandidate } from '@/learning/discovery';
 import type { FeedView } from '@/learning/feed-view';
-import { COMPLETE_AT, mergeNextItems, resumeItems, seriesItems, type HistoryLike, type NextLearningItem } from '@/learning/next';
+import { COMPLETE_AT, interleave, mergeNextItems, resumeItems, seriesItems, seriesNumber, type HistoryLike, type NextLearningItem } from '@/learning/next';
 import { sendMessage } from '@/messaging/runtime';
 import { useStorage } from '@/ui/hooks';
-import { fetchDiscoveryPage, loadHistory, loadRecommendations } from './youtube';
+import { fetchDiscoveryPage, loadHistory, loadRecommendations, pageYouTube } from './youtube';
+import { cached } from './cache';
 import { seriesFor } from './series';
 
 /* ─── Subscription feed (precomputed in the background) ────────────────────── */
@@ -152,21 +153,42 @@ export function useContinueWatching(mode: LearningMode, view: FeedView | null): 
     return [...byId.values()].sort((a, b) => b.watchedAt - a.watchedAt);
   }, [store?.watchHistory, youtubeHistory, mode]);
 
-  const anchor = entries[0] ?? null;
-  const anchorKey = anchor ? `${anchor.videoId}:${anchor.progress >= COMPLETE_AT}:${view?.computedAt ?? 0}` : '';
+  /*
+   * Up to three series at once — the Linked List course *and* the Stack playlist someone is halfway
+   * through — not only whatever was watched last. One anchor per series: its most recent video.
+   */
+  const anchors = useMemo(() => {
+    const seen = new Set<string>();
+    const picked: typeof entries = [];
+    for (const e of entries) {
+      const numbered = seriesNumber(e.title);
+      const key = e.playlistId ? `list:${e.playlistId}` : numbered && e.channelId ? `${e.channelId}:${numbered.key}` : picked.length ? null : `latest:${e.videoId}`;
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      picked.push(e);
+      if (picked.length === 3) break;
+    }
+    return picked;
+  }, [entries]);
+  const anchorKey = anchors.map((a) => `${a.videoId}:${a.progress >= COMPLETE_AT}`).join('|') + `:${view?.computedAt ?? 0}`;
 
   useEffect(() => {
-    if (!anchor) {
+    if (!anchors.length) {
       setSeries([]);
       return;
     }
     let alive = true;
-    seriesFor(
-      { videoId: anchor.videoId, title: anchor.title, channelId: anchor.channelId, channelTitle: anchor.channelTitle, playlistId: anchor.playlistId ?? null },
-      { pool: view?.items ?? [], history: store?.watchHistory ?? [], ytWatched: youtubeHistory, currentVideoId: anchor.progress < COMPLETE_AT ? anchor.videoId : null },
-    )
-      .then((state) => alive && setSeries(state ? seriesItems(state).filter((i) => i.videoId !== anchor.videoId) : []))
-      .catch(() => alive && setSeries([]));
+    const anchorIds = new Set(anchors.map((a) => a.videoId));
+    void Promise.all(
+      anchors.map((anchor) =>
+        seriesFor(
+          { videoId: anchor.videoId, title: anchor.title, channelId: anchor.channelId, channelTitle: anchor.channelTitle, playlistId: anchor.playlistId ?? null },
+          { pool: view?.items ?? [], history: store?.watchHistory ?? [], ytWatched: youtubeHistory, currentVideoId: anchor.progress < COMPLETE_AT ? anchor.videoId : null },
+        )
+          .then((state) => (state ? seriesItems(state).filter((i) => !anchorIds.has(i.videoId)) : []))
+          .catch(() => []),
+      ),
+    ).then((lists) => alive && setSeries(mergeNextItems([interleave(lists)], 6)));
     return () => {
       alive = false;
     };
@@ -174,4 +196,62 @@ export function useContinueWatching(mode: LearningMode, view: FeedView | null): 
   }, [anchorKey]);
 
   return useMemo(() => mergeNextItems([series, resumeItems(entries)], 6), [series, entries]);
+}
+
+export interface PlayedRow {
+  /** The video it grows from: "Because you played …". */
+  seed: { videoId: string; title: string; channelId: string | null };
+  videos: YtVideo[];
+}
+
+/**
+ * "Because you played …" — for Spaces that are about listening or watching rather than a course
+ * (music, entertainment): YouTube's own "up next" for the last things played in this Space, minus
+ * what has already been watched. A course gets its next episode instead (useContinueWatching).
+ */
+export function useBecauseYouPlayed(mode: LearningMode): PlayedRow[] {
+  const store = useStorage(['watchHistory'] as const);
+  const [rows, setRows] = useState<PlayedRow[]>([]);
+  const seeds = useMemo(() => {
+    const out: { videoId: string; title: string; channelId: string | null }[] = [];
+    for (const e of [...(store?.watchHistory ?? [])].sort((a, b) => b.watchedAt - a.watchedAt)) {
+      if (e.modeId !== mode.id || out.some((s) => s.videoId === e.videoId)) continue;
+      out.push({ videoId: e.videoId, title: e.title, channelId: e.channelId });
+      if (out.length === 2) break;
+    }
+    return out;
+  }, [store?.watchHistory, mode.id]);
+  const seedKey = seeds.map((s) => s.videoId).join(',');
+
+  useEffect(() => {
+    if (!seeds.length) {
+      setRows([]);
+      return;
+    }
+    let alive = true;
+    const watched = new Set((store?.watchHistory ?? []).map((e) => e.videoId));
+    const classifier = getClassifier();
+    // YouTube's "up next" follows the viewer, not the song — a travel vlog or a tech video rides along.
+    // Only the same artist, or what this Space itself would call a match, stays.
+    const belongs = (v: YtVideo, seedChannel: string | null) =>
+      (!!seedChannel && v.channelId === seedChannel) || isRelevant(classifier.classify({ videoId: v.id, title: v.title, channelId: v.channelId ?? undefined, channelTitle: v.channelTitle }, mode));
+    void Promise.all(
+      seeds.map((seed) =>
+        cached(`related:${seed.videoId}`, 30 * 60_000, () => pageYouTube.watchNext(seed.videoId))
+          .then((page) => ({ seed, videos: page.related.filter((v) => v.id && !v.isShort && !v.isLive && !watched.has(v.id) && belongs(v, seed.channelId)) }))
+          .catch(() => ({ seed, videos: [] as YtVideo[] })),
+      ),
+    ).then((found) => {
+      if (!alive) return;
+      // A video suggested for both seeds shows once, under the first.
+      const shown = new Set<string>();
+      setRows(found.map((r) => ({ seed: r.seed, videos: r.videos.filter((v) => (shown.has(v.id) ? false : (shown.add(v.id), true))).slice(0, 8) })).filter((r) => r.videos.length >= 2));
+    });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedKey]);
+
+  return rows;
 }

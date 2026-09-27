@@ -145,7 +145,7 @@ export function HomePage({ data }: { data: DashboardData }) {
             ))}
           </div>
         ) : (
-          <p className="fs-home-empty">Conversations with FocusSpace AI — on a video, or from the bubble on YouTube — are kept here.</p>
+          <p className="fs-home-empty">Conversations with FocusSpace AI, on a video, or from the bubble on YouTube, are kept here.</p>
         )}
       </section>
 

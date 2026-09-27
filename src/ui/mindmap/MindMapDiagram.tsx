@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { MindMapNode } from '@/types/notes';
 import { BRANCH_COLORS, connector, FONT, layoutMindMap, LINE_H, PAD_X, PAD_Y, type LaidNode } from './mindmap-layout';
-import { CARD_PAD, CHIP_LINE, CHIP_PAD_X, cloudConnector, layoutCloud, TITLE_FONT, TITLE_LINE } from './cloud-layout';
+import { CARD_PAD, CHIP_LINE, CHIP_PAD_X, cloudConnector, cloudPath, DETAIL_FONT, DETAIL_LINE, layoutCloud, TITLE_FONT, TITLE_LINE } from './cloud-layout';
 import { initialView, showAll, toggleNode, visibleTree, type MapView, type NodeMeta } from './expand';
 
 /** The subject's colour in both views — the tree's root uses the first branch colour too. */
@@ -13,7 +13,7 @@ export type MindMapVariant = 'tree' | 'cloud';
 /** What is open in each view (./expand.ts). Held by whoever needs to know the drawing's size — MindMapCanvas. */
 export interface MapState {
   tree: MapView;
-  /** Cloud lists opened past "+N more", by the same keys. */
+  /** Cloud: lists opened past "+N more", and chips opened to show their detail — the same keys. */
   cloud: ReadonlySet<string>;
 }
 export const initialMapState = (): MapState => ({ tree: initialView(), cloud: new Set() });
@@ -56,10 +56,13 @@ export function MindMapDiagram({
   variant = 'tree',
   state,
   onState,
+  fit = false,
 }: {
   root: MindMapNode;
   scale?: number;
   variant?: MindMapVariant;
+  /** Shrink to the width available (never below FIT_FLOOR) — the narrow panel preview, where scrolling sideways to find the subject felt broken. */
+  fit?: boolean;
   /** Pass both to control what is open (MindMapCanvas does, to size the frame); omit to let the diagram keep its own. */
   state?: MapState;
   onState?: (next: MapState) => void;
@@ -67,12 +70,39 @@ export function MindMapDiagram({
   const [own, setOwn] = useMapState(root);
   const current = state ?? own;
   const update = onState ?? setOwn;
-  return variant === 'cloud' ? (
-    <CloudDiagram root={root} scale={scale} opened={current.cloud} onOpen={(key) => update({ ...current, cloud: new Set(current.cloud).add(key) })} />
+  const box = useRef<HTMLDivElement>(null);
+  const [available, setAvailable] = useState(0);
+  useEffect(() => {
+    const el = box.current;
+    if (!fit || !el) return;
+    const measure = () => setAvailable(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [fit]);
+  const natural = useMemo(() => (fit ? mindMapSize(root, variant, current).width : 0), [fit, root, variant, current]);
+  const shown = fit && available && natural ? Math.min(scale, Math.max(FIT_FLOOR, available / natural)) : scale;
+  const drawing = variant === 'cloud' ? (
+    <CloudDiagram
+      root={root}
+      scale={shown}
+      opened={current.cloud}
+      onToggle={(key) => {
+        const cloud = new Set(current.cloud);
+        if (cloud.has(key)) cloud.delete(key);
+        else cloud.add(key);
+        update({ ...current, cloud });
+      }}
+    />
   ) : (
-    <TreeDiagram root={root} scale={scale} view={current.tree} onView={(tree) => update({ ...current, tree })} />
+    <TreeDiagram root={root} scale={shown} view={current.tree} onView={(tree) => update({ ...current, tree })} />
   );
+  return fit ? <div ref={box}>{drawing}</div> : drawing;
 }
+
+/** The smallest a fitted preview gets; below this the text is unreadable, and Expand is the way in. */
+const FIT_FLOOR = 0.55;
 
 const badgeText = (m: NodeMeta) => (m.open ? '−' : `+${m.childCount}`);
 /** Sized to its text: "+4" and "+16" both sit inside their pill. */
@@ -155,46 +185,76 @@ function TreeDiagram({ root, scale, view, onView }: { root: MindMapNode; scale: 
 }
 
 /**
- * The Cloud view (./cloud-layout.ts): the subject in the middle, each topic a tinted bubble of its
- * sub-topic chips. Colours match the Tree view's branches, so the two read as one map. A "+N more"
- * chip or bubble opens the rest of its list.
+ * The Cloud view (./cloud-layout.ts): the subject in a round cloud in the middle, each topic a tinted
+ * cloud around it holding its sub-topic chips. Colours match the Tree view's branches, so the two read
+ * as one map. A chip with "· n" opens to list its detail; "+N more" opens the rest of a list.
  */
-function CloudDiagram({ root, scale, opened, onOpen }: { root: MindMapNode; scale: number; opened: ReadonlySet<string>; onOpen: (key: string) => void }) {
+function CloudDiagram({ root, scale, opened, onToggle }: { root: MindMapNode; scale: number; opened: ReadonlySet<string>; onToggle: (key: string) => void }) {
   const layout = useMemo(() => layoutCloud(root, opened), [root, opened]);
+  const rootPath = useMemo(() => cloudPath(layout.root.w, layout.root.h, true), [layout.root.w, layout.root.h]);
   const { width, height } = layout;
-  const button = (key: string, label: string) => ({ role: 'button', tabIndex: 0, 'aria-label': label, className: 'fs-mm-node is-clickable', onClick: () => onOpen(key), onKeyDown: onActivate(() => onOpen(key)) });
+  const button = (key: string, label: string, expanded?: boolean) => ({
+    role: 'button',
+    tabIndex: 0,
+    'aria-label': label,
+    ...(expanded === undefined ? {} : { 'aria-expanded': expanded }),
+    className: 'fs-mm-node is-clickable',
+    onClick: () => onToggle(key),
+    onKeyDown: onActivate(() => onToggle(key)),
+  });
   return (
     <div className="fs-mindmap" role="group" aria-label={`Mind map, cloud view: ${root.title}`}>
       <svg width={Math.round(width * scale)} height={Math.round(height * scale)} viewBox={`0 0 ${width} ${height}`} xmlns="http://www.w3.org/2000/svg">
         {layout.cards.map((c, i) => (
-          <path key={i} d={cloudConnector(layout.root, c)} fill="none" stroke={c.color} strokeWidth={1.75} strokeOpacity={0.6} strokeLinecap="round" />
+          <path key={i} d={cloudConnector(layout.root, c)} fill="none" stroke={c.color} strokeWidth={1.75} strokeOpacity={0.55} strokeLinecap="round" />
         ))}
         <g transform={`translate(${layout.root.x}, ${layout.root.y})`}>
-          <rect width={layout.root.w} height={layout.root.h} rx={layout.root.h / 2} fill={BRAND} />
+          <path d={rootPath} fill={BRAND} />
           {layout.root.lines.map((line, li) => (
-            <text key={li} x={layout.root.w / 2} y={11 + 18 * li + 14} fontSize={14} fontWeight={650} textAnchor="middle" fill="#ffffff">
+            <text key={li} x={layout.root.w / 2} y={layout.root.h / 2 - ((layout.root.lines.length - 1) * 18) / 2 + 5 + 18 * li} fontSize={14} fontWeight={650} textAnchor="middle" fill="#ffffff">
               {line}
             </text>
           ))}
         </g>
         {layout.cards.map((c, i) => (
           <g key={i} transform={`translate(${c.x}, ${c.y})`} {...(c.moreOf ? button(c.moreOf, `Show ${c.lines.join(' ').slice(1)} topics`) : {})}>
-            <rect width={c.w} height={c.h} rx={18} fill={c.color} fillOpacity={0.09} stroke={c.color} strokeOpacity={0.5} strokeDasharray={c.moreOf ? '4 3' : undefined} />
+            <path d={cloudPath(c.w, c.h)} fill={c.color} fillOpacity={0.09} stroke={c.color} strokeOpacity={0.55} strokeWidth={1.25} strokeDasharray={c.moreOf ? '4 3' : undefined} />
             {c.lines.map((line, li) => (
               <text key={li} x={CARD_PAD} y={CARD_PAD + TITLE_LINE * li + TITLE_FONT} fontSize={TITLE_FONT} fontWeight={620} fill={c.moreOf ? c.color : 'var(--fs-text)'}>
                 {line}
               </text>
             ))}
-            {c.chips.map((chip, ci) => (
-              <g key={ci} transform={`translate(${chip.x}, ${chip.y})`} {...(chip.moreOf ? button(chip.moreOf, `Show ${chip.lines.join(' ').slice(1)}`) : {})}>
-                <rect width={chip.w} height={chip.h} rx={12} fill={chip.moreOf ? c.color : 'var(--fs-surface)'} fillOpacity={chip.moreOf ? 0.16 : 1} stroke={c.color} strokeOpacity={chip.moreOf ? 0.8 : 0.35} strokeDasharray={chip.moreOf ? '4 3' : undefined} />
-                {chip.lines.map((line, li) => (
-                  <text key={li} x={CHIP_PAD_X} y={16.5 + CHIP_LINE * li} fontSize={FONT} fontWeight={chip.moreOf ? 600 : 400} fill="var(--fs-text)">
-                    {line}
-                  </text>
-                ))}
-              </g>
-            ))}
+            {c.chips.map((chip, ci) => {
+              const handle = chip.moreOf ? button(chip.moreOf, `Show ${chip.lines.join(' ').slice(1)}`) : chip.key ? button(chip.key, `${chip.lines.join(' ')}: ${chip.open ? 'hide' : 'show'} what is inside`, chip.open) : {};
+              return (
+                <g key={ci}>
+                  <g transform={`translate(${chip.x}, ${chip.y})`} {...handle}>
+                    <rect
+                      width={chip.w}
+                      height={chip.h}
+                      rx={12}
+                      fill={chip.moreOf || chip.open ? c.color : 'var(--fs-surface)'}
+                      fillOpacity={chip.moreOf || chip.open ? 0.16 : 1}
+                      stroke={c.color}
+                      strokeOpacity={chip.moreOf || chip.key ? 0.8 : 0.35}
+                      strokeDasharray={chip.moreOf ? '4 3' : undefined}
+                    />
+                    {chip.lines.map((line, li) => (
+                      <text key={li} x={CHIP_PAD_X} y={16.5 + CHIP_LINE * li} fontSize={FONT} fontWeight={chip.moreOf || chip.open ? 600 : 400} fill="var(--fs-text)">
+                        {line}
+                      </text>
+                    ))}
+                  </g>
+                  {chip.details?.map((d, di) =>
+                    d.lines.map((line, li) => (
+                      <text key={`${di}-${li}`} x={CARD_PAD + (li ? 18 : 8)} y={d.y + DETAIL_LINE * li + DETAIL_FONT} fontSize={DETAIL_FONT} fill="var(--fs-text-2)">
+                        {li ? line : `• ${line}`}
+                      </text>
+                    )),
+                  )}
+                </g>
+              );
+            })}
           </g>
         ))}
       </svg>

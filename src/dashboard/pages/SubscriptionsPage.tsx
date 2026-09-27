@@ -117,7 +117,7 @@ export function SubscriptionsPage({ data }: { data: DashboardData }) {
           <div className="fs-row fs-caption" style={{ gap: 8, flexWrap: 'wrap' }}>
             {channel.handle && <span>{channel.handle}</span>}
             {channel.ignored ? (
-              <span>Ignored — left out of your library</span>
+              <span>Ignored: left out of your library</span>
             ) : profile ? (
               <>
                 <span>
@@ -205,7 +205,7 @@ export function SubscriptionsPage({ data }: { data: DashboardData }) {
       {importResult && !importResult.ok && (
         <Alert tone="danger" icon={<AlertTriangle />}>
           {importResult.error}
-          {importResult.code === 'signed-out' && ' Sign in on youtube.com, then try again — or add channels manually below.'}
+          {importResult.code === 'signed-out' && ' Sign in on youtube.com, then try again, or add channels manually below.'}
         </Alert>
       )}
       {sync?.lastError && !busy && !importResult && <Alert tone="warning" icon={<AlertTriangle />}>{sync.lastError}</Alert>}

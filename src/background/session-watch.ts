@@ -48,7 +48,7 @@ export async function refreshSessionState(): Promise<void> {
       type: 'basic',
       iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
       title: "You've reached your planned learning time",
-      message: `${session.plannedMinutes} min${topic ? ` of ${topic}` : ''}${mode ? ` · ${mode.name}` : ''}. Wrap up, or keep going — your call.`,
+      message: `${session.plannedMinutes} min${topic ? ` of ${topic}` : ''}${mode ? ` · ${mode.name}` : ''}. Wrap up or keep going. Your call.`,
       buttons: [{ title: 'Keep going (+15 min)' }, { title: 'End session' }],
       priority: 0,
     });

@@ -291,7 +291,7 @@ export function scoreVideo(video: VideoMetadata, mode: LearningMode, options: Sc
   if (explain) {
     for (const m of titleMatches) {
       const d = m.phrase.data;
-      signals.push({ kind: 'topic', label: `title: “${d.term}” — ${d.kind === 'broad' && d.weight === 0.35 ? 'supporting' : d.kind}${d.topicId ? ` · ${topicName(d.topicId)}` : ' · mode signal'}`, value: round(d.weight) });
+      signals.push({ kind: 'topic', label: `title: “${d.term}”, ${d.kind === 'broad' && d.weight === 0.35 ? 'supporting' : d.kind}${d.topicId ? ` · ${topicName(d.topicId)}` : ' · mode signal'}`, value: round(d.weight) });
     }
     if (Q) signals.push({ kind: 'topic', label: `found by this space's YouTube search “${sourceQuery}”`, value: Q });
     if (titleMatches.length && !specific.length) signals.push({ kind: 'note', label: 'only broad terms in title → topic evidence capped at 0.3', value: 0 });

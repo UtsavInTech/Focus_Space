@@ -26,7 +26,7 @@ export function TemplateCreators({
   return (
     <div className="fs-stack fs-creators">
       <p className="fs-body-sm fs-muted-line">
-        Already have someone you learn {template.name} from? Add them and they’ll come first. If not, skip — FocusSpace finds good
+        Already have someone you learn {template.name} from? Add them and they’ll come first. If not, skip this and FocusSpace finds good
         creators for this space on its own.
       </p>
       <ChannelPicker selected={channels} onChange={setChannels} suggestQuery={template.searchHint || template.name} mode={template} />

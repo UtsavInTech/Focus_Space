@@ -276,7 +276,7 @@ function MindMapResult({ node, title }: { node: MindMapNode; title: string }) {
         )}
       </div>
       <div ref={holder} style={{ marginTop: 8 }}>
-        {drawing ? <MindMapDiagram root={node} variant={drawing} /> : <MindMapOutline node={node} />}
+        {drawing ? <MindMapDiagram root={node} variant={drawing} fit={drawing === 'cloud'} /> : <MindMapOutline node={node} />}
         {drawing && <p className="fs-mm-hint">Click a topic to open it · Expand for the full map</p>}
       </div>
 

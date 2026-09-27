@@ -17,6 +17,7 @@ import { GuideSpaces } from './GuideSpaces';
 import { ExploreGate, OffTrackNudge } from './Overlays';
 import { AiEntry } from './AiEntry';
 import { FocusPill } from './FocusPill';
+import { WelcomeGuide } from './WelcomeGuide';
 import { shouldShowAiEntry } from './ai-entry-visibility';
 
 const navigator = { go: spaNavigate };
@@ -85,6 +86,10 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
           {/* Focus Mode off: YouTube is untouched, and this is the only way back in. */}
           {/* Always there: the switch is how Focus Mode goes off as well as on. */}
           {s.ready && <FocusPill on={s.settings.focusEnabled} />}
+
+          {/* The first-run guide. With FocusSpace switched off there is nothing on the page for it to point at. */}
+          {/* Not on a watch page, where it would sit on the player's controls; it is there again on the way back. */}
+          {s.settings.focusEnabled && s.page.type !== 'watch' && <WelcomeGuide settings={s.settings} modes={s.modes} />}
 
           <Modal open={creating} onClose={() => setCreating(false)} title="New space" width={580}>
             <CreateSpace

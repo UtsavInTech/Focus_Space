@@ -235,7 +235,7 @@ function scoreOne(channel: YtChannel, terms: Term[], options: RankChannelsOption
   const subs = formatSubscribers(channel.subscribers);
   if (subs) reasons.push(subs);
   if (channel.verified) reasons.push('Verified');
-  if (lowSignal) reasons.push(tiny ? 'Very small channel — little to go on' : 'Nothing here but the name');
+  if (lowSignal) reasons.push(tiny ? 'Very small channel, little to go on' : 'Nothing here but the name');
   // Every row explains itself, so a channel FocusSpace can say nothing about still says that much,
   // rather than rendering a blank line under its name.
   if (!reasons.length) reasons.push('From YouTube’s results for your search');

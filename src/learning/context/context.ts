@@ -1,6 +1,7 @@
 import type { LearningMode } from '@/types/domain';
 import type { NoteLanguage, NoteRange } from '@/types/notes';
 import { conceptStops, locateConcept, type ConceptStop } from '../knowledge/locate';
+import { findRelatedPassages, type PassageSection, type RelatedPassage } from '../knowledge/passages';
 import { formatTimestamp } from '../knowledge/timestamps';
 import type { KnowledgeMap, KnowledgeSource, TranscriptSegment } from '../knowledge/types';
 import type { LearningPath, PathSource } from '../path/path';
@@ -18,10 +19,15 @@ import type { OutlineSection } from '../outline/outline';
  * point-in-time window (see `transcriptWindow` below and
  * docs/V5_CONTRACT.md §C). The point-only shape (`range: null`) is what every
  * existing AI action still gets, unchanged.
+ *
+ * Chat also passes the learner's question, and gets `relatedPassages`: the few
+ * places elsewhere in the video that answer it (knowledge/passages.ts). Only
+ * those excerpts travel — still never the whole transcript — and no other
+ * action passes a question, so none of them gets any.
  */
 
 /** Bumped when the shape reaching the model changes, so cached answers built from the old one are dropped. */
-export const CONTEXT_VERSION = 3;
+export const CONTEXT_VERSION = 4;
 
 export interface LearningContext {
   version: number;
@@ -58,6 +64,8 @@ export interface LearningContext {
   range: NoteRange | null;
   /** Every topic in the video and when it is taught (learning/outline). Absent or null when there is none yet. */
   videoOutline?: OutlineSection[] | null;
+  /** Chat only: what is said elsewhere in this video about the question, found locally. Absent or null otherwise. */
+  relatedPassages?: RelatedPassage[] | null;
 }
 
 export interface TranscriptWindow {
@@ -93,6 +101,21 @@ export interface ContextInputs {
   language?: NoteLanguage;
   /** The whole-video outline (learning/outline), when the API has one for this transcript. */
   outline?: OutlineSection[] | null;
+  /** Chat only: the learner's question, to find related passages elsewhere in the transcript. */
+  question?: string | null;
+}
+
+/** The headings a question can name: the outline's sections and the Knowledge Map's concepts, children included. */
+function passageSections(outline: OutlineSection[] | null | undefined, map: KnowledgeMap | null): PassageSection[] {
+  const nodes: PassageSection[] = [];
+  const walk = (list: KnowledgeMap['nodes']) => {
+    for (const n of list) {
+      nodes.push({ startSec: n.startSec, endSec: n.endSec, title: n.title });
+      walk(n.children);
+    }
+  };
+  if (map) walk(map.nodes);
+  return [...(outline ?? []), ...nodes];
 }
 
 /**
@@ -180,6 +203,7 @@ export function buildLearningContext(inputs: ContextInputs): LearningContext {
   const position = stops.length ? locateConcept(stops, currentTime) : null;
   const current = position?.current ?? null;
   const window = transcriptWindow(inputs.transcript, currentTime, { ...inputs.window, conceptStartSec: current?.startSec ?? null, range: inputs.range ?? null });
+  const related = inputs.question && !inputs.range ? findRelatedPassages(inputs.transcript, inputs.question, { currentTime, window, sections: passageSections(inputs.outline, map) }) : [];
 
   return {
     version: CONTEXT_VERSION,
@@ -213,6 +237,7 @@ export function buildLearningContext(inputs: ContextInputs): LearningContext {
     language: inputs.language ?? 'en',
     range: inputs.range ?? null,
     videoOutline: inputs.outline?.length ? inputs.outline : null,
+    relatedPassages: related.length ? related : null,
   };
 }
 
@@ -220,7 +245,7 @@ export function buildLearningContext(inputs: ContextInputs): LearningContext {
 export function describeMoment(ctx: LearningContext): { headline: string; lines: string[] } {
   const lines: string[] = [];
   if (ctx.conceptPath.length > 1) lines.push(`Part of ${ctx.conceptPath.slice(0, -1).join(' › ')}.`);
-  if (ctx.playlist?.position) lines.push(`${ctx.videoTitle} — #${ctx.playlist.position} of ${ctx.playlist.total} in ${ctx.playlist.title}.`);
+  if (ctx.playlist?.position) lines.push(`${ctx.videoTitle}, #${ctx.playlist.position} of ${ctx.playlist.total} in ${ctx.playlist.title}.`);
   if (ctx.previousConcepts.length) lines.push(`Before this: ${ctx.previousConcepts.slice(-2).join(', ')}.`);
   if (ctx.upcomingConcepts.length) lines.push(`Coming up: ${ctx.upcomingConcepts.slice(0, 2).join(', ')}.`);
   if (ctx.playlist?.next) lines.push(`${ctx.playlist.nextLabel}: ${ctx.playlist.next}.`);

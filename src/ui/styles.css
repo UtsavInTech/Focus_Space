@@ -577,8 +577,8 @@ body.fs-popup-body {
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(10, 10, 16, 0.45);
-  backdrop-filter: blur(6px);
+  /* A plain dim, no blur: blurring a playing video behind the dialog is redrawn every frame, and it lagged. */
+  background: rgba(10, 10, 16, 0.6);
   animation: fs-fade 160ms ease;
 }
 .fs-modal {
@@ -727,6 +727,11 @@ body.fs-popup-body {
 .fs-answer-text code { padding: 1px 4px; border-radius: 4px; background: var(--fs-surface-2); font-family: 'Roboto Mono', ui-monospace, Menlo, monospace; font-size: 12.5px; }
 .fs-answer-text pre { margin: 0 0 10px; padding: 10px 12px; border-radius: 8px; background: var(--fs-surface-2); overflow-x: auto; font-size: 12.5px; line-height: 18px; white-space: pre; }
 .fs-answer-text pre code { padding: 0; background: none; }
+/* Lists an answer writes ("- …", "1. …") read as lists, not as lines of text with dashes. */
+.fs-answer-text ul, .fs-answer-text ol { margin: 0 0 10px; padding-left: 20px; }
+.fs-answer-text li { margin: 3px 0; padding-left: 2px; white-space: pre-wrap; }
+.fs-answer-text li::marker { color: var(--fs-text-3); }
+.fs-answer-text ul:last-child, .fs-answer-text ol:last-child { margin-bottom: 0; }
 .fs-mindmap { max-width: 100%; overflow: auto; padding: 4px 0 8px; border-radius: 10px; }
 .fs-mindmap svg { display: block; }
 .fs-mindmap-title { padding: 3px 0; font-size: 13px; line-height: 1.45; color: var(--fs-text-2); }

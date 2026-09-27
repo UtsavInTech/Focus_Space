@@ -144,7 +144,7 @@ export function WatchRail({
         at the top of the suggestion column where the eye lands first. It used to open the marketing
         site, which has none of those. Deliberately one compact row: it earns its place by being small.
       */}
-      <button type="button" className="fs-rail-launcher" onClick={() => void sendMessage('dashboard/open', { route: '/' }).catch(() => undefined)} title="Open FocusSpace — your notes, mind maps, AI chats and history">
+      <button type="button" className="fs-rail-launcher" onClick={() => void sendMessage('dashboard/open', { route: '/' }).catch(() => undefined)} title="Open FocusSpace, your notes, mind maps, AI chats and history">
         <FocusMark size={20} />
         <span className="fs-rail-launcher-name">
           <Wordmark />

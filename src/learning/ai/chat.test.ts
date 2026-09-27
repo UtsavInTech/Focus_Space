@@ -34,7 +34,7 @@ describe('chat prompt: reuses the same LearningContext pipeline as actions/notes
   it('carries current video, creator, timestamp, current concept, previous/upcoming concepts, course position, topic path and a transcript window', () => {
     const ctx = contextAt(1052); // 17:32 — inside "Insertion at beginning"
     const prompt = buildChatPrompt(ctx, [], 'Why do we update the head pointer?');
-    expect(prompt.user).toContain('Lecture 18 — Linked List — Apna College');
+    expect(prompt.user).toContain('Lecture 18 — Linked List, Apna College');
     expect(prompt.user).toContain('Timestamp: 17:32');
     expect(prompt.user).toContain('Current concept: Insertion at beginning');
     expect(prompt.user).toContain('Course: Java DSA Complete Series, video #18 of 22');
@@ -186,7 +186,7 @@ describe('chat with a whole-video outline', () => {
   it('adds the outline, marks the current section, and asks for time ranges', () => {
     const prompt = buildChatPrompt(withOutline(1052), [], 'Where do they cover deletion?');
     expect(prompt.user).toContain('[Whole-video outline');
-    expect(prompt.user).toContain('21:00–1:00:00 Deletion — Unlinking a node');
+    expect(prompt.user).toContain('21:00–1:00:00 Deletion, Unlinking a node');
     expect(prompt.user).toMatch(/4:12–21:00 Insertion.*learner is here/);
     expect(prompt.system).toMatch(/time range/);
   });

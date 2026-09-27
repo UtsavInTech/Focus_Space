@@ -79,7 +79,7 @@ function AiSection({ settings }: { settings: Settings }) {
                   : 'Not available: this browser has no on-device model, and no endpoint is set.';
 
   return (
-    <Section id="ai" title="FocusSpace AI" description="Ask anything about the video or page you're on. It can also explain, give an example, quiz you or take notes — and it runs only when you ask.">
+    <Section id="ai" title="FocusSpace AI" description="Ask anything about the video or page you're on. It can also explain, give an example, quiz you or take notes, and it runs only when you ask.">
       <SettingRow
         title="Provider"
         description={
@@ -104,7 +104,7 @@ function AiSection({ settings }: { settings: Settings }) {
         <Segmented label="Answer language" value={settings.ai.language} onChange={(language) => setAi({ language })} options={LANGUAGE_OPTIONS} />
       </SettingRow>
       {showEndpoint && (settings.ai.provider === 'auto' || settings.ai.provider === 'endpoint') && (
-        <SettingRow title="Your endpoint" description="A server you run keeps the API key — the extension never has one. Reference server: server/index.ts.">
+        <SettingRow title="Your endpoint" description="A server you run keeps the API key. The extension never has one. Reference server: server/index.ts.">
           <div className="fs-row">
             <TextInput value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://your-server.example/v1/ai/complete" style={{ width: 240 }} aria-label="AI endpoint URL" />
             <Button size="sm" variant="secondary" disabled={trimmed === settings.ai.endpointUrl || (trimmed !== '' && !isHttpUrl(trimmed))} onClick={() => setAi({ endpointUrl: trimmed })}>
@@ -228,7 +228,7 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         </SettingRow>
         <details className="fs-advanced">
           <summary className="fs-label">Troubleshooting</summary>
-          <SettingRow title="Show relevance details" description="Shows how FocusSpace scored each channel and video — useful when reporting a ranking that looks wrong.">
+          <SettingRow title="Show relevance details" description="Shows how FocusSpace scored each channel and video. Useful when reporting a ranking that looks wrong.">
             <Switch label="Show relevance details" checked={settings.debugRelevance} onChange={(v) => patch({ debugRelevance: v })} />
           </SettingRow>
         </details>

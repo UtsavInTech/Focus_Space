@@ -324,7 +324,7 @@ export const DEFAULT_MODES: LearningMode[] = [
     emoji: '🌿',
     icon: 'leaf',
     kind: 'media',
-    description: 'Intentional downtime — calm, not a scroll hole.',
+    description: 'Intentional downtime. Calm, not a scroll hole.',
     searchHint: '',
     keywords: ['relaxing', 'relax', 'calm', 'ambient', 'lofi', 'lo-fi', 'sleep music'],
     blockedKeywords: ['prank', 'drama'],

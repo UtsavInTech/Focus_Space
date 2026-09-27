@@ -1,4 +1,5 @@
 import { activeModeOf, effectiveFilters, needsFirstSpace } from '@/modes/service';
+import { ALLOW_VIDEO_EVENT } from './allow-video';
 import type { PageContext } from '@/integrations/youtube/urls';
 import { getClassifier } from '@/ai/registry';
 import { updateItem } from '@/storage/storage';
@@ -38,6 +39,11 @@ const sameStats = (a: MarkStats | null, b: MarkStats | null) => a === b || (!!a 
  * only touches what the current page needs.
  */
 export function createController(store: Store<ContentState>, slots: Slots) {
+  // A video FocusSpace AI was asked to play is the learner's explicit choice: no off-track nudge for it.
+  window.addEventListener(ALLOW_VIDEO_EVENT, (event) => {
+    const videoId = (event as CustomEvent<unknown>).detail;
+    if (typeof videoId === 'string') store.set((s) => ({ dismissedNudges: [...s.dismissedNudges, videoId] }));
+  });
   let reconcileTimer = 0;
   let progressTimer = 0;
   let redirectedShort: string | null = null;

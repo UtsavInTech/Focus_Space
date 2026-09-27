@@ -374,6 +374,9 @@ export const setIntentEngine = (next: IntentEngine) => {
 
 export const inferModeIntent = (input: string) => engine.infer(input);
 
+/** Every subject phrase the catalogue recognises — for correcting a misspelt or misheard one (./subjects.ts). */
+export const knownSubjectPhrases = (): string[] => [...new Set([...CATALOG.flatMap((e) => [normalizeText(e.name), ...e.aliases.map(normalizeText)]), ...LANGUAGES])];
+
 /** Quick-start suggestions shown before the user types. */
 export const STARTER_INTENTS = ['DSA', 'AI / ML', 'Web Development', 'System Design', 'Data Science', 'Punjabi music', 'Fitness', 'Learn Japanese'];
 

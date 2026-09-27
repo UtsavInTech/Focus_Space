@@ -1,5 +1,5 @@
 import { listen } from '@/messaging/runtime';
-import { getItem, subscribe, updateItem } from '@/storage/storage';
+import { getItem, setItem, subscribe, updateItem } from '@/storage/storage';
 import { toggleFocus } from '@/modes/service';
 import { addChannel, syncLibrary } from './library-sync';
 import { importSubscriptions } from './subscriptions';
@@ -17,6 +17,8 @@ import * as spaces from './spaces';
 import * as account from './account';
 import { SITE_URL, siteUrl } from '@/config';
 import { registerExternalMessaging } from './external';
+import { rememberReturnTab } from './sign-in-return';
+import * as setupAssistant from './setup-assistant';
 import { migrate } from './migrate';
 import { resolveClaim, startOwnership } from './ownership';
 import { canSave, SAVE_NEEDS_ACCOUNT } from '@/ui/account/save-gate';
@@ -94,8 +96,11 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   await migrate();
   await ensureAlarms();
   await refreshSessionState();
-  // First run happens on YouTube itself ("What do you want to focus on?").
-  if (details.reason === 'install') await openYouTube();
+  // First run happens on YouTube itself ("What do you want to focus on?"), with the welcome guide beside it.
+  if (details.reason === 'install') {
+    await setItem('welcome', { active: true, signInSkipped: false, chat: null });
+    await openYouTube();
+  }
 });
 
 chrome.runtime.onStartup.addListener(async () => {
@@ -177,14 +182,19 @@ listen({
       return { ok: false, error: err instanceof Error ? err.message : 'Could not open the dashboard.' };
     }
   },
-  'site/open': async ({ path }) => {
+  'site/open': async ({ path }, sender) => {
     try {
+      // Sign-in asked for from YouTube comes back to that YouTube tab when it is done (./sign-in-return.ts).
+      if (path?.startsWith('/connect')) await rememberReturnTab(sender);
       await openSite(path);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : 'Could not open FocusSpace.' };
     }
   },
+  'setup/understand': (request) => setupAssistant.understand(request),
+  'voice/transcribe': ({ audio, mime, hint, purpose }) => setupAssistant.transcribeSpeech(audio, mime, hint, purpose),
+  'voice/speak': ({ text, purpose }) => setupAssistant.speakText(text, purpose),
   'auth/status': () => auth.status(),
   'auth/login': ({ email, password }) => auth.login(email, password),
   'auth/logout': () => auth.logout(),

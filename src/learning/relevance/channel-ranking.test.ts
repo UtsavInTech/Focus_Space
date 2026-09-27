@@ -184,11 +184,11 @@ describe('rankChannels — every row explains itself, honestly', () => {
   it('does not tell the learner a channel is small when the count is simply hidden', () => {
     const [hidden] = rankChannels([channel({ id: 'UChidden', title: 'Someone' })], { query: 'photography tutorial' });
     expect(hidden.lowSignal).toBe(true);
-    expect(hidden.reasons).not.toContain('Very small channel — little to go on');
+    expect(hidden.reasons).not.toContain('Very small channel, little to go on');
     expect(hidden.reasons).toContain('Nothing here but the name');
 
     const [small] = rankChannels([channel({ id: 'UCsmall', title: 'Someone', subscribers: 12 })], { query: 'photography tutorial' });
-    expect(small.reasons).toContain('Very small channel — little to go on');
+    expect(small.reasons).toContain('Very small channel, little to go on');
   });
 });
 
