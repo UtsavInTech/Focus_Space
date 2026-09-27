@@ -52,7 +52,8 @@ import { authorizeUrl, createState, exchangeCode, loadGoogleConfig, verifyState 
 import { validateCredentials, validateEmailCode, validateEmailOnly, validatePhoneCode, validatePhoneOnly, validateRefreshRequest, validateSignupCompletion, validateSpaceRequest } from './auth/validate';
 import { RateLimiter } from './auth/rate-limit';
 import { loadSenders } from './notify/sender';
-import { loadReceiptMailer } from './notify/receipt-email';
+import { loadCancellationMailer, loadReceiptMailer } from './notify/receipt-email';
+import { planLabel } from '@/billing/plans';
 import { getUsageDb } from './usage/db';
 import { anonymousKeys, assertAnonymousAllowed, commitUsage, parseInstallId, recordAnonymous, releaseUsage, reserveUsage, usageStatus } from './usage/service';
 import { registerSpace, spaceAllowance, unregisterSpace } from './usage/spaces';
@@ -182,6 +183,7 @@ const TRUST_PROXY = process.env.TRUST_PROXY ? process.env.TRUST_PROXY === '1' : 
 // See server/notify/sender.ts.
 const senders = loadSenders();
 const receiptMailer = loadReceiptMailer();
+const cancellationMailer = loadCancellationMailer();
 if (!receiptMailer) console.warn('[FocusSpace API] RESEND_API_KEY or MAIL_FROM is unset: buyers get their receipt on the account page only, not by email.');
 
 /** Emails the receipt for a payment just applied. Never awaited by a purchase, never fails one. */
@@ -667,7 +669,13 @@ const server = createServer(async (req, res) => {
       // Stops the renewal, never the plan: the period already paid for is kept.
       if (req.method === 'POST' && path === BILLING_CANCEL_ROUTE) {
         const { user } = authenticate(db, authConfig, req.headers.authorization);
-        sendJson(res, 200, { ok: true, ...(await cancelPlan(requireRazorpay(), getUsageDb(), user.id)) });
+        const plan = getUsageDb().getEntitlement(user.id)?.plan ?? 'free';
+        const cancelled = await cancelPlan(requireRazorpay(), getUsageDb(), user.id);
+        // Confirmation and a warm request for feedback. Never holds up, or fails, the cancellation itself.
+        if (cancellationMailer && user.email) {
+          void cancellationMailer(user.email, planLabel(plan).replace(/ plan$/, ''), cancelled.expiresAt).catch((err) => console.error(`[FocusSpace billing] Cancellation email failed: ${err instanceof Error ? err.message : String(err)}`));
+        }
+        sendJson(res, 200, { ok: true, ...cancelled });
         return;
       }
 

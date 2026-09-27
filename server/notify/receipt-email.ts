@@ -41,6 +41,50 @@ export function receiptText(payment: PaymentRow, siteUrl: string, contact = BILL
   return { subject: `Your FocusSpace receipt: ${plan}, ${money(payment.amount_minor, payment.currency)}`, text: lines.join('\n') };
 }
 
+/**
+ * After someone stops their plan renewing: it is confirmed, they are told they keep what they paid for, and
+ * they are asked, warmly and once, what would have made them stay.
+ */
+export function cancellationText(planName: string, until: number | null, contact = BILLING_CONTACT): { subject: string; text: string } {
+  const date = until ? new Date(until).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
+  const lines = [
+    `Your FocusSpace ${planName} plan has been cancelled successfully. It will not renew, and you will not be charged again.`,
+    '',
+    date ? `You keep everything ${planName} includes until ${date}. Your Spaces, notes and mind maps are not deleted.` : 'Your Spaces, notes and mind maps are not deleted.',
+    '',
+    'We are sorry to see you go, and we would really love to know why.',
+    'Was something missing, confusing, or not worth the price? Is there something we could change that would make FocusSpace right for you?',
+    '',
+    `Just reply to this email, or write to ${contact}. Every message is read by the person who builds FocusSpace, and your feedback genuinely shapes what comes next.`,
+    '',
+    'Thank you for learning with FocusSpace. You are always welcome back.',
+  ];
+  return { subject: `Your FocusSpace ${planName} plan is cancelled`, text: lines.join('\n') };
+}
+
+async function sendMail(apiKey: string, from: string, replyTo: string, to: string, subject: string, text: string): Promise<void> {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    // Replies go to a person, whatever address the mail was sent from.
+    body: JSON.stringify({ from, to, subject, text, reply_to: replyTo }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) throw new Error(`Resend rejected the email (HTTP ${res.status}). ${(await res.text().catch(() => '')).slice(0, 200)}`);
+}
+
+export type CancellationMailer = (to: string, planName: string, until: number | null) => Promise<void>;
+
+/** Null without a real sender, like the receipt. */
+export function loadCancellationMailer(env: NodeJS.ProcessEnv = process.env): CancellationMailer | null {
+  if (!env.RESEND_API_KEY || !env.MAIL_FROM) return null;
+  const contact = env.BILLING_CONTACT || BILLING_CONTACT;
+  return async (to, planName, until) => {
+    const { subject, text } = cancellationText(planName, until, contact);
+    await sendMail(env.RESEND_API_KEY!, env.MAIL_FROM!, contact, to, subject, text);
+  };
+}
+
 /** Null when no real sender is configured: Resend's shared sender reaches only the account owner, so buyers would get nothing. */
 export function loadReceiptMailer(env: NodeJS.ProcessEnv = process.env): ReceiptMailer | null {
   const apiKey = env.RESEND_API_KEY;
@@ -49,13 +93,6 @@ export function loadReceiptMailer(env: NodeJS.ProcessEnv = process.env): Receipt
   const siteUrl = env.SITE_URL || 'https://focusspace.xyz';
   return async (to, payment) => {
     const { subject, text } = receiptText(payment, siteUrl, env.BILLING_CONTACT || BILLING_CONTACT);
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      // Replies go to a person, whatever address the mail was sent from.
-      body: JSON.stringify({ from, to, subject, text, reply_to: env.BILLING_CONTACT || BILLING_CONTACT }),
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!res.ok) throw new Error(`Resend rejected the receipt (HTTP ${res.status}). ${(await res.text().catch(() => '')).slice(0, 200)}`);
+    await sendMail(apiKey, from, env.BILLING_CONTACT || BILLING_CONTACT, to, subject, text);
   };
 }

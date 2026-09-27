@@ -24,3 +24,16 @@ describe('receipt email', () => {
     expect(loadReceiptMailer({ RESEND_API_KEY: 'k', MAIL_FROM: 'billing@focusspace.xyz' })).toBeTypeOf('function');
   });
 });
+
+describe('cancellation email', () => {
+  it('confirms it, says what is kept until when, and asks warmly why', async () => {
+    const { cancellationText } = await import('./receipt-email');
+    const { subject, text } = cancellationText('Pro', Date.UTC(2026, 9, 27));
+    expect(subject).toBe('Your FocusSpace Pro plan is cancelled');
+    expect(text).toContain('cancelled successfully');
+    expect(text).toContain('not be charged again');
+    expect(text).toContain('until 27 October 2026');
+    expect(text).toContain('we would really love to know why');
+    expect(text).toContain('utsav.udk@gmail.com');
+  });
+});
