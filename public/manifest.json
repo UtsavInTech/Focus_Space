@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "FocusSpace — Intent-Driven Learning for YouTube",
+  "name": "FocusSpace: YouTube Focus Mode for Learning",
   "short_name": "FocusSpace",
   "version": "0.6.0",
-  "description": "Tell FocusSpace what you're learning. It structures YouTube around that intention and hides the attention traps.",
+  "description": "Learn on YouTube without distractions. Tell FocusSpace what you study, and it shapes your feed, notes and quizzes around it.",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
