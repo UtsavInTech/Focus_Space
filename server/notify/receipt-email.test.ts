@@ -12,6 +12,9 @@ describe('receipt email', () => {
     expect(text).toContain('Unused Plus time: -₹99.33');
     expect(text).toContain('Payment ID: pay_1');
     expect(text).toContain('https://focusspace.xyz/account');
+    expect(text).toContain('Your payment was successful');
+    expect(text).toContain('invoice issued by Razorpay');
+    expect(text).toContain('utsav.udk@gmail.com');
     expect(receiptText({ ...payment, plan: 'basic', period: 'lifetime', amount_minor: 9900, credit_minor: 0 }, 'https://focusspace.xyz').text).toContain('Plan: Basic, for life');
   });
 
