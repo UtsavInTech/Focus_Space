@@ -16,6 +16,8 @@ export interface SetupSpacePlan {
   topics: { name: string; keywords: string[] }[];
   keywords: string[];
   searchHint: string;
+  /** What this Space is not — kept off its page even when a word matches ("news", "vlog", "tutorial"). */
+  avoid: string[];
 }
 
 /** What the assistant knows when it reads a turn: the person's Spaces and what it last asked. */

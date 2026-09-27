@@ -79,12 +79,14 @@ export const FREE_MONTHLY_AI_CREDITS = 200;
 
 /**
  * Talking costs real money per second — the natural voice most of all (about ₹1.3 a minute at worst) —
- * so it is the one thing no plan gets without limit. Each paid plan's minutes are sized to cost at most
- * about a fifth of what the plan brings in after GST and fees; Free gets a taste. Without an account,
- * voice is for setting up only (the guide), capped per day.
+ * so it is the one thing no plan gets without limit. Every allowance is **per month**. A free account
+ * gets a real half hour (at most ~₹40 of speech); each paid plan roughly doubles the one below it, at
+ * a worst case of about a third of what the plan brings in after GST and fees — and most people talk
+ * far less. Without an account, voice is only for setting up (the guide), and never more than a free
+ * account would get: 5 minutes a month per install.
  */
-export const FREE_MONTHLY_VOICE_MINUTES = 10;
-export const GUEST_SETUP_VOICE_MINUTES_PER_DAY = 5;
+export const FREE_MONTHLY_VOICE_MINUTES = 30;
+export const GUEST_SETUP_VOICE_MINUTES_PER_MONTH = 5;
 
 export const PLANS: Plan[] = [
   {
@@ -98,7 +100,7 @@ export const PLANS: Plan[] = [
       'Relevance-ranked subscriptions and discovery',
       'Learning path, knowledge map and Shorts removal',
       `${FREE_MONTHLY_AI_CREDITS} AI credits a month with a free account (${GUEST_DAILY_AI_CREDITS} a day without one)`,
-      `Talk to FocusSpace — ${FREE_MONTHLY_VOICE_MINUTES} minutes of voice a month with a free account`,
+      `Talk to FocusSpace AI — ${FREE_MONTHLY_VOICE_MINUTES} minutes of voice a month with a free account`,
       'Notes and mind maps in English, हिंदी or Hinglish',
     ],
     cta: 'Add to Chrome — Free',
@@ -109,8 +111,8 @@ export const PLANS: Plan[] = [
     tagline: 'For one subject you are serious about.',
     // Annual totals are 12 x a .99 monthly figure, so the "/month" line stays clean: $2.99 / ₹199.
     price: { monthly: { usd: 3.99, inr: 299 }, annual: { usd: 35.88, inr: 2388 } },
-    limits: { modes: 15, aiCredits: 2000, voiceMinutes: 30 },
-    features: ['Everything in Free', '15 Spaces', '2,000 AI credits a month', '30 minutes of voice a month', 'Email support'],
+    limits: { modes: 15, aiCredits: 2000, voiceMinutes: 60 },
+    features: ['Everything in Free', '15 Spaces', '2,000 AI credits a month', '1 hour of voice a month', 'Email support'],
     cta: 'Get Pro',
   },
   {
@@ -119,8 +121,8 @@ export const PLANS: Plan[] = [
     tagline: 'For everything you are learning at once.',
     price: { monthly: { usd: 7.99, inr: 599 }, annual: { usd: 71.88, inr: 4788 } },
     featured: true,
-    limits: { modes: null, aiCredits: null, voiceMinutes: 75 },
-    features: ['Everything in Free', 'Unlimited Spaces', 'Unlimited AI credits', '75 minutes of voice a month', 'Priority support'],
+    limits: { modes: null, aiCredits: null, voiceMinutes: 120 },
+    features: ['Everything in Free', 'Unlimited Spaces', 'Unlimited AI credits', '2 hours of voice a month', 'Priority support'],
     cta: 'Get Unlimited',
   },
   {
@@ -128,10 +130,10 @@ export const PLANS: Plan[] = [
     name: 'Max',
     tagline: 'Everything in Unlimited, for people who want to back FocusSpace.',
     price: { monthly: { usd: 19.99, inr: 1499 }, annual: { usd: 179.88, inr: 11988 } },
-    limits: { modes: null, aiCredits: null, voiceMinutes: 240 },
+    limits: { modes: null, aiCredits: null, voiceMinutes: 300 },
     features: [
       'Everything in Unlimited',
-      '4 hours of voice a month',
+      '5 hours of voice a month',
       'Choose your AI model',
       'Advanced AI models',
       'Multiple mind-map formats',

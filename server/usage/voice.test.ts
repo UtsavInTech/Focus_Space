@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { UsageDb } from './db';
 import { assertVoiceAllowed, recordVoice, secondsHeard, secondsToSay, voiceStatus } from './voice';
-import { planById } from '@/billing/plans';
+import { GUEST_SETUP_VOICE_MINUTES_PER_MONTH, planById } from '@/billing/plans';
 
 const NOW = Date.UTC(2026, 8, 27, 10);
 
@@ -12,7 +12,7 @@ describe('voice allowance', () => {
     expect(secondsToSay('')).toBe(1);
   });
 
-  it('lets a guest talk only while setting up, a few minutes a day', () => {
+  it('lets a guest talk only while setting up — never more than a free account gets', () => {
     const db = new UsageDb(':memory:');
     const guest = { kind: 'guest' as const, key: 'install-a' };
     expect(() => assertVoiceAllowed(db, guest, 'chat', 5, NOW)).toThrow(/Sign in to talk/);
@@ -20,9 +20,11 @@ describe('voice allowance', () => {
     recordVoice(db, guest, 'setup', 5 * 60 - 5, NOW);
     assertVoiceAllowed(db, guest, 'setup', 5, NOW);
     recordVoice(db, guest, 'setup', 5, NOW);
-    expect(() => assertVoiceAllowed(db, guest, 'setup', 1, NOW)).toThrow(/today’s 5 minutes/);
-    // Tomorrow is a new day.
-    assertVoiceAllowed(db, guest, 'setup', 60, NOW + 24 * 3600_000);
+    expect(() => assertVoiceAllowed(db, guest, 'setup', 1, NOW)).toThrow(/5 minutes of voice for setting up/);
+    // Not tomorrow — next month.
+    expect(() => assertVoiceAllowed(db, guest, 'setup', 1, NOW + 24 * 3600_000)).toThrow();
+    assertVoiceAllowed(db, guest, 'setup', 60, Date.UTC(2026, 9, 1));
+    expect(GUEST_SETUP_VOICE_MINUTES_PER_MONTH).toBeLessThan(planById('free').limits.voiceMinutes);
   });
 
   it('gives a free account its monthly minutes, and stops at them', () => {

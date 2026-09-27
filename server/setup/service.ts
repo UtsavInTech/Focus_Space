@@ -68,7 +68,11 @@ const SPACE_RULES = [
   '- A Space name is the subject alone, 1–4 words, Title Case, correctly spelled: "I want to learn system desing so add it" → "System Design". Never include filler like "I want", "add it", "for now", "please", "space", "mode".',
   '- Languages are named "Learn Spanish", "Learn French", etc.',
   '- If a subject matches one of the templates, set templateId to that template id and use the template name exactly; otherwise templateId is null.',
-  '- For every Space — templates included — give 8 subtopics (never fewer than 6, at most 10) a learner would move through, beginner to advanced for learning subjects, each with 2–4 short YouTube search keywords; 4–8 Space keywords; a searchHint of 1–3 words; a one-sentence description.',
+  '- For a learning subject, give 8 subtopics (never fewer than 6, at most 10) a learner moves through, beginner to advanced.',
+  '- For music, entertainment or anything to enjoy rather than study (kind "media"), subtopics are what they will listen to or watch — the languages, genres, moods and artists that fit them and what they mentioned (Karan Aujla → Punjabi Hits, Punjabi Hip-Hop, Karan Aujla, Bollywood, Chill & Lo-fi, Workout…). Never how to make it (music theory, instruments, songwriting, production) unless they said they want to learn music.',
+  '- Every subtopic gets 2–4 short YouTube search keywords; the Space gets 4–8 keywords specific enough not to match unrelated videos ("punjabi song", "official music video", "lyrics", an artist name — never bare generic words like "live", "performance", "video", "new").',
+  '- avoid: 3–8 words for what this Space is not, so it never shows up there — for music: "news", "podcast", "vlog", "reaction", "tutorial", "interview"; for a learning subject: "meme", "prank", "reaction".',
+  '- A searchHint of 1–3 words, and a one-sentence description.',
   `- icon is one of: ${SPACE_ICON_NAMES.join(', ')}. kind is "learning", "media" (music, entertainment) or "general".`,
 ];
 
@@ -103,7 +107,7 @@ export function setupPrompt(request: SetupRequest): AiPrompt {
         '• (nothing asked) → "DSA with striver and system design" → create_space DSA with channels ["take U forward"]; create_space System Design with channels []',
         '• DSA → "the Love Babbar channel itself. also add system design with gaurav sen" → add_channels DSA ["Love Babbar"]; create_space System Design with channels ["Gaurav Sen"]',
         'reply: one short spoken sentence saying what you are doing ("Got it — swapping that for Telusko in DSA.", "Okay! System Design, Spanish and English, coming up."). Never ask the next creator question yourself; the app asks it.',
-        'Answer with one JSON object: {"reply": string, "actions": [{"type": "create_space", "channels": [string], "space": {"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint"}} | {"type": "add_channels" | "remove_channels", "space": string, "names": [string]} | {"type": "remove_space" | "no_channels", "space": string}]}',
+        'Answer with one JSON object: {"reply": string, "actions": [{"type": "create_space", "channels": [string], "space": {"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint", "avoid": []}} | {"type": "add_channels" | "remove_channels", "space": string, "names": [string]} | {"type": "remove_space" | "no_channels", "space": string}]}',
       ].join('\n'),
       user: JSON.stringify({
         said: request.text,
@@ -126,7 +130,7 @@ export function setupPrompt(request: SetupRequest): AiPrompt {
         '- A question (what, why, how, explain, summarise, "what does this video say…") is never a command, even if it mentions videos: no actions, reply empty. Only an instruction to change, create, play, open or show something is.',
         'Example: spaces ["DSA", "System Design"], said "change mode to system design and play video of harkirat building the new app" → switch_space System Design; play "Harkirat Singh building new app".',
         'Example: spaces ["DSA"], said "create one mood music and play karan aujla winning speech" → create_space Music (kind media, icon music); switch_space Music; play "Karan Aujla Winning Speech".',
-        'Answer with one JSON object: {"reply": string, "actions": [{"type": "switch_space", "space": string} | {"type": "create_space", "space": {"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint"}} | {"type": "play" | "search", "query": string}]}',
+        'Answer with one JSON object: {"reply": string, "actions": [{"type": "switch_space", "space": string} | {"type": "create_space", "space": {"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint", "avoid": []}} | {"type": "play" | "search", "query": string}]}',
       ].join('\n'),
       user: JSON.stringify({ said: request.text, spaces: request.spaces, activeSpace: request.active, templates: request.catalog }),
     };
@@ -146,18 +150,14 @@ export function setupPrompt(request: SetupRequest): AiPrompt {
         VOICE,
         'FocusSpace organises YouTube into Spaces: one per subject someone wants to focus on. Read what the person said — typed or transcribed speech, possibly Hinglish, with typos and filler — and work out every distinct subject they want a Space for.',
         'Rules:',
-        '- A Space name is the subject alone, 1–4 words, Title Case, correctly spelled: "I want to learn system desing so add it" → "System Design". Never include filler like "I want", "add it", "for now", "please", "space", "mode".',
-        '- Languages are named "Learn Spanish", "Learn French", etc.',
-        '- If a subject matches one of the templates, set templateId to that template id and use the template name exactly; otherwise templateId is null.',
-        '- For every Space — templates included — give 8 subtopics (never fewer than 6, at most 10) a learner would move through, beginner to advanced for learning subjects, each with 2–4 short YouTube search keywords; 4–8 Space keywords; a searchHint of 1–3 words; a one-sentence description.',
+        ...SPACE_RULES,
         '- Every subject they mention is its own Space — including a subject mentioned together with a creator. "DSA with Striver" means a DSA Space AND the creator Striver for the DSA Space; never file a creator under a different subject than the one it was said with.',
         '- channels lists creators they named, under the exact name of the Space they belong to (the Space you are creating, or one they already have). A creator entry is the creator’s name only — never the subject, never words like "with" — spelled the way the channel is known on YouTube when you are confident (Striver → "take U forward").',
         'Example: said "I want system design and spanish, and DSA with striver" → spaces System Design, Learn Spanish and DSA (templateId "dsa"); channels [{"space": "DSA", "names": ["take U forward"]}].',
-        `- icon is one of: ${SPACE_ICON_NAMES.join(', ')}. kind is "learning", "media" (music, entertainment) or "general".`,
         '- Skip subjects the person already has a Space for.',
         '- If they did not name any subject or creator (a greeting, a question, "I don’t know"), return no spaces and use reply to ask, in one friendly sentence, what they would like to learn or watch — suggest two or three examples.',
         '- Otherwise reply confirms what you understood in one or two sentences, naming the Spaces, e.g. "Got it — System Design, Learn Spanish and Learn French. I’ll set those up for you now."',
-        'Answer with one JSON object: {"reply": string, "spaces": [{"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint"}], "channels": [{"space": string, "names": [string]}]}',
+        'Answer with one JSON object: {"reply": string, "spaces": [{"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint", "avoid": []}], "channels": [{"space": string, "names": [string]}]}',
       ].join('\n'),
       user: JSON.stringify({ said: request.text, alreadyHas: request.existing, templates: request.catalog }),
     };
@@ -280,6 +280,7 @@ function parsePlan(value: unknown, templateIds: Set<string>): SetupSpacePlan | n
       .slice(0, MAX_TOPICS),
     keywords: strings(value.keywords, 8),
     searchHint: clip(value.searchHint, 40) || name.toLowerCase(),
+    avoid: strings(value.avoid, 8, 30),
   };
 }
 

@@ -171,8 +171,8 @@ CREATE TABLE IF NOT EXISTS anon_usage (
   PRIMARY KEY (key, period)
 );
 
--- Seconds of speech (both directions). \`key\` is a user id with a monthly period ("2026-09"), or a
--- salted anonymous key with a daily one ("2026-09-27") for setup-only guest voice.
+-- Seconds of speech (both directions) per month ("2026-09"). \`key\` is a user id, or a salted
+-- anonymous key ("guest:…") for setup-only voice without an account.
 CREATE TABLE IF NOT EXISTS voice_usage (
   key        TEXT NOT NULL,
   period     TEXT NOT NULL,
