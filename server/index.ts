@@ -156,9 +156,10 @@ const outlineLimiter = new RateLimiter(40, 24 * 60 * 60_000);
  * use as a general-purpose transcription or text-to-speech service.
  */
 const setupLimiter = new RateLimiter(80, 30 * 60_000);
-const listenLimiter = new RateLimiter(40, 30 * 60_000);
-const speakLimiter = new RateLimiter(60, 30 * 60_000);
-const voiceDailyLimiter = new RateLimiter(200, 24 * 60 * 60_000);
+const listenLimiter = new RateLimiter(90, 30 * 60_000);
+// Replies are spoken a sentence or two at a time (so the first is heard sooner): more, smaller calls.
+const speakLimiter = new RateLimiter(240, 30 * 60_000);
+const voiceDailyLimiter = new RateLimiter(900, 24 * 60 * 60_000);
 const voice = loadVoiceConfig();
 /** Reading a setup turn — corrections, several actions at once — needs more care than chat; measured on real turns. */
 const SETUP_MODEL = process.env.SETUP_MODEL ?? 'gpt-4.1-mini';

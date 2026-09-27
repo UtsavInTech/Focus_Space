@@ -75,7 +75,7 @@ const SPACE_RULES = [
 /** Speech recognition mangles creator names; these are the ones learners here name most, and how YouTube knows them. */
 export const KNOWN_CREATORS = ['Telusko', 'take U forward (Striver)', 'CodeHelp - by Babbar', 'Love Babbar', 'Apna College', 'Chai aur Code (Hitesh Choudhary)', 'Harkirat Singh', 'Kunal Kushwaha', 'CodeWithHarry', 'Gaurav Sen', 'Krish Naik', 'freeCodeCamp.org', 'Abdul Bari', 'Jenny\'s Lectures CS IT', 'Neso Academy', 'Gate Smashers', 'Akshay Saini', 'Traversy Media', 'Fireship', 'NeetCode', 'Aditya Verma', 'Coder Army', 'Physics Wallah', 'Dhruv Rathee', 'Karan Aujla'];
 
-const VOICE = 'You are FocusSpace’s setup assistant: warm, brief and human — like a friend helping someone get started, never like a form. Replies are spoken aloud, so write the way people talk: short sentences, no lists, no markdown, no emoji.';
+const VOICE = 'You are FocusSpace’s setup guide: warm, quick and human — a friend helping someone get started, never a form. Replies are spoken aloud: one short sentence, twelve words at most, the way people talk. Open naturally and vary it — "Okay,", "Alright,", "Got it —", "Nice!", "Sure," — never the same opener twice in a row. No lists, markdown or emoji. Never read out results the app will show itself (every subtopic, every channel); just say what you are doing.';
 
 export function setupPrompt(request: SetupRequest): AiPrompt {
   if (request.task === 'turn') {
@@ -102,7 +102,7 @@ export function setupPrompt(request: SetupRequest): AiPrompt {
         '• Web Development → "nah skip, and add a cooking space" → no_channels Web Development; create_space Cooking',
         '• (nothing asked) → "DSA with striver and system design" → create_space DSA with channels ["take U forward"]; create_space System Design with channels []',
         '• DSA → "the Love Babbar channel itself. also add system design with gaurav sen" → add_channels DSA ["Love Babbar"]; create_space System Design with channels ["Gaurav Sen"]',
-        'reply: one or two short spoken sentences saying what you are doing ("Got it — swapping India Telescope Shop for Telusko in DSA."). Never ask the next creator question yourself; the app asks it.',
+        'reply: one short spoken sentence saying what you are doing ("Got it — swapping that for Telusko in DSA.", "Okay! System Design, Spanish and English, coming up."). Never ask the next creator question yourself; the app asks it.',
         'Answer with one JSON object: {"reply": string, "actions": [{"type": "create_space", "channels": [string], "space": {"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint"}} | {"type": "add_channels" | "remove_channels", "space": string, "names": [string]} | {"type": "remove_space" | "no_channels", "space": string}]}',
       ].join('\n'),
       user: JSON.stringify({

@@ -27,7 +27,13 @@ export function ConnectPage() {
     setState('working');
     setError(null);
     const token = await auth.token();
-    if (!token) return; // signed out: the sign-in prompt below is the next step, not an error
+    if (!token) {
+      // The saved session had expired and was refused: sign in again, then come straight back here.
+      // (Returning quietly here is what used to leave "Connecting FocusSpace…" on screen until a reload.)
+      started.current = false;
+      navigate(`/signin?next=${encodeURIComponent('/connect')}`);
+      return;
+    }
     try {
       const { code } = await api.handoffCreate(token, 'extension');
       setState(await sendHandoffToExtension(code));
@@ -38,12 +44,15 @@ export function ConnectPage() {
   }, [auth]);
 
   useEffect(() => {
-    if (!auth.ready || started.current) return;
+    if (!auth.ready) return;
+    // Checked before `started`: a session that dies mid-connect must still lead to the sign-in page.
     if (!auth.user) {
+      started.current = false;
       // Sign in first, then come straight back and finish — never two logins in a row.
       navigate(`/signin?next=${encodeURIComponent('/connect')}`);
       return;
     }
+    if (started.current) return;
     started.current = true;
     void connect();
   }, [auth.ready, auth.user, connect]);
