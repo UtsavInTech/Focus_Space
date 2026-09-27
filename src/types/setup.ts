@@ -52,6 +52,20 @@ export interface SetupPickAnswer {
   picks: (number | null)[];
 }
 
+/** Something FocusSpace AI can do on YouTube for the person (content/ui/ai-commands.ts carries it out). */
+export type CommandAction =
+  | { type: 'switch_space'; space: string }
+  | { type: 'create_space'; space: SetupSpacePlan }
+  /** Find this on YouTube and play the best match. */
+  | { type: 'play'; query: string }
+  /** Show YouTube's results for this. */
+  | { type: 'search'; query: string };
+
+export interface SetupCommandAnswer {
+  reply: string;
+  actions: CommandAction[];
+}
+
 export type SetupRequest =
   /** "I want system design, Spanish and French" → the Spaces to create. */
   | { task: 'spaces'; text: string; existing: string[]; catalog: { id: string; name: string }[] }
@@ -60,7 +74,9 @@ export type SetupRequest =
   /** One turn of the conversation, read against everything so far — including corrections. */
   | { task: 'turn'; text: string; state: SetupTurnState; catalog: { id: string; name: string }[] }
   /** "Telusko" + YouTube's search results → which result is the channel they mean. */
-  | { task: 'pick'; text: string; space: string; items: { name: string; candidates: ChannelCandidate[] }[] };
+  | { task: 'pick'; text: string; space: string; items: { name: string; candidates: ChannelCandidate[] }[] }
+  /** "Change the mode to system design and play Harkirat building an app" → things to do on YouTube. */
+  | { task: 'command'; text: string; spaces: string[]; active: string | null; catalog: { id: string; name: string }[] };
 
 export interface SetupSpacesAnswer {
   /** What the assistant says back, in one or two spoken-style sentences. */
@@ -76,7 +92,7 @@ export interface SetupChannelsAnswer {
   channels: string[];
 }
 
-export type SetupAnswer = SetupSpacesAnswer | SetupChannelsAnswer | SetupTurnAnswer | SetupPickAnswer;
+export type SetupAnswer = SetupSpacesAnswer | SetupChannelsAnswer | SetupTurnAnswer | SetupPickAnswer | SetupCommandAnswer;
 
 /** Longest thing a learner can say or type in one turn. */
 export const SETUP_MAX_TEXT = 1_000;

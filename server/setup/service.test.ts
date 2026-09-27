@@ -105,3 +105,29 @@ describe('choosing a channel from search results', () => {
   });
 });
 
+describe('a FocusSpace AI command', () => {
+  const command: SetupRequest = { task: 'command', text: 'create music and play karan aujla', spaces: ['DSA'], active: 'DSA', catalog: [] };
+  it('keeps create, switch, play and search — and nothing else', () => {
+    expect(
+      parseSetupAnswer(command, {
+        reply: 'Switching to Music and playing it.',
+        actions: [
+          { type: 'create_space', space: { name: 'Music', kind: 'media', icon: 'music' } },
+          { type: 'create_space', space: { name: 'dsa' } },
+          { type: 'switch_space', space: 'Music' },
+          { type: 'play', query: 'Karan Aujla Winning Speech' },
+          { type: 'delete_account' },
+          { type: 'play', query: '' },
+        ],
+      }),
+    ).toMatchObject({
+      reply: 'Switching to Music and playing it.',
+      actions: [{ type: 'create_space', space: { name: 'Music', kind: 'media', icon: 'music' } }, { type: 'switch_space', space: 'Music' }, { type: 'play', query: 'Karan Aujla Winning Speech' }],
+    });
+  });
+
+  it('is not a command when there is nothing to do', () => {
+    expect(parseSetupAnswer(command, { reply: '', actions: [] })).toEqual({ reply: '', actions: [] });
+  });
+});
+

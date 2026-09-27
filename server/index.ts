@@ -318,7 +318,7 @@ const server = createServer(async (req, res) => {
       if (path === SETUP_ROUTE) {
         const request = validateSetupRequest(await readJsonBody(req, SETUP_MAX_BODY_BYTES));
         if (!setupLimiter.attempt(caller)) throw slowDown();
-        const maxTokens = request.task === 'spaces' || request.task === 'turn' ? 2600 : 300;
+        const maxTokens = request.task === 'pick' || request.task === 'channels' ? 300 : 2600;
         const { data } = await callOpenAIJson(setupPrompt(request), { ...config, model: SETUP_MODEL, maxTokens });
         sendJson(res, 200, { ok: true, answer: parseSetupAnswer(request, data) });
         return;

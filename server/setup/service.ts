@@ -1,6 +1,6 @@
 import type { AiPrompt } from '@/learning/ai/actions';
 import { SPACE_ICON_NAMES } from '@/modes/icons';
-import { SETUP_MAX_TEXT, VOICE_MAX_SPEECH_CHARS, type SetupAction, type SetupAnswer, type SetupChannelsAnswer, type SetupPickAnswer, type SetupRequest, type SetupSpacePlan, type SetupSpacesAnswer, type SetupTurnAnswer } from '@/types/setup';
+import { SETUP_MAX_TEXT, VOICE_MAX_SPEECH_CHARS, type CommandAction, type SetupAction, type SetupAnswer, type SetupCommandAnswer, type SetupChannelsAnswer, type SetupPickAnswer, type SetupRequest, type SetupSpacePlan, type SetupSpacesAnswer, type SetupTurnAnswer } from '@/types/setup';
 import { ApiError } from '../http';
 
 /**
@@ -54,6 +54,7 @@ export function validateSetupRequest(body: unknown): SetupRequest {
     if (!items.length) throw new ApiError(400, 'invalid_request', 'Nothing to choose between.');
     return { task: 'pick', text, space: clip(body.space, 40) || 'their Space', items };
   }
+  if (body.task === 'command') return { task: 'command', text, spaces: strings(body.spaces, 60), active: clip(body.active, 40) || null, catalog: catalogOf(body.catalog) };
   throw new ApiError(400, 'invalid_request', 'Unknown task.');
 }
 
@@ -111,6 +112,24 @@ export function setupPrompt(request: SetupRequest): AiPrompt {
       }),
     };
   }
+  if (request.task === 'command') {
+    return {
+      system: [
+        'You are FocusSpace AI inside YouTube. FocusSpace organises YouTube into Spaces (one per subject or mood); the active Space decides what the home page shows. Turn what the person said into actions, in the order they should happen. Reply is spoken or shown: one short, warm sentence saying what you are doing — no lists, no markdown.',
+        '- switch_space: to a Space they have — use its exact name. "Change the mode/mood to music" picks their closest Space.',
+        '- create_space: when they ask for a Space they don’t have ("create a mood music mode"), then switch_space to it. The Space follows these rules:',
+        ...SPACE_RULES.map((r) => '  ' + r),
+        '- play: they want a particular video or song played — query is what to type into YouTube search, specific and clean ("Karan Aujla Winning Speech", "Harkirat building an app"). Fix obvious speech-recognition slips in names.',
+        '- search: they want to browse videos about something, not one video.',
+        '- Frustrated or bored ("I’m tired of DSA, change the mood") without saying to what: switch to their most relaxing or entertaining Space if they have one; otherwise no actions and reply asks what they’d like instead.',
+        '- A question (what, why, how, explain, summarise, "what does this video say…") is never a command, even if it mentions videos: no actions, reply empty. Only an instruction to change, create, play, open or show something is.',
+        'Example: spaces ["DSA", "System Design"], said "change mode to system design and play video of harkirat building the new app" → switch_space System Design; play "Harkirat Singh building new app".',
+        'Example: spaces ["DSA"], said "create one mood music and play karan aujla winning speech" → create_space Music (kind media, icon music); switch_space Music; play "Karan Aujla Winning Speech".',
+        'Answer with one JSON object: {"reply": string, "actions": [{"type": "switch_space", "space": string} | {"type": "create_space", "space": {"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint"}} | {"type": "play" | "search", "query": string}]}',
+      ].join('\n'),
+      user: JSON.stringify({ said: request.text, spaces: request.spaces, activeSpace: request.active, templates: request.catalog }),
+    };
+  }
   if (request.task === 'pick') {
     return {
       system: [
@@ -158,6 +177,24 @@ export function setupPrompt(request: SetupRequest): AiPrompt {
 export function parseSetupAnswer(request: SetupRequest, data: unknown): SetupAnswer {
   const raw = isObject(data) ? data : {};
   const reply = clip(raw.reply, 400);
+  if (request.task === 'command') {
+    const templateIds = new Set(request.catalog.map((c) => c.id));
+    const actions: CommandAction[] = [];
+    for (const a of Array.isArray(raw.actions) ? raw.actions.filter(isObject) : []) {
+      if (a.type === 'create_space') {
+        const plan = parsePlan(a.space, templateIds);
+        if (plan && !request.spaces.some((n) => n.toLowerCase() === plan.name.toLowerCase())) actions.push({ type: 'create_space', space: plan });
+      } else if (a.type === 'switch_space') {
+        const space = clip(a.space, 40);
+        if (space) actions.push({ type: 'switch_space', space });
+      } else if (a.type === 'play' || a.type === 'search') {
+        const query = clip(a.query, 120);
+        if (query) actions.push({ type: a.type, query });
+      }
+    }
+    const answer: SetupCommandAnswer = { reply, actions: actions.slice(0, 6) };
+    return answer;
+  }
   if (request.task === 'pick') {
     const picks = request.items.map((it, i) => {
       const v = Array.isArray(raw.picks) ? raw.picks[i] : null;
