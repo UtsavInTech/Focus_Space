@@ -52,6 +52,7 @@ import { authorizeUrl, createState, exchangeCode, loadGoogleConfig, verifyState 
 import { validateCredentials, validateEmailCode, validateEmailOnly, validatePhoneCode, validatePhoneOnly, validateRefreshRequest, validateSignupCompletion, validateSpaceRequest } from './auth/validate';
 import { RateLimiter } from './auth/rate-limit';
 import { loadSenders } from './notify/sender';
+import { loadReceiptMailer } from './notify/receipt-email';
 import { getUsageDb } from './usage/db';
 import { anonymousKeys, assertAnonymousAllowed, commitUsage, parseInstallId, recordAnonymous, releaseUsage, reserveUsage, usageStatus } from './usage/service';
 import { registerSpace, spaceAllowance, unregisterSpace } from './usage/spaces';
@@ -180,6 +181,17 @@ const TRUST_PROXY = process.env.TRUST_PROXY ? process.env.TRUST_PROXY === '1' : 
 // the development sender, and only returned to the caller when AUTH_DEV_CODES=1 — never in production.
 // See server/notify/sender.ts.
 const senders = loadSenders();
+const receiptMailer = loadReceiptMailer();
+if (!receiptMailer) console.warn('[FocusSpace API] RESEND_API_KEY or MAIL_FROM is unset: buyers get their receipt on the account page only, not by email.');
+
+/** Emails the receipt for a payment just applied. Never awaited by a purchase, never fails one. */
+function emailReceipt(grant: { granted: boolean; paymentId?: string; userId?: string } | null): void {
+  if (!receiptMailer || !grant?.granted || !grant.paymentId || !grant.userId) return;
+  const payment = getUsageDb().getPayment(grant.paymentId);
+  const to = authConfig ? getDb().findUserById(grant.userId)?.email : null;
+  if (!payment || !to) return;
+  void receiptMailer(to, payment).catch((err) => console.error(`[FocusSpace billing] Receipt email for ${grant.paymentId} failed: ${err instanceof Error ? err.message : String(err)}`));
+}
 
 // Payments are optional infrastructure: the API must serve AI, accounts and usage
 // perfectly well on a deployment where Razorpay is not configured yet — which is
@@ -265,6 +277,7 @@ const server = createServer(async (req, res) => {
       // Always 200 once the signature checks out: an event we do not act on is not a
       // failure, and Razorpay retries anything else for days.
       const grant = await applyWebhook(getUsageDb(), event, Date.now(), razorpay);
+      emailReceipt(grant);
       sendJson(res, 200, { ok: true, applied: !!grant?.granted });
       return;
     }
@@ -646,6 +659,7 @@ const server = createServer(async (req, res) => {
           period: String(body.period ?? ''),
           currency: String(body.currency ?? ''),
         });
+        emailReceipt(grant);
         sendJson(res, 200, { ok: true, ...grant });
         return;
       }
@@ -668,6 +682,7 @@ const server = createServer(async (req, res) => {
           period: String(body.period ?? ''),
           currency: String(body.currency ?? ''),
         });
+        emailReceipt(grant);
         sendJson(res, 200, { ok: true, ...grant });
         return;
       }

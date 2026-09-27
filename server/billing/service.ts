@@ -308,6 +308,9 @@ export interface Grant {
   granted: boolean;
   /** True while a subscription will renew this by itself. */
   autoRenew: boolean;
+  /** The payment just applied, when `granted`: who paid, for the receipt email. */
+  paymentId?: string;
+  userId?: string;
 }
 
 /**
@@ -340,7 +343,7 @@ export function grantPlan(db: UsageDb, input: GrantInput, now = Date.now()): Gra
   if (input.period === 'lifetime') {
     if (fresh) db.setLifetimePlan(input.userId, input.planId, now);
     const after = db.getEntitlement(input.userId);
-    return { plan: effectivePlan(after, now) as PlanId, expiresAt: after?.expires_at ?? null, granted: fresh, autoRenew: after?.auto_renew === 1 };
+    return { plan: effectivePlan(after, now) as PlanId, expiresAt: after?.expires_at ?? null, granted: fresh, autoRenew: after?.auto_renew === 1, ...(fresh ? { paymentId: input.paymentId, userId: input.userId } : {}) };
   }
   if (!fresh) return standing(); // Already applied. Report the entitlement as it stands rather than adding to it.
 
@@ -356,7 +359,7 @@ export function grantPlan(db: UsageDb, input: GrantInput, now = Date.now()): Gra
   const autoRenew = input.subscriptionId ? true : input.startsNow ? false : current?.auto_renew === 1;
   db.setPlan(input.userId, input.planId, now, expiresAt, input.paymentId, subscriptionId, autoRenew);
   if (PLUS_INCLUDES_BASIC && input.planId === 'plus' && !current?.lifetime_plan) db.setLifetimePlan(input.userId, 'basic', now);
-  return { plan: input.planId, expiresAt, granted: true, autoRenew };
+  return { plan: input.planId, expiresAt, granted: true, autoRenew, paymentId: input.paymentId, userId: input.userId };
 }
 
 /**
