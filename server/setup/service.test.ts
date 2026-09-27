@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseSetupAnswer, setupPrompt, validateSetupRequest, validateSpeechText } from './service';
-import type { SetupRequest } from '@/types/setup';
+import type { SetupRequest, SetupTurnAnswer } from '@/types/setup';
 
 const spacesRequest: SetupRequest = { task: 'spaces', text: 'system design, spanish', existing: ['DSA'], catalog: [{ id: 'spanish', name: 'Learn Spanish' }] };
 
@@ -128,6 +128,18 @@ describe('a FocusSpace AI command', () => {
 
   it('is not a command when there is nothing to do', () => {
     expect(parseSetupAnswer(command, { reply: '', actions: [] })).toEqual({ reply: '', actions: [] });
+  });
+});
+
+describe('creators said together with a new subject', () => {
+  it('become an add for that Space, after it is created — once', () => {
+    const turn: SetupRequest = { task: 'turn', text: 'system design with gaurav sen', state: { spaces: [], asking: null }, catalog: [] };
+    expect(
+      parseSetupAnswer(turn, { reply: 'ok', actions: [{ type: 'create_space', channels: ['Gaurav Sen'], space: { name: 'System Design' } }] }),
+    ).toMatchObject({ actions: [{ type: 'create_space', space: { name: 'System Design' } }, { type: 'add_channels', space: 'System Design', names: ['Gaurav Sen'] }] });
+    expect(
+      (parseSetupAnswer(turn, { reply: 'ok', actions: [{ type: 'create_space', channels: ['Gaurav Sen'], space: { name: 'System Design' } }, { type: 'add_channels', space: 'System Design', names: ['Gaurav Sen'] }] }) as SetupTurnAnswer).actions.filter((a) => a.type === 'add_channels'),
+    ).toHaveLength(1);
   });
 });
 

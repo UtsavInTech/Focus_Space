@@ -84,7 +84,7 @@ export function setupPrompt(request: SetupRequest): AiPrompt {
         VOICE,
         'FocusSpace organises YouTube into Spaces — one per subject someone wants to focus on — and each Space can have favourite creators (YouTube channels). You are in the middle of setting this up with someone. Each turn you get what they just said (typed, or speech-to-text: possibly Hinglish, with typos and misheard names), every Space they have with the creators already in it, and the question you last asked. Decide what to do as a list of actions, and what to say.',
         'Actions:',
-        '- create_space: for every new subject they want (never one they already have). The Space follows these rules:',
+        '- create_space: for every new subject they want (never one they already have), with channels: the creators they named for that subject in the same breath ("system design with gaurav sen" → channels ["Gaurav Sen"]), or []. The Space follows these rules:',
         ...SPACE_RULES.map((r) => '  ' + r),
         '- add_channels: creators to add, under the exact name of the Space they belong to — one they have or one you are creating in this same answer. A name is the creator alone (never the subject, never "with"). Speech recognition often mishears creator names: in a programming Space "telescope" is Telusko, "striver" is take U forward, "hit esh" is Hitesh Choudhary. Well-known creators: ' + KNOWN_CREATORS.join(', ') + '.',
         '- remove_channels: when they take a creator back or correct one — "not Telescope, Telusko", "wait, in DSA I said Telusko", "remove X from DSA". Look at that Space’s current creators to find the wrong one (e.g. "India Telescope Shop" is the mistaken "Telescope") and remove it by its exact current name, then add_channels the right one.',
@@ -92,7 +92,7 @@ export function setupPrompt(request: SetupRequest): AiPrompt {
         '- no_channels: they answered the creator question for a Space with no, skip, none, not really, you choose.',
         '- A correction about one Space does not answer the question about another — if you asked about System Design and they fixed DSA, do not answer for System Design.',
         '- A bare name (or names) answers the question you asked: it goes to the Space in answeringFor, never another one.',
-        '- Never drop a creator they named. If you are unsure of the spelling, keep it as they said it.',
+        '- Never drop a creator they named. If you are unsure of the spelling, keep it as they said it. Before answering, check: every creator named anywhere in what they said appears in exactly one add_channels — including creators said together with a new subject in the same breath.',
         '- Every Space in spaces already exists — never create it again, never say you will.',
         '- Greeting, question or nothing actionable: no actions; reply answers briefly and asks what they would like.',
         'Examples (answeringFor → said → actions):',
@@ -100,9 +100,10 @@ export function setupPrompt(request: SetupRequest): AiPrompt {
         '• System Design → "gaurav sen, and remove apna college from DSA" → add_channels System Design ["Gaurav Sen"]; remove_channels DSA ["Apna College"]',
         '• System Design → "wait, in DSA I said Telusko" (DSA has India Telescope Shop) → remove_channels DSA ["India Telescope Shop"]; add_channels DSA ["Telusko"] — System Design is still unanswered',
         '• Web Development → "nah skip, and add a cooking space" → no_channels Web Development; create_space Cooking',
-        '• (nothing asked) → "DSA with striver and system design" → create_space DSA; create_space System Design; add_channels DSA ["take U forward"]',
+        '• (nothing asked) → "DSA with striver and system design" → create_space DSA with channels ["take U forward"]; create_space System Design with channels []',
+        '• DSA → "the Love Babbar channel itself. also add system design with gaurav sen" → add_channels DSA ["Love Babbar"]; create_space System Design with channels ["Gaurav Sen"]',
         'reply: one or two short spoken sentences saying what you are doing ("Got it — swapping India Telescope Shop for Telusko in DSA."). Never ask the next creator question yourself; the app asks it.',
-        'Answer with one JSON object: {"reply": string, "actions": [{"type": "create_space", "space": {"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint"}} | {"type": "add_channels" | "remove_channels", "space": string, "names": [string]} | {"type": "remove_space" | "no_channels", "space": string}]}',
+        'Answer with one JSON object: {"reply": string, "actions": [{"type": "create_space", "channels": [string], "space": {"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint"}} | {"type": "add_channels" | "remove_channels", "space": string, "names": [string]} | {"type": "remove_space" | "no_channels", "space": string}]}',
       ].join('\n'),
       user: JSON.stringify({
         said: request.text,
@@ -208,12 +209,16 @@ export function parseSetupAnswer(request: SetupRequest, data: unknown): SetupAns
     const had = new Set(request.state.spaces.map((sp) => sp.name.toLowerCase()));
     const creating = new Set<string>();
     const actions: SetupAction[] = [];
+    const later: SetupAction[] = [];
     for (const a of Array.isArray(raw.actions) ? raw.actions.filter(isObject) : []) {
       if (a.type === 'create_space') {
         const plan = parsePlan(a.space, templateIds);
         if (!plan || had.has(plan.name.toLowerCase()) || creating.has(plan.name.toLowerCase()) || creating.size >= MAX_SPACES) continue;
         creating.add(plan.name.toLowerCase());
         actions.push({ type: 'create_space', space: plan });
+        // Creators said with the subject travel with it, then become an ordinary add once it exists.
+        const names = strings(a.channels, MAX_CHANNELS, 80);
+        if (names.length) later.push({ type: 'add_channels', space: plan.name, names });
         continue;
       }
       const space = clip(a.space, 40);
@@ -225,7 +230,10 @@ export function parseSetupAnswer(request: SetupRequest, data: unknown): SetupAns
         actions.push({ type: a.type, space });
       }
     }
-    const answer: SetupTurnAnswer = { reply: reply || (actions.length ? 'Okay.' : 'What would you like to learn or watch?'), actions: actions.slice(0, 20) };
+    // Skip a carried creator the model also listed on its own, so nobody is looked up twice.
+    const extra = later.filter((l) => l.type === 'add_channels' && !actions.some((a) => a.type === 'add_channels' && a.space.toLowerCase() === l.space.toLowerCase()));
+    const all = [...actions, ...extra];
+    const answer: SetupTurnAnswer = { reply: reply || (all.length ? 'Okay.' : 'What would you like to learn or watch?'), actions: all.slice(0, 20) };
     return answer;
   }
   if (request.task === 'channels') {
