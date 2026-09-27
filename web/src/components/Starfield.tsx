@@ -13,6 +13,9 @@ import { useEffect, useRef, type RefObject } from 'react';
  * pixels however tall the section is — and nothing at all once it has scrolled away.
  */
 
+/** About 30 frames a second. */
+const FRAME_MS = 1000 / 30 - 2;
+
 interface Meteor {
   x: number;
   y: number;
@@ -69,7 +72,9 @@ export function Starfield({ progress }: { progress: RefObject<number> }) {
     let visible = false;
 
     const resize = () => {
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      // One device pixel per CSS pixel, even on a Retina screen: the stars are soft dots and look the same,
+      // and a screen-sized canvas redrawn while the page scrolls costs a quarter as much.
+      const dpr = 1;
       width = canvas.clientWidth;
       height = canvas.clientHeight;
       canvas.width = Math.round(width * dpr);
@@ -160,6 +165,11 @@ export function Starfield({ progress }: { progress: RefObject<number> }) {
 
     const tick = (now: number) => {
       frame = 0;
+      // Thirty frames a second is smooth for twinkling and slow meteors, and leaves the rest of each frame to scrolling.
+      if (last && now - last < FRAME_MS) {
+        if (visible) frame = requestAnimationFrame(tick);
+        return;
+      }
       // A long gap (a background tab) resumes rather than releasing a burst of owed stars at once.
       const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
       last = now;

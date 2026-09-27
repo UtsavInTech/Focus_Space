@@ -19,7 +19,8 @@ interface Props {
 
 export function PricingSection({ currency, onCurrency, compact, showCredits }: Props) {
   const auth = useAuth();
-  const [period, setPeriod] = useState<RecurringPeriod>('annual');
+  // Monthly first: the price people compare is the monthly one, and a yearly per-month figure next to it misleads.
+  const [period, setPeriod] = useState<RecurringPeriod>('monthly');
   /** What this account would pay today for each plan (upgrade credit, the Basic offer). Visitors see list prices. */
   const [prices, setPrices] = useState<api.QuoteOrRefusal[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
@@ -227,6 +228,9 @@ function PlanCard({
   const comingSoon = Boolean(plan.comingSoon);
   const refusal = price && 'error' in price ? price.error : null;
   const credit = price && !('error' in price) && price.creditMinor > 0 ? price : null;
+  // ₹149 for Plus is Basic for life plus a first month of Plus — for anyone who doesn't own Basic yet.
+  // Visitors see it too: the server's quote, once signed in, says whether it still applies.
+  const bundle = plan.id === 'plus' && (price ? !('error' in price) && price.includesBasic : current === null);
   const lower = current !== null && !lifetime && PLAN_RANK[plan.id] < PLAN_RANK[current as keyof typeof PLAN_RANK];
   // Offering "Get Pro" to someone already on Pro is the bug this replaces.
   const label = isCurrent ? (lifetime ? 'Yours for life' : 'Your plan') : comingSoon ? 'Coming soon' : lower ? `Switch to ${plan.name}` : credit ? `${plan.cta} for ${formatAmount({ inr: credit.chargeMinor / 100, usd: credit.chargeMinor / 100 }, currency)}` : plan.cta;
@@ -285,6 +289,11 @@ function PlanCard({
         </button>
       )}
 
+      {bundle && !isCurrent && (
+        <p className="fsw-plan-bonus">
+          New here? {formatAmount(plan.price!.monthly, currency)} gets you <b>Basic for life</b> ({formatAmount(PLANS.find((p) => p.id === 'basic')!.oneTime!, currency)}) plus your first month of Plus.
+        </p>
+      )}
       <ul className="fsw-plan-features">
         {(compact ? plan.features.slice(0, 4) : plan.features).map((f) => (
           <li key={f}>

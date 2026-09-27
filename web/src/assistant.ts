@@ -60,9 +60,38 @@ const KNOWLEDGE: Entry[] = [
     keywords: ['price', 'pricing', 'cost', 'plan', 'plans', 'much', 'rupees', 'inr', 'dollar', 'usd', 'subscription', 'pay', 'paid', 'money', 'upi', 'razorpay'],
     title: 'What FocusSpace costs',
     body: `${PLANS.filter((p) => !p.unlisted)
-      .map((p) => (p.oneTime ? `${p.name}: ${formatAmountless(p.oneTime)} once, for life. ${p.tagline}` : `${p.name}: ${formatAmountless(p.price!.monthly)} a month. ${p.tagline}`))
+      .map((p) => (p.oneTime ? `${p.name}: ${formatAmountless(p.oneTime)} once. ${p.tagline}` : `${p.name}: ${formatAmountless(p.price!.monthly)} a month. ${p.tagline}`))
       .join('\n')}\n\nMoving up later, you only pay the difference. You can also start free: ${GUEST_SPACE_LIMIT} Spaces without an account, ${FREE_SPACE_LIMIT} with a free account, and a small daily AI allowance. Indian visitors are charged in rupees through UPI or card; the dollar price is the headline everywhere.`,
     actions: [{ label: 'See full pricing', href: '/pricing' }],
+  },
+  {
+    keywords: ['quiz', 'quizzes', 'questions', 'test', 'jev', 'typesafe', 'check', 'checked', 'accurate', 'wrong', 'answer', 'answers', 'mcq'],
+    title: 'How Quiz me works, and why you can trust it',
+    body: `Quiz me asks on what you have watched so far, or the whole video: five questions for every fifteen minutes, one round at a time. Every question is checked before you see it. Jev, a decision model from TypeSafe, solves each one on its own without seeing the answer. When Jev disagrees or is unsure, a reasoning model traces it step by step: a wrong answer key is corrected, and a question with no right option, or two, is dropped. Code questions are traced exactly as the code runs. Quiz me needs a free account: ${planById('free').limits.quizQuestions} questions a month free, ${planById('basic').limits.quizQuestions} on Basic, ${planById('plus').limits.quizQuestions} on Plus and ${planById('pro').limits.quizQuestions} on Pro, where you also choose Easy, Medium or Hard and keep score.`,
+    actions: [{ label: 'See how it works', href: '/#feature-quiz' }],
+  },
+  {
+    keywords: ['model', 'models', 'gpt', 'openai', 'chatgpt', 'gemini', 'claude', 'llm', 'jev', 'which', 'ai', 'powered'],
+    title: 'Which AI models FocusSpace uses',
+    body: 'Explanations, chat, notes and mind maps run on OpenAI models on our own servers, so you never need a key. Quiz questions are checked by Jev, TypeSafe’s decision model, reached through OpenRouter, with a reasoning model settling the hard cases. Voice uses OpenAI’s speech models. FocusSpace does not use Gemini. If you would rather nothing left your browser, Chrome’s built-in on-device model is also supported.',
+    actions: [{ label: 'What leaves your browser', href: '/privacy' }],
+  },
+  {
+    keywords: ['basic', 'lifetime', 'life', 'once', 'forever', '99', 'cheap', 'cheapest', 'one', 'time'],
+    title: 'Basic, for life',
+    body: `Basic is ${formatAmountless(planById('basic').oneTime!)} once and never expires: ${planById('basic').limits.modes} Spaces, choosing the channels in every Space, ${planById('basic').limits.savedNotes} saved notes and mind maps, and ${planById('basic').limits.aiCreditsPerDay} AI credits a day. It stays on your account underneath any plan you buy later, so when that plan ends you are back on Basic, not Free. New here? Your first month of Plus includes Basic for life.`,
+    actions: [{ label: 'See plans', href: '/pricing' }],
+  },
+  {
+    keywords: ['upgrade', 'upgrading', 'switch', 'change', 'difference', 'prorate', 'prorated', 'credit', 'downgrade', 'cancel', 'refund'],
+    title: 'Changing plans',
+    body: 'Moving up, you only pay the difference: whatever is left of your current plan is taken off the new price, and the new plan starts that day. Basic owners get their first month of Plus for less. Moving down happens when your current period ends, since those days are already paid for. Turning off renewal is one click on your account page, and you keep every day you paid for.',
+    actions: [{ label: 'See plans', href: '/pricing' }],
+  },
+  {
+    keywords: ['voice', 'talk', 'speak', 'microphone', 'mic', 'hands', 'free', 'listen', 'aloud', 'dictate'],
+    title: 'Talking to FocusSpace',
+    body: `Tap Talk and just say it: set up your Spaces, ask about the lecture, switch Space or open a video. FocusSpace listens and answers out loud. A free account includes ${planById('free').limits.voiceMinutes} minutes of voice a month, and paid plans more. We keep only how many seconds you used, never the recording.`,
   },
   {
     keywords: ['credit', 'credits', 'quota', 'allowance', 'limit', 'limits', 'usage'],
@@ -90,7 +119,7 @@ const KNOWLEDGE: Entry[] = [
 ];
 
 const FALLBACK: AssistantReply = {
-  text: 'I can answer anything about FocusSpace itself: what a mode is, what it costs in dollars or rupees, how credits work, what leaves your browser, or how to install it. Ask me one of those, or have a look around the page.',
+  text: 'I can answer anything about FocusSpace itself: what a mode is, what it costs, how quizzes are checked, which AI it uses, what leaves your browser, or how to install it. Ask me one of those, or have a look around the page.',
   actions: [
     { label: 'See pricing', href: '/pricing' },
     { label: 'Read the FAQ', href: '/#faq' },
@@ -98,7 +127,7 @@ const FALLBACK: AssistantReply = {
 };
 
 /** Suggested openers, shown before the visitor has typed anything. */
-export const SUGGESTIONS = ['What is FocusSpace?', 'How much does it cost?', 'Do I need an API key?', 'What is a mode?'];
+export const SUGGESTIONS = ['What is FocusSpace?', 'How much does it cost?', 'How are quizzes checked?', 'What is Basic?'];
 
 function score(entry: Entry, queryTokens: string[]): number {
   if (!queryTokens.length) return 0;

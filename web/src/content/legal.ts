@@ -30,7 +30,7 @@ export interface LegalDoc {
   sections: LegalSection[];
 }
 
-const UPDATED = '19 September 2026';
+const UPDATED = '27 September 2026';
 const CONTACT = 'utsav.udk@gmail.com';
 
 export const PRIVACY: LegalDoc = {
@@ -72,6 +72,7 @@ export const PRIVACY: LegalDoc = {
         'The names and identifiers of spaces you create while signed in, so your plan’s space allowance can be enforced. The contents of those spaces stay in your browser.',
         'Active-use counts: a salted hash of the install identifier and the dates it was used. It cannot be linked to your account, your address or anything you watched, and it is used only to count daily, weekly and monthly users.',
         'Voice usage: how many seconds of voice you used each month, so your plan’s voice allowance applies (signed out, against the same hashed install identifier). We never keep the recordings, or what was said.',
+        'Quiz usage: how many Quiz me questions you were shown each month, so your plan’s quiz allowance applies. Not the questions, and not your answers.',
       ],
     },
     {
@@ -121,12 +122,14 @@ export const TERMS: LegalDoc = {
     {
       heading: 'Plans and payment',
       body: [
-        'Paid plans grant access for the period you buy (one month or twelve months), starting when the payment succeeds.',
-        'You choose at checkout whether the plan renews automatically. If it does, we charge the same amount each period until you stop it, and you can stop it at any time from your account page. If it does not, the plan simply ends and the account returns to the Free plan.',
+        'Basic is a single payment that never expires. It stays on your account for as long as the service runs, underneath any other plan you buy.',
+        'Other paid plans grant access for the period you buy (one month or twelve months), starting when the payment succeeds. If you do not own Basic yet, your first Plus payment includes it.',
+        'You choose at checkout whether the plan renews automatically. If it does, we charge the same amount each period until you stop it, and you can stop it at any time from your account page. If it does not, the plan simply ends and the account returns to Basic if you own it, otherwise to the Free plan.',
+        'Moving to a higher plan during a paid period, you pay only the difference: what is left of the current period is taken off the new price, and the new plan starts that day. Moving to a lower plan takes effect when the current period ends.',
         'When a plan ends, for either reason, nothing is deleted.',
         'Prices are shown in US dollars and, for customers in India, charged in Indian rupees through Razorpay. The rupee amount shown at checkout is what you are charged.',
         'We may change prices, but never for a period you have already paid for.',
-        'AI allowances are counted in credits and reset each calendar month. Unused credits do not carry over.',
+        'AI allowances are counted in credits and reset each calendar month; the Free plan and Basic also have a daily limit, counted over the last 24 hours. Quiz me is counted in questions shown each month. Unused allowances do not carry over.',
       ],
     },
     {

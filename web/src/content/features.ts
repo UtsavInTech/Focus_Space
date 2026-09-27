@@ -50,6 +50,19 @@ export const FEATURES: Feature[] = [
     ],
   },
   {
+    id: 'guide',
+    stage: 'before',
+    label: 'Set up by talking',
+    headline: 'Tell it what you study. It sets everything up.',
+    body: 'The first time you open YouTube, the FocusSpace guide asks one question. Answer in a sentence, like “DSA with Love Babbar and Apna College, and Spanish”, and it creates each Space, adds those creators, and brings in the channels you already follow.',
+    points: [
+      'Type it, or tap Talk and just say it: FocusSpace listens and answers out loud',
+      'Stuck later? Ask FocusSpace AI to switch Space or open a video for you',
+      'Rather do it yourself? Skip, and set things up one by one',
+    ],
+    shots: [],
+  },
+  {
     id: 'feed',
     stage: 'before',
     label: 'Your feed',
@@ -97,16 +110,29 @@ export const FEATURES: Feature[] = [
     id: 'ai',
     stage: 'during',
     label: 'Ask AI',
-    headline: 'An AI that only sees the moment you are in.',
-    body: 'Explain this · Example · Quiz me, and a chat about the video. It runs only when you click it, and it receives the current concept and a short transcript window, never your history, your subscriptions or the whole video.',
+    headline: 'An AI that knows the lecture you are in.',
+    body: 'Explain this, Give an example, or ask FocusSpace AI anything about the video, by typing or out loud. It runs only when you ask, and it sees the concept you are on and the part of the transcript that teaches it, never your history or your subscriptions.',
     points: [
       'Nothing happens during playback: no requests, no cost, no lag',
-      'Quizzes test the subject, not whether you memorised the lecture numbering',
+      'Talk to it hands-free, and hear the answer read back',
       'No API key to bring. It works the moment you install it.',
     ],
     shots: [
       { name: '06-ask-ai', alt: 'FocusSpace AI answering on YouTube’s home in a System Design Space, recommending specific lectures', caption: 'FocusSpace AI, on YouTube’s home' },
     ],
+  },
+  {
+    id: 'quiz',
+    stage: 'after',
+    label: 'Quizzes you can trust',
+    headline: 'Every question is checked before you see it.',
+    body: 'Quiz me asks on what you have watched so far, or the whole video: five questions for every fifteen minutes, one round at a time. Each question is written, then checked by Jev, a decision model from TypeSafe, which solves it on its own without seeing the answer. Anything Jev is unsure about goes to a reasoning model that traces it step by step: a wrong answer is corrected, and a question with no right option, or two, never reaches you.',
+    points: [
+      'Code is traced exactly as it runs: printf("%d") over {6, 2, 0, 4, 5} prints 62045, not 6 2 0 4 5',
+      'Questions about the subject, never about the lecture numbering',
+      'Easy, Medium or Hard, with your score, on Plus and above',
+    ],
+    shots: [],
   },
   {
     id: 'notes',

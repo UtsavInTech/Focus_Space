@@ -69,8 +69,8 @@ export function FeatureJourney() {
     <section className="fsw-section fsw-journey" id="features">
       <Starfield progress={progressRef} />
       <div className="fsw-section-head" data-reveal>
-        <h2>One extension, the whole way through a course</h2>
-        <p>From picking what you are learning to the notes you revise from the night before.</p>
+        <h2>Set it up by talking. Learn from every lecture. Prove it with a quiz.</h2>
+        <p>FocusSpace shapes YouTube around your subject, explains the lecture you are in, and checks what you have learned, all inside the YouTube you already use.</p>
       </div>
 
       <div className="fsw-journey-body" ref={bodyRef}>

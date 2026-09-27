@@ -193,6 +193,8 @@ export interface Quote {
   chargeMinor: number;
   creditNote: string | null;
   startsNow: boolean;
+  /** Someone new buying Plus: Basic for life comes with it. */
+  includesBasic: boolean;
 }
 export type QuoteOrRefusal = Quote | { planId: PlanId; period: Quote['period']; error: string };
 
