@@ -40,11 +40,13 @@ export interface Plan {
   /**
    * Limits the product enforces — the only ones it has. `null` means unlimited.
    * `modes` is the number of Spaces an account may keep (server/usage/spaces.ts);
-   * `aiCredits` is the monthly allowance in the units of server/usage/cost.ts.
+   * `aiCredits` is the monthly allowance in the units of server/usage/cost.ts; `voiceMinutes` is the
+   * monthly allowance of speech — yours and FocusSpace's together (server/usage/voice.ts).
    */
   limits: {
     modes: number | null;
     aiCredits: number | null;
+    voiceMinutes: number;
   };
   /** Only what the product actually does today — pricing, FAQ and the extension quote this list. */
   features: string[];
@@ -75,18 +77,28 @@ export const GUEST_DAILY_AI_CREDITS = 10;
 export const FREE_SPACE_LIMIT = 5;
 export const FREE_MONTHLY_AI_CREDITS = 200;
 
+/**
+ * Talking costs real money per second — the natural voice most of all (about ₹1.3 a minute at worst) —
+ * so it is the one thing no plan gets without limit. Each paid plan's minutes are sized to cost at most
+ * about a fifth of what the plan brings in after GST and fees; Free gets a taste. Without an account,
+ * voice is for setting up only (the guide), capped per day.
+ */
+export const FREE_MONTHLY_VOICE_MINUTES = 10;
+export const GUEST_SETUP_VOICE_MINUTES_PER_DAY = 5;
+
 export const PLANS: Plan[] = [
   {
     id: 'free',
     name: 'Free',
     tagline: 'Everything that makes YouTube usable again, at no cost.',
     price: { monthly: { usd: 0, inr: 0 }, annual: { usd: 0, inr: 0 } },
-    limits: { modes: FREE_SPACE_LIMIT, aiCredits: FREE_MONTHLY_AI_CREDITS },
+    limits: { modes: FREE_SPACE_LIMIT, aiCredits: FREE_MONTHLY_AI_CREDITS, voiceMinutes: FREE_MONTHLY_VOICE_MINUTES },
     features: [
       `${GUEST_SPACE_LIMIT} Spaces without an account, ${FREE_SPACE_LIMIT} with a free account`,
       'Relevance-ranked subscriptions and discovery',
       'Learning path, knowledge map and Shorts removal',
       `${FREE_MONTHLY_AI_CREDITS} AI credits a month with a free account (${GUEST_DAILY_AI_CREDITS} a day without one)`,
+      `Talk to FocusSpace — ${FREE_MONTHLY_VOICE_MINUTES} minutes of voice a month with a free account`,
       'Notes and mind maps in English, हिंदी or Hinglish',
     ],
     cta: 'Add to Chrome — Free',
@@ -97,8 +109,8 @@ export const PLANS: Plan[] = [
     tagline: 'For one subject you are serious about.',
     // Annual totals are 12 x a .99 monthly figure, so the "/month" line stays clean: $2.99 / ₹199.
     price: { monthly: { usd: 3.99, inr: 299 }, annual: { usd: 35.88, inr: 2388 } },
-    limits: { modes: 15, aiCredits: 2000 },
-    features: ['Everything in Free', '15 Spaces', '2,000 AI credits a month', 'Email support'],
+    limits: { modes: 15, aiCredits: 2000, voiceMinutes: 30 },
+    features: ['Everything in Free', '15 Spaces', '2,000 AI credits a month', '30 minutes of voice a month', 'Email support'],
     cta: 'Get Pro',
   },
   {
@@ -107,8 +119,8 @@ export const PLANS: Plan[] = [
     tagline: 'For everything you are learning at once.',
     price: { monthly: { usd: 7.99, inr: 599 }, annual: { usd: 71.88, inr: 4788 } },
     featured: true,
-    limits: { modes: null, aiCredits: null },
-    features: ['Everything in Free', 'Unlimited Spaces', 'Unlimited AI credits', 'Priority support'],
+    limits: { modes: null, aiCredits: null, voiceMinutes: 75 },
+    features: ['Everything in Free', 'Unlimited Spaces', 'Unlimited AI credits', '75 minutes of voice a month', 'Priority support'],
     cta: 'Get Unlimited',
   },
   {
@@ -116,9 +128,10 @@ export const PLANS: Plan[] = [
     name: 'Max',
     tagline: 'Everything in Unlimited, for people who want to back FocusSpace.',
     price: { monthly: { usd: 19.99, inr: 1499 }, annual: { usd: 179.88, inr: 11988 } },
-    limits: { modes: null, aiCredits: null },
+    limits: { modes: null, aiCredits: null, voiceMinutes: 240 },
     features: [
       'Everything in Unlimited',
+      '4 hours of voice a month',
       'Choose your AI model',
       'Advanced AI models',
       'Multiple mind-map formats',
@@ -163,7 +176,7 @@ export function annualSavingPercent(plan: Plan, currency: CurrencyCode = 'USD'):
  * marketing abstraction of it.
  */
 export const CREDIT_COSTS: { action: string; credits: number }[] = [
-  { action: 'Ask about this moment, or a chat turn', credits: 1 },
+  { action: 'A chat message', credits: 1 },
   { action: 'What am I learning? · Example', credits: 1 },
   { action: 'Explain this · Quiz me', credits: 2 },
   { action: 'Notes or a mind map', credits: 3 },

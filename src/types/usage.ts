@@ -10,4 +10,6 @@ export interface UsageStatusView {
   used: number;
   /** `null` is unlimited (Infinity does not survive JSON), never "unknown". */
   limit: number | null;
+  /** Seconds of speech this month, and the plan's allowance (server/usage/voice.ts). Absent from older servers. */
+  voice?: { usedSeconds: number; limitSeconds: number };
 }

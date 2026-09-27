@@ -171,6 +171,16 @@ CREATE TABLE IF NOT EXISTS anon_usage (
   PRIMARY KEY (key, period)
 );
 
+-- Seconds of speech (both directions). \`key\` is a user id with a monthly period ("2026-09"), or a
+-- salted anonymous key with a daily one ("2026-09-27") for setup-only guest voice.
+CREATE TABLE IF NOT EXISTS voice_usage (
+  key        TEXT NOT NULL,
+  period     TEXT NOT NULL,
+  seconds    INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (key, period)
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS usage_events_user_idem_idx ON usage_events(user_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
 CREATE INDEX IF NOT EXISTS usage_events_user_period_idx ON usage_events(user_id, period);
 `;
@@ -377,6 +387,17 @@ export class UsageDb {
 
   release(id: string, at: number): void {
     this.db.prepare(`UPDATE usage_events SET status = 'failed', updated_at = ? WHERE id = ?`).run(at, id);
+  }
+
+  voiceSeconds(key: string, period: string): number {
+    const row = this.db.prepare('SELECT seconds FROM voice_usage WHERE key = ? AND period = ?').get(key, period) as { seconds: number } | undefined;
+    return row?.seconds ?? 0;
+  }
+
+  addVoiceSeconds(key: string, period: string, seconds: number, now = Date.now()): void {
+    this.db
+      .prepare('INSERT INTO voice_usage (key, period, seconds, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(key, period) DO UPDATE SET seconds = seconds + excluded.seconds, updated_at = excluded.updated_at')
+      .run(key, period, Math.max(0, Math.round(seconds)), now);
   }
 }
 

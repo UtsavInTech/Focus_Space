@@ -22,7 +22,7 @@ describe('the price book advertises only what exists', () => {
   });
 
   it('carries only the limits the product enforces', () => {
-    for (const plan of PLANS) expect(Object.keys(plan.limits).sort()).toEqual(['aiCredits', 'modes']);
+    for (const plan of PLANS) expect(Object.keys(plan.limits).sort()).toEqual(['aiCredits', 'modes', 'voiceMinutes']);
   });
 
   it('Free is 3 Spaces without an account and 5 with one', () => {

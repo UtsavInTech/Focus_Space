@@ -52,6 +52,7 @@ import { loadSenders } from './notify/sender';
 import { getUsageDb } from './usage/db';
 import { anonymousKeys, assertAnonymousAllowed, commitUsage, parseInstallId, recordAnonymous, releaseUsage, reserveUsage, usageStatus } from './usage/service';
 import { registerSpace, spaceAllowance, unregisterSpace } from './usage/spaces';
+import { assertVoiceAllowed, parsePurpose, recordVoice, secondsHeard, secondsToSay, voiceStatus, type VoiceCaller } from './usage/voice';
 import { resolvePlan } from './usage/entitlements';
 import { loadRazorpayConfig, verifyWebhookSignature } from './billing/razorpay';
 import { applyWebhook, cancelPlan, confirmPayment, confirmSubscription, startCheckout, startSubscription } from './billing/service';
@@ -315,6 +316,9 @@ const server = createServer(async (req, res) => {
       const identity = authConfig ? tryAuthenticate(getDb(), authConfig, req.headers.authorization) : null;
       const caller = identity?.user.id ?? parseInstallId(req.headers['x-focusspace-install']) ?? clientIp(req, TRUST_PROXY);
       const slowDown = () => new ApiError(429, 'rate_limited', 'That’s a lot of talking for one setup — give it a few minutes and try again.');
+      // Voice is metered per account (monthly) or, signed out, per install (daily, setup only) — server/usage/voice.ts.
+      const voiceCaller = (): VoiceCaller =>
+        identity ? { kind: 'user', userId: identity.user.id } : { kind: 'guest', key: anonymousKeys(clientIp(req, TRUST_PROXY), parseInstallId(req.headers['x-focusspace-install']), authConfig?.tokenSecret ?? config.model).allowance };
 
       if (path === SETUP_ROUTE) {
         const request = validateSetupRequest(await readJsonBody(req, SETUP_MAX_BODY_BYTES));
@@ -326,19 +330,29 @@ const server = createServer(async (req, res) => {
       }
 
       if (path === VOICE_TRANSCRIBE_ROUTE) {
-        const body = (await readJsonBody(req, VOICE_MAX_BODY_BYTES)) as { audio?: unknown; mime?: unknown; hint?: unknown } | null;
+        const body = (await readJsonBody(req, VOICE_MAX_BODY_BYTES)) as { audio?: unknown; mime?: unknown; hint?: unknown; purpose?: unknown } | null;
         const audio = typeof body?.audio === 'string' ? Buffer.from(body.audio, 'base64') : null;
         const mime = typeof body?.mime === 'string' && /^audio\/[a-z0-9.+-]+(;.*)?$/i.test(body.mime) ? body.mime.split(';')[0] : 'audio/webm';
         if (!audio || audio.length < 1_000) throw new ApiError(400, 'invalid_request', 'The recording was empty.');
+        const purpose = parsePurpose(body?.purpose);
+        const seconds = secondsHeard(audio.length);
+        assertVoiceAllowed(getUsageDb(), voiceCaller(), purpose, seconds);
         if (!listenLimiter.attempt(caller) || !voiceDailyLimiter.attempt(caller)) throw slowDown();
         const hint = typeof body?.hint === 'string' ? body.hint.slice(0, 300) : '';
-        sendJson(res, 200, { ok: true, text: await transcribe(audio, mime, config.apiKey, voice, transcriptionHint(hint)) });
+        const heard = await transcribe(audio, mime, config.apiKey, voice, transcriptionHint(hint));
+        recordVoice(getUsageDb(), voiceCaller(), purpose, seconds);
+        sendJson(res, 200, { ok: true, text: heard });
         return;
       }
 
-      const text = validateSpeechText(await readJsonBody(req, AUTH_MAX_BODY_BYTES));
+      const speakBody = await readJsonBody(req, AUTH_MAX_BODY_BYTES);
+      const text = validateSpeechText(speakBody);
+      const purpose = parsePurpose((speakBody as { purpose?: unknown } | null)?.purpose);
+      const seconds = secondsToSay(text);
+      assertVoiceAllowed(getUsageDb(), voiceCaller(), purpose, seconds);
       if (!speakLimiter.attempt(caller) || !voiceDailyLimiter.attempt(caller)) throw slowDown();
       const audio = await speak(text, config.apiKey, voice);
+      recordVoice(getUsageDb(), voiceCaller(), purpose, seconds);
       sendJson(res, 200, { ok: true, audio: audio.toString('base64'), mime: 'audio/mpeg' });
       return;
     }
@@ -500,7 +514,7 @@ const server = createServer(async (req, res) => {
       // for an unverified caller, so it requires a genuinely valid token and 401s otherwise.
       if (req.method === 'GET' && path === ME_USAGE_ROUTE) {
         const { user } = authenticate(db, authConfig, req.headers.authorization);
-        sendJson(res, 200, { ok: true, ...usageStatus(getUsageDb(), user.id) });
+        sendJson(res, 200, { ok: true, ...usageStatus(getUsageDb(), user.id), voice: voiceStatus(getUsageDb(), user.id) });
         return;
       }
 

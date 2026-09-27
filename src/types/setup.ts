@@ -94,6 +94,9 @@ export interface SetupChannelsAnswer {
 
 export type SetupAnswer = SetupSpacesAnswer | SetupChannelsAnswer | SetupTurnAnswer | SetupPickAnswer | SetupCommandAnswer;
 
+/** Voice while setting up is open to everyone; anywhere else it needs an account (server/usage/voice.ts). */
+export type VoicePurpose = 'setup' | 'chat';
+
 /** Longest thing a learner can say or type in one turn. */
 export const SETUP_MAX_TEXT = 1_000;
 /** Longest recording the assistant will listen to, and the most it will say in one breath. */

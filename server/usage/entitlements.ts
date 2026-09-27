@@ -19,6 +19,8 @@ export interface PlanLimits {
   aiUnitsPerPeriod: number;
   /** How many Spaces the account may keep (server/usage/spaces.ts). */
   maxSpaces: number;
+  /** Seconds of speech a month, both directions (server/usage/voice.ts). Never unlimited. */
+  voiceSecondsPerPeriod: number;
 }
 
 
@@ -29,7 +31,7 @@ export const PLAN_LIMITS: Record<PlanId, PlanLimits> = Object.fromEntries(
     plan.id,
     // Every plan, Free included, straight from the price book. An environment override here once let the
     // enforced Free limits drift from what the pricing page promised; there is deliberately no such knob now.
-    { aiUnitsPerPeriod: unlimited(plan.limits.aiCredits), maxSpaces: unlimited(plan.limits.modes) },
+    { aiUnitsPerPeriod: unlimited(plan.limits.aiCredits), maxSpaces: unlimited(plan.limits.modes), voiceSecondsPerPeriod: plan.limits.voiceMinutes * 60 },
   ]),
 ) as Record<PlanId, PlanLimits>;
 
