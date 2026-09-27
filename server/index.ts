@@ -20,7 +20,8 @@
 // who just wants a raw OpenAI relay for local dev.
 import { createServer } from 'node:http';
 import { ApiError, clientIp, CORS_HEADERS, readJsonBody, readTextBody, sendJson, type ApiErrorResponse } from './http';
-import { callOpenAI, loadOpenAIConfig } from './openai';
+import { callOpenAI, callOpenAIJson, loadOpenAIConfig, loadVoiceConfig, speak, transcribe } from './openai';
+import { parseSetupAnswer, setupPrompt, validateSetupRequest, validateSpeechText } from './setup/service';
 import { orchestrate } from './orchestrator';
 import { validateAiApiRequest } from './validate';
 import { getDb } from './auth/db';
@@ -106,6 +107,12 @@ const HANDOFF_REDEEM_ROUTE = '/v1/auth/handoff/redeem';
 /** Both are plain browser navigations, not API calls: they redirect rather than return JSON. */
 const GOOGLE_START_ROUTE = '/v1/auth/google/start';
 const GOOGLE_CALLBACK_ROUTE = '/v1/auth/google/callback';
+/** The first-run setup assistant: understanding what someone said, and talking with them (server/setup). */
+const SETUP_ROUTE = '/v1/setup/understand';
+const VOICE_TRANSCRIBE_ROUTE = '/v1/voice/transcribe';
+const VOICE_SPEAK_ROUTE = '/v1/voice/speak';
+/** ~30 s of browser webm/opus is well under 1 MB; base64 adds a third. */
+const VOICE_MAX_BODY_BYTES = 1_500_000;
 
 /**
  * Where a finished Google sign-in is allowed to send the browser back to. An allow-list, because
@@ -141,6 +148,16 @@ const AUTH_ROUTES = new Set([HANDOFF_CREATE_ROUTE, HANDOFF_REDEEM_ROUTE, ME_PROF
 const anonymousAiLimiter = new RateLimiter(30, 10 * 60_000);
 /** New outlines per caller (account, install or address) per day. Stored ones are free and unlimited. */
 const outlineLimiter = new RateLimiter(40, 24 * 60 * 60_000);
+/**
+ * The setup assistant is free — it is how someone starts — so it is bounded by rate rather than billed:
+ * per caller (account, install or address), enough for a long, chatty setup and nowhere near enough to
+ * use as a general-purpose transcription or text-to-speech service.
+ */
+const setupLimiter = new RateLimiter(40, 30 * 60_000);
+const listenLimiter = new RateLimiter(40, 30 * 60_000);
+const speakLimiter = new RateLimiter(60, 30 * 60_000);
+const voiceDailyLimiter = new RateLimiter(200, 24 * 60 * 60_000);
+const voice = loadVoiceConfig();
 /** Railway fronts the API with a proxy; its record of the client's address is the one to trust there (http.ts clientIp). */
 const TRUST_PROXY = process.env.TRUST_PROXY ? process.env.TRUST_PROXY === '1' : process.env.NODE_ENV === 'production';
 
@@ -285,6 +302,37 @@ const server = createServer(async (req, res) => {
         () => outlineLimiter.attempt(caller),
       );
       sendJson(res, 200, { ok: true, sections: result.sections, cached: result.cached });
+      return;
+    }
+
+    // ── Setup assistant (first run): understand → Spaces / channels; listen; speak. ──
+    if (req.method === 'POST' && (path === SETUP_ROUTE || path === VOICE_TRANSCRIBE_ROUTE || path === VOICE_SPEAK_ROUTE)) {
+      const identity = authConfig ? tryAuthenticate(getDb(), authConfig, req.headers.authorization) : null;
+      const caller = identity?.user.id ?? parseInstallId(req.headers['x-focusspace-install']) ?? clientIp(req, TRUST_PROXY);
+      const slowDown = () => new ApiError(429, 'rate_limited', 'That’s a lot of talking for one setup — give it a few minutes and try again.');
+
+      if (path === SETUP_ROUTE) {
+        const request = validateSetupRequest(await readJsonBody(req, AUTH_MAX_BODY_BYTES));
+        if (!setupLimiter.attempt(caller)) throw slowDown();
+        const { data } = await callOpenAIJson(setupPrompt(request), { ...config, maxTokens: request.task === 'spaces' ? 1800 : 300 });
+        sendJson(res, 200, { ok: true, answer: parseSetupAnswer(request, data) });
+        return;
+      }
+
+      if (path === VOICE_TRANSCRIBE_ROUTE) {
+        const body = (await readJsonBody(req, VOICE_MAX_BODY_BYTES)) as { audio?: unknown; mime?: unknown } | null;
+        const audio = typeof body?.audio === 'string' ? Buffer.from(body.audio, 'base64') : null;
+        const mime = typeof body?.mime === 'string' && /^audio\/[a-z0-9.+-]+(;.*)?$/i.test(body.mime) ? body.mime.split(';')[0] : 'audio/webm';
+        if (!audio || audio.length < 1_000) throw new ApiError(400, 'invalid_request', 'The recording was empty.');
+        if (!listenLimiter.attempt(caller) || !voiceDailyLimiter.attempt(caller)) throw slowDown();
+        sendJson(res, 200, { ok: true, text: await transcribe(audio, mime, config.apiKey, voice) });
+        return;
+      }
+
+      const text = validateSpeechText(await readJsonBody(req, AUTH_MAX_BODY_BYTES));
+      if (!speakLimiter.attempt(caller) || !voiceDailyLimiter.attempt(caller)) throw slowDown();
+      const audio = await speak(text, config.apiKey, voice);
+      sendJson(res, 200, { ok: true, audio: audio.toString('base64'), mime: 'audio/mpeg' });
       return;
     }
 

@@ -80,3 +80,100 @@ export async function callOpenAI(prompt: AiPrompt, config: OpenAIConfig, signal?
   const usage = json?.usage ? { promptTokens: json.usage.prompt_tokens ?? null, completionTokens: json.usage.completion_tokens ?? null } : null;
   return { answer, usage };
 }
+
+/**
+ * A chat completion that must come back as one JSON object (OpenAI's JSON mode). For structured
+ * understanding — "which Spaces did they ask for" — where free text would have to be parsed by guesswork.
+ * Returns the parsed object; the caller validates its shape, since JSON mode guarantees syntax, not schema.
+ */
+export async function callOpenAIJson(prompt: AiPrompt, config: OpenAIConfig, signal?: AbortSignal): Promise<{ data: unknown; usage: TokenUsage | null }> {
+  let upstream: Response;
+  try {
+    upstream = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${config.apiKey}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: config.model,
+        max_tokens: config.maxTokens,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: prompt.system },
+          { role: 'user', content: prompt.user },
+        ],
+      }),
+      signal,
+    });
+  } catch (err) {
+    throw new ApiError(502, 'upstream_error', `Could not reach OpenAI: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  const json = (await upstream.json().catch(() => null)) as OpenAIResponse | null;
+  if (!upstream.ok) throw new ApiError(502, 'upstream_error', json?.error?.message ?? `OpenAI returned HTTP ${upstream.status}.`);
+  const text = json?.choices?.[0]?.message?.content ?? '';
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new ApiError(502, 'upstream_error', 'OpenAI returned an answer that was not JSON.');
+  }
+  const usage = json?.usage ? { promptTokens: json.usage.prompt_tokens ?? null, completionTokens: json.usage.completion_tokens ?? null } : null;
+  return { data, usage };
+}
+
+/* ─── Voice ──────────────────────────────────────────────────────────────── */
+
+export interface VoiceConfig {
+  transcribeModel: string;
+  speechModel: string;
+  voice: string;
+  /** How the voice should sound — gpt-4o-mini-tts follows plain-language direction on tone and accent. */
+  style: string;
+}
+
+export function loadVoiceConfig(env: NodeJS.ProcessEnv = process.env): VoiceConfig {
+  return {
+    transcribeModel: env.VOICE_TRANSCRIBE_MODEL ?? 'gpt-4o-mini-transcribe',
+    speechModel: env.VOICE_SPEECH_MODEL ?? 'gpt-4o-mini-tts',
+    voice: env.VOICE_NAME ?? 'marin',
+    style:
+      env.VOICE_STYLE ??
+      'Speak like a warm, friendly person helping a friend get set up — relaxed, natural and upbeat, never robotic or announcer-like. A light Indian English accent. Conversational pace with natural pauses; smile in the voice.',
+  };
+}
+
+/** Speech → text. `audio` is the recording's raw bytes (webm/opus from the browser's MediaRecorder). */
+export async function transcribe(audio: Buffer, mime: string, apiKey: string, voice: VoiceConfig, signal?: AbortSignal): Promise<string> {
+  const form = new FormData();
+  // OpenAI goes by the file name's extension, so it must match the bytes.
+  const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') || mime.includes('m4a') ? 'mp4' : mime.includes('mpeg') || mime.includes('mp3') ? 'mp3' : mime.includes('wav') ? 'wav' : 'webm';
+  form.append('file', new Blob([new Uint8Array(audio)], { type: mime }), `speech.${ext}`);
+  form.append('model', voice.transcribeModel);
+  let upstream: Response;
+  try {
+    upstream = await fetch('https://api.openai.com/v1/audio/transcriptions', { method: 'POST', headers: { authorization: `Bearer ${apiKey}` }, body: form, signal });
+  } catch (err) {
+    throw new ApiError(502, 'upstream_error', `Could not reach OpenAI: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  const json = (await upstream.json().catch(() => null)) as { text?: string; error?: { message?: string } } | null;
+  if (!upstream.ok) throw new ApiError(502, 'upstream_error', json?.error?.message ?? `OpenAI returned HTTP ${upstream.status}.`);
+  return (json?.text ?? '').trim();
+}
+
+/** Text → speech, as MP3 bytes. */
+export async function speak(text: string, apiKey: string, voice: VoiceConfig, signal?: AbortSignal): Promise<Buffer> {
+  let upstream: Response;
+  try {
+    upstream = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ model: voice.speechModel, voice: voice.voice, input: text, instructions: voice.style, response_format: 'mp3' }),
+      signal,
+    });
+  } catch (err) {
+    throw new ApiError(502, 'upstream_error', `Could not reach OpenAI: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  if (!upstream.ok) {
+    const json = (await upstream.json().catch(() => null)) as { error?: { message?: string } } | null;
+    throw new ApiError(502, 'upstream_error', json?.error?.message ?? `OpenAI returned HTTP ${upstream.status}.`);
+  }
+  return Buffer.from(await upstream.arrayBuffer());
+}
