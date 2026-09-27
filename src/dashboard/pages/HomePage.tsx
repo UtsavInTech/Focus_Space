@@ -187,7 +187,7 @@ function PlanCard({ signedIn, modes, usage, spaces }: { signedIn: boolean; modes
         <div className="fs-grow">
           <strong>{full ? `You’re using all ${GUEST_SPACE_LIMIT} Spaces` : 'Using FocusSpace without an account'}</strong>
           <span className="fs-caption">
-            {full ? `A free account raises that to ${FREE_SPACE_LIMIT}, with a monthly AI allowance.` : `${modes} of ${GUEST_SPACE_LIMIT} Spaces. A free account gives you ${FREE_SPACE_LIMIT} and a monthly AI allowance.`}
+            {full ? `A free account raises that to ${FREE_SPACE_LIMIT}, with a daily AI allowance.` : `${modes} of ${GUEST_SPACE_LIMIT} Spaces. A free account gives you ${FREE_SPACE_LIMIT} and a daily AI allowance.`}
           </span>
         </div>
         <Button size="sm" variant={full ? 'primary' : 'secondary'} onClick={() => navigate('/settings')}>

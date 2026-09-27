@@ -40,14 +40,41 @@ type Made = WelcomeChat['made'][number];
 const WANTS_TO_TALK = /^\s*(let'?s|lets|can we|could we|i want to|i'd like to|wanna)?\s*(talk|speak|chat by voice|use (my )?voice|voice( mode)?|baat karte hain|baat karo)\b[\s?!.]*$/i;
 
 /** "Hey Utsav! Okay, let's start." — by name when the account has one, never by email address. */
-const greeting = (name: string | null) => `${name ? `Hey ${name.split(/\s+/)[0]}!` : 'Hey there!'} Okay, let’s start. What do you want to learn or watch? Name as many as you like.`;
+const greeting = (name: string | null) =>
+  `${name ? `Hi ${name.split(/\s+/)[0]}!` : 'Hi!'} Let’s go quick. Tell me your Spaces, and the creators you like for each, all in one go. Like: DSA with Love Babbar and Apna College, and Spanish.`;
+
+/** Asked once creators come Space by Space ("Go one by one"). */
+const FIRST_SPACE = 'Sure, one at a time. What’s your first Space?';
 
 const synthesize = async (text: string) => {
   const res = await sendMessage('voice/speak', { text, purpose: 'setup' }).catch(() => null);
   return res?.ok ? res.audio : null;
 };
 
-export function SetupChat({ modes, saved, intro, onDone, signedIn, name }: { modes: LearningMode[]; saved: WelcomeChat | null; intro: ReactNode; onDone: () => void; signedIn: boolean; name: string | null }) {
+export function SetupChat({
+  modes,
+  saved,
+  intro,
+  onDone,
+  onSkip,
+  signedIn,
+  name,
+  oneByOne,
+  talked,
+}: {
+  modes: LearningMode[];
+  saved: WelcomeChat | null;
+  intro: ReactNode;
+  onDone: () => void;
+  /** "Skip, I’ll set up myself". */
+  onSkip: () => void;
+  signedIn: boolean;
+  name: string | null;
+  /** Creators Space by Space; otherwise the guide asks once and moves on. */
+  oneByOne: boolean;
+  /** They have talked to the guide: the Talk button stops glowing. */
+  talked: boolean;
+}) {
   const [lines, setLines] = useState<WelcomeLine[]>(saved?.lines ?? []);
   const [phase, setPhaseState] = useState<Phase>(saved?.phase ?? 'subjects');
   const [busy, setBusy] = useState(false);
@@ -155,6 +182,7 @@ export function SetupChat({ modes, saved, intro, onDone, signedIn, name }: { mod
 
   const openVoice = async () => {
     if (convo.current) return;
+    if (!talked) void updateItem('welcome', (w) => ({ ...w, talked: true }));
     audioContext(); // unlocked by this click or keypress, so replies can be heard
     const conversation = new VoiceConversation({
       synthesize,
@@ -184,7 +212,7 @@ export function SetupChat({ modes, saved, intro, onDone, signedIn, name }: { mod
     const q = openQuestion();
     if (q?.kind === 'channels') ask(`So, ${q.space}. Any teacher or channel you like? Or skip.`);
     else if (phaseRef.current === 'done') ask('Another Space, or a different creator? Just tell me.');
-    else ask(made.current.length ? 'What else would you like to learn or watch?' : greeting(name));
+    else ask(made.current.length ? 'What else would you like to learn or watch?' : oneByOne ? FIRST_SPACE : greeting(name));
   };
 
   const closeVoice = () => {
@@ -273,6 +301,8 @@ export function SetupChat({ modes, saved, intro, onDone, signedIn, name }: { mod
       ...pending.current.filter((id) => !settled.has(id) && modesRef.current.some((m) => m.id === id)),
       ...created.map((m) => m.id).filter((id) => !settled.has(id) && !pending.current.includes(id)),
     ];
+    // Going quick: one invitation to name creators in the summary, not a question per Space.
+    if (!oneByOne) pending.current = [];
     next(!!openId && pending.current[0] === openId, created.length > 0);
   };
 
@@ -412,7 +442,11 @@ export function SetupChat({ modes, saved, intro, onDone, signedIn, name }: { mod
     setPhase('done');
     const summary = made.current.map((s) => (s.channels.length ? `${s.name} with ${spokenList(s.channels)}` : s.name));
     const active = modesRef.current.find((m) => m.id === activeId.current)?.name ?? made.current[made.current.length - 1]?.name;
-    const said = firstTime && summary.length ? `All set! ${spokenList(summary)}. You’re on ${active} now. Last step: tap Next to bring in the channels you already follow.` : 'Done. Tap Next when you’re happy.';
+    const noCreators = !oneByOne && made.current.some((s) => !s.channels.length);
+    const said =
+      firstTime && summary.length
+        ? `Done! ${spokenList(summary)}. You’re on ${active} now.${noCreators ? ' Want creators in them? Just say it, like “Love Babbar for DSA”.' : ''} Otherwise tap Next and we’ll import your subscriptions, so recommendations start from channels you already trust.`
+        : 'Done. Tap Next when you’re happy.';
     add('bot', said);
     setPointAtNext(true);
     const c = convo.current;
@@ -463,6 +497,26 @@ export function SetupChat({ modes, saved, intro, onDone, signedIn, name }: { mod
         </div>
       )}
 
+      {!lines.length && !made.current.length && !busy && (
+        <div className="fs-welcome-actions">
+          {!oneByOne && (
+            <button
+              type="button"
+              className="fs-link"
+              onClick={() => {
+                void updateItem('welcome', (w) => ({ ...w, oneByOne: true }));
+                add('bot', FIRST_SPACE);
+              }}
+            >
+              Go one by one
+            </button>
+          )}
+          <button type="button" className="fs-link" onClick={onSkip}>
+            Skip, I’ll set up myself
+          </button>
+        </div>
+      )}
+
       {showNext && (
         <div className="fs-welcome-actions">
           <button
@@ -479,7 +533,13 @@ export function SetupChat({ modes, saved, intro, onDone, signedIn, name }: { mod
       )}
       <div ref={end} />
 
+      {signedIn && !talked && !voiceOpen && (
+        <p className="fs-welcome-talk-hint" aria-hidden>
+          Stuck? Let’s talk it out
+        </p>
+      )}
       <Composer
+        glowTalk={signedIn && !talked}
         className="fs-welcome-input"
         inputRef={input}
         value={text}

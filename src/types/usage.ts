@@ -12,4 +12,6 @@ export interface UsageStatusView {
   limit: number | null;
   /** Seconds of speech this month, and the plan's allowance (server/usage/voice.ts). Absent from older servers. */
   voice?: { usedSeconds: number; limitSeconds: number };
+  /** Checked quiz questions this month, the plan's allowance, and whether difficulty and score come with it (server/usage/quiz.ts). */
+  quiz?: { used: number; limit: number; extras: boolean };
 }

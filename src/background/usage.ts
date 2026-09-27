@@ -17,7 +17,8 @@ export async function status(): Promise<UsageStatusView | null> {
     if (!res.ok) return null;
     const json = (await res.json().catch(() => null)) as Partial<UsageStatusView> & { ok?: boolean };
     if (!json?.ok || typeof json.used !== 'number' || (typeof json.limit !== 'number' && json.limit !== null)) return null;
-    return { plan: json.plan ?? 'free', period: json.period ?? '', used: json.used, limit: json.limit };
+    const quiz = json.quiz && typeof json.quiz.used === 'number' && typeof json.quiz.limit === 'number' ? { quiz: { used: json.quiz.used, limit: json.quiz.limit, extras: !!json.quiz.extras } } : {};
+    return { plan: json.plan ?? 'free', period: json.period ?? '', used: json.used, limit: json.limit, ...quiz };
   } catch {
     return null;
   }

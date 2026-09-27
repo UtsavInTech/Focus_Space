@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { welcomeStep } from './welcome-step';
 import type { WelcomeChat } from '@/storage/schema';
 
-const on = { active: true, signInSkipped: false, chat: null };
+const on = { active: true, signInSkipped: false, chat: null, talked: false, oneByOne: false, spacesSkipped: false };
 const chat = (over: Partial<WelcomeChat>): WelcomeChat => ({ phase: 'channels', made: [{ id: 'dsa', name: 'DSA', channels: [] }], pending: ['dsa'], lines: [], finished: false, ...over });
 
 describe('welcomeStep', () => {
@@ -22,6 +22,11 @@ describe('welcomeStep', () => {
 
   it('ends on importing channels once a Space is chosen', () => {
     expect(welcomeStep(on, true, true)).toBe('channels');
+  });
+
+  it('goes straight to importing channels when they skip setting up Spaces', () => {
+    expect(welcomeStep({ ...on, spacesSkipped: true }, true, false)).toBe('channels');
+    expect(welcomeStep({ ...on, spacesSkipped: true }, false, false)).toBe('signin');
   });
 
   it('holds step 2 while the setup conversation is still going, even after its first Space', () => {

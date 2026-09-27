@@ -24,6 +24,12 @@ export async function saveNote(note: GeneratedNote): Promise<SavedNote> {
   return saved;
 }
 
+/** Every note and mind map kept, across all videos — what a plan's `savedNotes` limit counts. */
+export async function countNotes(): Promise<number> {
+  const store = await getItem('notes');
+  return Object.values(store.byVideo).reduce((total, notes) => total + notes.length, 0);
+}
+
 export async function listNotes(videoId: string): Promise<SavedNote[]> {
   const store = await getItem('notes');
   return store.byVideo[videoId] ?? [];

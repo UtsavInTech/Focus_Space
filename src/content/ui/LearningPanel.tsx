@@ -5,7 +5,10 @@ import type { WatchPage } from '@/integrations/youtube/innertube-client';
 import { positionLabel } from '@/learning/next';
 import { PATH_LABEL, type LearningPath, type PathRow } from '@/learning/path/path';
 import { buildLearningContext, type LearningContext } from '@/learning/context/context';
-import { WINDOW_FOR, type AiAction } from '@/learning/ai/actions';
+import { WINDOW_FOR, type AiAction, type QuizDifficulty } from '@/learning/ai/actions';
+import type { QuizBlock } from '@/learning/ai/quiz-plan';
+import type { UsageStatusView } from '@/types/usage';
+import { useCanSave } from '@/ui/account/use-can-save';
 import type { AiResult, AiStatus } from '@/learning/ai/service';
 import type { ConceptPosition, ConceptStop } from '@/learning/knowledge/locate';
 import { formatTimestamp } from '@/learning/knowledge/timestamps';
@@ -19,8 +22,7 @@ import { ChatPanel } from './ChatPanel';
 import { FitToScreen } from './FitToScreen';
 import { LimitActions } from './LimitActions';
 import { NotesPanel } from './NotesPanel';
-import { QuizCards, type QuizMoreResult } from './QuizCards';
-import { parseQuiz } from '@/learning/ai/quiz-format';
+import { QuizSession, type QuizMoreResult } from './QuizCards';
 import { RichText } from '@/ui/components/RichText';
 
 const watchUrl = (id: string, list: string | null) => `https://www.youtube.com/watch?v=${id}${list ? `&list=${list}` : ''}`;
@@ -135,6 +137,7 @@ type Answer =
   | { kind: 'loading'; action: AiAction; at: number }
   | { kind: 'local'; action: AiAction; at: number; context: LearningContext; now: string | null; aiLoading: boolean; provider: string | null }
   | { kind: 'answer'; action: AiAction; at: number; text: string; provider: string }
+  | { kind: 'quiz'; action: AiAction; at: number }
   | { kind: 'fallback'; action: AiAction; at: number; excerpt: string | null; setup: 'off' | 'download' | 'configure' }
   | { kind: 'error'; action: AiAction; at: number; error: string; code?: string };
 
@@ -171,6 +174,8 @@ export function NowLearning({
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [status, setStatus] = useState<AiStatus | null>(null);
   const [panel, setPanel] = useState<'notes' | 'chat' | null>(null);
+  const [usage, setUsage] = useState<UsageStatusView | null>(null);
+  const signedIn = useCanSave();
   const runId = useRef(0);
   const outline = useVideoOutline(panel !== null, video, knowledge.transcript, duration, knowledge.map);
   // Chat answers from the transcript and the outline built on it, so opening chat fetches the captions — the same request "Explain this" makes.
@@ -206,6 +211,12 @@ export function NowLearning({
     setPanel(null);
     const id = ++runId.current;
     const at = currentTime();
+    // Quiz me asks first: the part watched so far, or the full video (QuizSession).
+    if (action === 'quiz') {
+      setAnswer({ kind: 'quiz', action, at });
+      void sendMessage('usage/status', {}).then((u) => id === runId.current && setUsage(u)).catch(() => undefined);
+      return;
+    }
     const contextWith = (segments: NonNullable<typeof knowledge.transcript>['segments'] | null) =>
       buildLearningContext({
         video,
@@ -242,28 +253,20 @@ export function NowLearning({
     else setAnswer({ kind: 'error', action, at, error: result.error, code: result.code });
   }
 
-  /*
-   * "More questions": the first round is the moment; the next draws on the part being taught (the
-   * outermost Knowledge Map concept around the moment); every round after, a sample of the whole video.
-   */
-  const part = position?.ancestors[0] ?? current;
-  const partRange = part ? { startSec: part.startSec, endSec: part.endSec ?? part.startSec + 900 } : null;
-  const hasSection = !!partRange && partRange.endSec - partRange.startSec >= 180;
-  async function moreQuiz(previous: string[], scope: 'section' | 'video'): Promise<QuizMoreResult> {
+  /** One quiz round: five questions on one block of the part chosen, never repeating what was asked. */
+  async function quizRound(block: QuizBlock, difficulty: QuizDifficulty | undefined, previous: string[]): Promise<QuizMoreResult> {
     const id = runId.current;
     const transcript = knowledge.transcript ?? (await knowledge.requestTranscript());
-    const segments = transcript?.segments ?? null;
-    const end = duration ?? (segments?.length ? segments[segments.length - 1].startSec + segments[segments.length - 1].durSec : null);
-    const range = scope === 'section' && partRange ? partRange : end ? { startSec: 0, endSec: end } : null;
+    if (!transcript?.segments.length) return { ok: false, error: 'This video has no captions FocusSpace can read, so there is nothing to quiz you on.' };
     const context = buildLearningContext({
-      video, mode, topicId, path, map, stops: knowledge.stops, transcript: segments,
-      transcriptSource: transcript?.kind ?? null,
-      currentTime: currentTime(),
-      range,
-      // Room for the earlier questions and the rules inside the API's prompt limit.
-      window: { maxChars: scope === 'section' ? 9000 : 12000 },
+      video, mode, topicId, path, map, stops: knowledge.stops, transcript: transcript.segments,
+      transcriptSource: transcript.kind ?? null,
+      currentTime: block.startSec,
+      range: block,
+      // 15 minutes of speech is about 12,000 characters; the rules and earlier questions still fit inside the API's prompt limit.
+      window: { maxChars: 12000 },
     });
-    const result = await sendMessage('ai/run', { action: 'quiz', context, quiz: { scope, previous } }).catch((): AiResult => ({ ok: false, code: 'failed', error: 'FocusSpace couldn’t reach its AI service. Reload the page and try again.' }));
+    const result = await sendMessage('ai/run', { action: 'quiz', context, quiz: { scope: 'span', previous, difficulty } }).catch((): AiResult => ({ ok: false, code: 'failed', error: 'FocusSpace couldn’t reach its AI service. Reload the page and try again.' }));
     if (id !== runId.current) return { ok: false, error: 'This quiz belongs to an earlier moment.' };
     return result.ok ? { ok: true, text: result.answer } : { ok: false, error: result.error, code: result.code };
   }
@@ -335,8 +338,7 @@ export function NowLearning({
               answer={answer}
               providerLabel={status?.label ?? null}
               onSeek={seek}
-              onQuizMore={moreQuiz}
-              hasSection={hasSection}
+              quiz={{ durationSec: duration, needsAccount: status?.label === HOSTED_AI_LABEL, signedIn, extras: !!usage?.quiz?.extras, onRound: quizRound }}
               onClose={() => {
                 runId.current++;
                 setAnswer(null);
@@ -486,25 +488,17 @@ function KnowledgeMapSection({ map, stops, position, onSeek, debug }: { map: Kno
   );
 }
 
-/** A quiz reads as one card per question; anything else — or a quiz the parser cannot read — as text. */
-function AnswerText({ action, text, onQuizMore, hasSection }: { action: AiAction; text: string; onQuizMore: (previous: string[], scope: 'section' | 'video') => Promise<QuizMoreResult>; hasSection: boolean }) {
-  const quiz = action === 'quiz' ? parseQuiz(text) : null;
-  return quiz ? <QuizCards key={text} questions={quiz} onMore={onQuizMore} hasSection={hasSection} /> : <RichText text={text} />;
-}
-
 function AnswerView({
   answer,
   providerLabel,
   onSeek,
-  onQuizMore,
-  hasSection,
+  quiz,
   onClose,
 }: {
   answer: Answer;
   providerLabel: string | null;
   onSeek: (sec: number) => void;
-  onQuizMore: (previous: string[], scope: 'section' | 'video') => Promise<QuizMoreResult>;
-  hasSection: boolean;
+  quiz: Omit<Parameters<typeof QuizSession>[0], 'watchedSec'>;
   onClose: () => void;
 }) {
   const provider = answer.kind === 'answer' ? answer.provider : answer.kind === 'local' ? answer.provider : null;
@@ -531,7 +525,9 @@ function AnswerView({
 
         {answer.kind === 'local' && <MomentSummary answer={answer} onSeek={onSeek} />}
 
-        {answer.kind === 'answer' && <AnswerText action={answer.action} text={answer.text} onQuizMore={onQuizMore} hasSection={hasSection} />}
+        {answer.kind === 'answer' && <RichText text={answer.text} />}
+
+        {answer.kind === 'quiz' && <QuizSession watchedSec={answer.at} {...quiz} />}
 
         {answer.kind === 'fallback' && (
           <>

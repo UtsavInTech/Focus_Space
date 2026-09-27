@@ -38,10 +38,12 @@ export interface ComposerProps {
   /** Called after the textarea resizes — FocusSpace AI's own fitting rules. */
   fit?: (el: HTMLTextAreaElement | null) => void;
   onError?: (message: string) => void;
+  /** First-run only: the Talk button glows until it has been used. */
+  glowTalk?: boolean;
 }
 
 export function Composer(props: ComposerProps) {
-  const { value, onChange, onSend, onTalk, placeholder, disabled, multiline, purpose, voiceAllowed, onNeedSignIn, hint, className, label, maxLength, fit, onError } = props;
+  const { value, onChange, onSend, onTalk, placeholder, disabled, multiline, purpose, voiceAllowed, onNeedSignIn, hint, className, label, maxLength, fit, onError, glowTalk } = props;
   const ownRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
   const ref = props.inputRef ?? ownRef;
   const [dictating, setDictating] = useState<'off' | 'listening' | 'hearing'>('off');
@@ -143,7 +145,7 @@ export function Composer(props: ComposerProps) {
           <ArrowUp size={17} aria-hidden />
         </button>
       ) : (
-        <button type="button" className="fs-cmp-go" aria-label="Talk" title={voiceAllowed ? 'Talk hands-free' : 'Sign in to talk'} disabled={disabled} onClick={() => (voiceAllowed ? onTalk() : onNeedSignIn())}>
+        <button type="button" className={`fs-cmp-go${glowTalk ? ' is-glowing' : ''}`} aria-label="Talk" title={voiceAllowed ? (glowTalk ? 'Stuck? Let’s talk it out' : 'Talk hands-free') : 'Sign in to talk'} disabled={disabled} onClick={() => (voiceAllowed ? onTalk() : onNeedSignIn())}>
           <AudioLines size={17} aria-hidden />
         </button>
       )}

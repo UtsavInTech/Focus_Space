@@ -125,6 +125,9 @@ function Guide({ settings, modes }: { settings: Settings; modes: LearningMode[] 
               name={name ?? store.auth.user?.name ?? null}
               intro={<SpaceIntro signedIn={signedIn} name={name ?? store.auth.user?.name ?? null} spaceLimit={signedIn ? spaceLimit : GUEST_SPACE_LIMIT} />}
               onDone={() => void updateItem('welcome', (w) => ({ ...w, chat: w.chat ? { ...w.chat, finished: true } : w.chat }))}
+              onSkip={() => void updateItem('welcome', (w) => ({ ...w, spacesSkipped: true }))}
+              oneByOne={store.welcome.oneByOne}
+              talked={store.welcome.talked}
             />
           )}
           {step === 'channels' && (
@@ -153,7 +156,7 @@ function SignInStep({ waiting, onSignIn, onLater }: { waiting: boolean; onSignIn
       <Bot>Hey, thank you for adding FocusSpace, I really appreciate it.</Bot>
       <Bot>I’ll walk you through the three steps above. It takes about a minute.</Bot>
       <Bot>
-        <b>Step 1 is to sign in.</b> It’s free, and it unlocks everything: {FREE_SPACE_LIMIT} Spaces instead of {GUEST_SPACE_LIMIT}, a monthly AI allowance, and saving notes and mind
+        <b>Step 1 is to sign in.</b> It’s free, and it unlocks everything: {FREE_SPACE_LIMIT} Spaces instead of {GUEST_SPACE_LIMIT}, a daily AI allowance, and saving notes and mind
         maps to your Library. I recommend doing this first.
       </Bot>
       {waiting && <Bot>Finish on the FocusSpace tab. New here or not, it’s the same button. I’ll bring you straight back to this tab when you’re in.</Bot>}
@@ -170,19 +173,22 @@ function SignInStep({ waiting, onSignIn, onLater }: { waiting: boolean; onSignIn
 }
 
 function SpaceIntro({ signedIn, name, spaceLimit }: { signedIn: boolean; name: string | null; spaceLimit: number | null | undefined }) {
-  const allowance = spaceLimit === undefined ? null : spaceLimit === null ? 'unlimited Spaces' : `${spaceLimit} Spaces`;
+  const allowance = spaceLimit === undefined ? null : spaceLimit === null ? 'as many Spaces as you like' : `up to ${spaceLimit} Spaces`;
   const first = name?.split(/\s+/)[0] ?? null;
   return (
     <>
       {signedIn ? (
-        <Bot>
-          {first ? `Hey ${first}, you’re signed in!` : 'You’re signed in!'} {allowance ? `Your account holds ${allowance}.` : ''}
-        </Bot>
+        <Bot>{first ? `Hi ${first}, I’m FocusSpace AI.` : 'Hi, I’m FocusSpace AI.'} I’m here to set things up with you, and to help whenever you get stuck. Let’s go quick.</Bot>
       ) : (
         <Bot>No problem, you can sign in any time from FocusSpace’s home. Without an account you can keep {GUEST_SPACE_LIMIT} Spaces.</Bot>
       )}
-      <Bot>Okay, let’s set up your Spaces. Pick subjects on this page, or just tell me everything you want to learn, like “system design, Spanish and French”, and I’ll set each one up and ask about your favourite creators.</Bot>
-      <Bot>Prefer talking? Tap the round button and just say it.</Bot>
+      <Bot>
+        <b>First, Spaces.</b> A Space is a mode for one thing you study, like DSA or Spanish{allowance ? `, and you can keep ${allowance}` : ''}. Tell me your Spaces and the creators you like for each, all in one go:
+      </Bot>
+      <Bot>
+        <i>“DSA with Love Babbar and Apna College, and Spanish.”</i>
+      </Bot>
+      <Bot>Type it, pick subjects on this page, or tap the {signedIn ? 'glowing' : 'round'} button and just say it.</Bot>
     </>
   );
 }
@@ -191,8 +197,8 @@ function ChannelsStep({ spaceName, onImport, onDone }: { spaceName: string | nul
   return (
     <>
       <Bot>
-        <b>Last step: your channels.</b> Bring in the YouTube channels you already subscribe to. FocusSpace sorts them into your Spaces and uses them to recommend better videos
-        {spaceName ? `, starting with ${spaceName}` : ''}.
+        <b>Last step: import your subscriptions.</b> FocusSpace sorts the channels you already follow into your Spaces, so recommendations start from people you trust
+        {spaceName ? `, beginning with ${spaceName}` : ''}.
       </Bot>
       <Bot>
         It opens FocusSpace home → <b>Subscribed channels</b>. Your Spaces, Library and history live there too, under <b>FocusSpace</b> in YouTube’s left sidebar.

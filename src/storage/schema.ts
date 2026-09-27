@@ -106,6 +106,12 @@ export interface WelcomeState {
   signInSkipped: boolean;
   /** The setup conversation (content/ui/SetupChat.tsx), kept so a refresh or a new tab picks it up where it was. */
   chat: WelcomeChat | null;
+  /** They have talked to the guide once: the Talk button stops glowing. */
+  talked: boolean;
+  /** "Go one by one": the guide asks for creators Space by Space instead of all in one go. */
+  oneByOne: boolean;
+  /** "Skip, I'll set up myself": the guide moves on to channels without making a Space. */
+  spacesSkipped: boolean;
 }
 
 export interface WelcomeChat {
@@ -271,7 +277,7 @@ function allDefaults(): StorageSchema {
     installId: '',
     ownership: { owner: 'guest', epoch: 0 },
     pendingClaim: null,
-    welcome: { active: false, signInSkipped: false, chat: null },
+    welcome: { active: false, signInSkipped: false, chat: null, talked: false, oneByOne: false, spacesSkipped: false },
   };
 }
 
@@ -387,7 +393,7 @@ export function normalize<K extends StorageKey>(key: K, raw: unknown): StorageSc
     }
     case 'welcome': {
       const w = raw as Partial<WelcomeState>;
-      return { active: w.active === true, signInSkipped: w.signInSkipped === true, chat: normalizeWelcomeChat(w.chat) } as StorageSchema[K];
+      return { active: w.active === true, signInSkipped: w.signInSkipped === true, chat: normalizeWelcomeChat(w.chat), talked: w.talked === true, oneByOne: w.oneByOne === true, spacesSkipped: w.spacesSkipped === true } as StorageSchema[K];
     }
     default:
       return raw as StorageSchema[K];

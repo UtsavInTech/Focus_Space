@@ -18,6 +18,7 @@ export const WELCOME_STEPS: { id: WelcomeStep; label: string }[] = [
 export function welcomeStep(welcome: WelcomeState, signedIn: boolean, hasSpace: boolean): WelcomeStep | null {
   if (!welcome.active) return null;
   if (!signedIn && !welcome.signInSkipped) return 'signin';
+  if (welcome.spacesSkipped) return 'channels';
   if (!hasSpace || (welcome.chat && !welcome.chat.finished)) return 'space';
   return 'channels';
 }

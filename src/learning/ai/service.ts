@@ -98,7 +98,8 @@ export function aiCacheKey(request: AiRequest & { quiz?: QuizMore }): string {
   const where = ctx.conceptId ?? `t${Math.floor(ctx.currentTime / 60)}`;
   const moment = request.action === 'what' || request.action === 'quiz' ? where : `${where}@${Math.floor(ctx.currentTime / 20)}`;
   // A "More questions" round is its own answer: keyed by its span and by what it must not repeat.
-  const quiz = request.quiz ? `${request.quiz.scope}:${hashString(request.quiz.previous.join('\n'))}` : '';
+  const span = ctx.transcriptWindow ? `${Math.round(ctx.transcriptWindow.startSec)}-${Math.round(ctx.transcriptWindow.endSec)}` : '';
+  const quiz = request.quiz ? `${request.quiz.scope}:${request.quiz.difficulty ?? ''}:${request.quiz.scope === 'span' ? span : ''}:${hashString(request.quiz.previous.join('\n'))}` : '';
   return [CONTEXT_VERSION, request.action, ctx.videoId, ctx.mode.id, moment, quiz].join('|');
 }
 

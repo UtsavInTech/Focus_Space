@@ -894,6 +894,17 @@ a.fs-path-name:hover { color: var(--fs-text); }
 .fs-quiz-more:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--fs-border-strong); }
 .fs-quiz-more:disabled { cursor: default; opacity: 0.75; }
 .fs-quiz-more .fs-spin { animation: fs-spin 800ms linear infinite; }
+/* Quiz me, before the first round: the part to be quizzed on, then (paid plans) a difficulty. */
+.fs-quiz-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fs-quiz-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border: none; border-radius: 10px; background: var(--fs-surface-2); box-shadow: inset 0 0 0 1px transparent; font: inherit; text-align: left; color: var(--fs-text); cursor: pointer; transition: box-shadow 120ms ease, background 120ms ease; }
+.fs-quiz-choice strong { font-size: 13.5px; font-weight: 600; }
+.fs-quiz-choice span { font-size: 12px; color: var(--fs-text-2); font-variant-numeric: tabular-nums; }
+.fs-quiz-choice:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--fs-border-strong); }
+.fs-quiz-choice:disabled { opacity: 0.55; cursor: default; }
+.fs-quiz-level { display: inline-flex; align-self: flex-start; gap: 2px; padding: 2px; border-radius: 16px; background: var(--fs-surface-2); }
+.fs-quiz-level-btn { height: 28px; padding: 0 12px; border: none; border-radius: 14px; background: transparent; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--fs-text-2); cursor: pointer; }
+.fs-quiz-level-btn.is-active { background: var(--fs-card); color: var(--fs-text); box-shadow: 0 0 0 1px var(--fs-border); }
+.fs-quiz-upsell { margin: 0; font-size: 12.5px; color: var(--fs-text-2); }
 
 /* ─── Welcome guide (first run) ────────────────────────────────────────────── */
 /* Docked bottom-left, above the FocusSpace pill, so the subjects in the middle of the page stay clickable. */
@@ -957,6 +968,10 @@ a.fs-path-name:hover { color: var(--fs-text); }
 @keyframes fs-welcome-dot { 0%, 100% { opacity: 0.35; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-2px); } }
 /* Setup is done: Next is where to look. */
 .fs-pill-button.is-pointed { box-shadow: 0 0 0 0 var(--fs-accent-soft); animation: fs-welcome-point 1.6s ease-out infinite; }
+/* First run: the Talk button glows until it is used, with a line pointing at it. */
+.fs-cmp-go.is-glowing { animation: fs-talk-glow 1.8s ease-in-out infinite; }
+@keyframes fs-talk-glow { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--fs-accent) 45%, transparent); } 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--fs-accent) 0%, transparent), 0 0 14px 2px color-mix(in srgb, var(--fs-accent) 40%, transparent); } }
+.fs-welcome-talk-hint { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin: 6px 6px 0 0; font-size: 12px; font-weight: 500; color: var(--fs-accent-text); }
 @keyframes fs-welcome-point { 0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45); } 100% { box-shadow: 0 0 0 12px rgba(220, 38, 38, 0); } }
 .fs-welcome-mic { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border: none; border-radius: 50%; background: transparent; color: var(--fs-text-2); cursor: pointer; }
 .fs-welcome-mic:hover:not(:disabled) { background: var(--fs-hover); color: var(--fs-text); }
@@ -1069,5 +1084,5 @@ a.fs-path-name:hover { color: var(--fs-text); }
 .fs-guide-title.is-pointed { background: var(--fs-accent-soft); box-shadow: inset 0 0 0 1px var(--fs-accent); }
 
 @media (prefers-reduced-motion: reduce) {
-  .fs-welcome, .fs-welcome-msg, .fs-voice-mode, .fs-voice-card, .fs-voice-ring, .fs-voice-orb, .fs-voice-spinner, .fs-welcome-typing span, .fs-pill-button.is-pointed { animation: none; }
+  .fs-welcome, .fs-welcome-msg, .fs-voice-mode, .fs-voice-card, .fs-voice-ring, .fs-voice-orb, .fs-voice-spinner, .fs-welcome-typing span, .fs-pill-button.is-pointed, .fs-cmp-go.is-glowing { animation: none; }
 }

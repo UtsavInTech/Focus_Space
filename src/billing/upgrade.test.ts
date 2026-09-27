@@ -9,12 +9,14 @@ describe('who is offered an upgrade', () => {
     }
   });
 
-  it('Pro, at its limit, is offered Unlimited', () => {
-    expect(upgradeOffer('pro', { used: 14, limit: 15 })).toBe('Need more Spaces? Go Unlimited');
+  it('each plan, at its limit, is offered the next rung', () => {
+    expect(upgradeOffer('basic', { used: 15, limit: 15 })).toBe('Need more Spaces? Go Plus');
+    expect(upgradeOffer('plus', { used: 24, limit: 25 })).toBe('Need more Spaces? Go Pro');
+    expect(upgradeOffer('pro', { used: 49, limit: 50 })).toBe('Need more Spaces? Go Max');
   });
 
-  it('Free, at its limit, is offered an upgrade', () => {
-    expect(upgradeOffer('free', { used: 5, limit: 5 })).toBe('Want more Spaces? Upgrade');
+  it('Free, at its limit, is offered Basic', () => {
+    expect(upgradeOffer('free', { used: 5, limit: 5 })).toBe('Want more Spaces? Basic is ₹99 for life');
   });
 
   it('nobody with room to spare is nagged', () => {

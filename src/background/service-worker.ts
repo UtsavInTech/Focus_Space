@@ -10,7 +10,8 @@ import { backgroundYouTube } from './youtube';
 import { aiService, resolveProviders, usageLog } from './ai';
 import { videoOutline } from './outline';
 import { generateNoteWithProvider } from '@/learning/ai/notes-integration';
-import { deleteNote, listNotes, saveNote } from '@/storage/notes-store';
+import { countNotes, deleteNote, listNotes, saveNote } from '@/storage/notes-store';
+import { currentPlanId, planById } from '@/billing/plans';
 import * as auth from './auth';
 import * as usage from './usage';
 import * as spaces from './spaces';
@@ -99,7 +100,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   await refreshSessionState();
   // First run happens on YouTube itself ("What do you want to focus on?"), with the welcome guide beside it.
   if (details.reason === 'install') {
-    await setItem('welcome', { active: true, signInSkipped: false, chat: null });
+    await setItem('welcome', { active: true, signInSkipped: false, chat: null, talked: false, oneByOne: false, spacesSkipped: false });
     await openYouTube();
   }
 });
@@ -166,6 +167,13 @@ listen({
   // Saving is for signed-in learners (src/ui/account/save-gate.ts); the panels already say so, this keeps it true.
   'notes/save': async ({ note }) => {
     if (!canSave(await getItem('auth'))) throw new Error(SAVE_NEEDS_ACCOUNT);
+    // The plan's Library size (Free 5, Basic 15). If the plan can't be read right now, saving still works.
+    const status = await usage.status().catch(() => null);
+    const plan = status ? planById(currentPlanId(status.plan)) : null;
+    const limit = plan?.limits.savedNotes ?? null;
+    if (plan && limit !== null && (await countNotes()) >= limit) {
+      throw new Error(`Your ${plan.name} plan keeps ${limit} notes and mind maps. Delete one you no longer need, or ${plan.id === 'free' ? 'get Basic for 15, ₹99 for life' : 'go Plus for unlimited'}.`);
+    }
     return saveNote(note);
   },
   'notes/list': ({ videoId }) => listNotes(videoId),

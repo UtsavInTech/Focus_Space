@@ -12,6 +12,7 @@ import type { NoteRequestInputs } from '@/learning/notes/generator';
 import type { NoteScope } from '@/learning/notes/scope';
 import { sendMessage } from '@/messaging/runtime';
 import { Modal } from '@/ui/components/Modal';
+import { LimitActions } from './LimitActions';
 import { RichText } from '@/ui/components/RichText';
 import { FORMAT_NAME, noteLabel, noteStartSec } from '@/learning/notes/label';
 import { MindMapDiagram, MindMapOutline, downloadMindMapSvg, type MindMapVariant } from '@/ui/mindmap/MindMapDiagram';
@@ -72,6 +73,8 @@ export function NotesPanel({ video, mode, topicId, path, map, transcript: known,
   const [language, setLanguage] = useState<NoteLanguage>(defaultLanguage);
   const [gen, setGen] = useState<GenState>({ kind: 'idle' });
   const [saved, setSaved] = useState<SavedNote[] | null>(null);
+  /** Why the last save was refused: the plan's Library is full, or signing in lapsed. */
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   /** Generating is open to everyone; keeping the result needs an account (ui/account/save-gate.ts). */
@@ -113,9 +116,16 @@ export function NotesPanel({ video, mode, topicId, path, map, transcript: known,
 
   async function save() {
     if (gen.kind !== 'ready') return;
-    const savedNote = await sendMessage('notes/save', { note: gen.note }).catch(() => null);
+    setSaveError(null);
+    const savedNote = await sendMessage('notes/save', { note: gen.note }).catch((err: unknown) => {
+      setSaveError(err instanceof Error ? err.message : 'Couldn’t save this note.');
+      return null;
+    });
     // A refused save comes back as { ok: false, error }, not a rejection — it is not a note.
-    if (!savedNote || !('id' in savedNote)) return;
+    if (!savedNote || !('id' in savedNote)) {
+      if (savedNote && 'error' in savedNote) setSaveError(String((savedNote as { error: unknown }).error));
+      return;
+    }
     setGen({ ...gen, saved: true });
     setSaved((prev) => [savedNote, ...(prev ?? [])]);
   }
@@ -185,6 +195,11 @@ export function NotesPanel({ video, mode, topicId, path, map, transcript: known,
               </button>
             ) : (
               canSave === false && <SignInToSave kind="note" />
+            )}
+            {saveError && (
+              <p className="fs-answer-note">
+                {saveError} <LimitActions />
+              </p>
             )}
           </div>
         )}
