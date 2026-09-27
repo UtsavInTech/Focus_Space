@@ -8,7 +8,6 @@
  */
 export const ACTION_COST: Record<string, number> = {
   what: 1,
-  ask: 1,
   example: 1,
   chat: 1,
   explain: 2,

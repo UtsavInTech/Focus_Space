@@ -12,7 +12,7 @@ export function SendLinkButton({ className, label }: { className: string; label:
   const send = async () => {
     const result = await sendLinkToComputer();
     if (result === 'failed') return;
-    setNote(result === 'copied' ? 'Link copied — open it on your computer' : 'Sent — open it on your computer');
+    setNote(result === 'copied' ? 'Link copied. Open it on your computer' : 'Sent. Open it on your computer');
     window.setTimeout(() => setNote(null), 3500);
   };
   return (
@@ -27,7 +27,7 @@ export function SendLinkButton({ className, label }: { className: string; label:
  * extension is asked to add it; someone who has it gets a way into it instead of an install button
  * for something they already installed.
  */
-export function InstallCta({ size = 'md', label = 'Add to Chrome — Free', withYouTube = false, forVisitors }: { size?: 'md' | 'lg'; label?: string; withYouTube?: boolean; /** Shown next to the install button only for visitors without the extension. */ forVisitors?: ReactNode }) {
+export function InstallCta({ size = 'md', label = 'Add to Chrome for free', withYouTube = false, forVisitors }: { size?: 'md' | 'lg'; label?: string; withYouTube?: boolean; /** Shown next to the install button only for visitors without the extension. */ forVisitors?: ReactNode }) {
   const ext = useExtension();
   const cls = `fsw-btn fsw-btn-primary${size === 'lg' ? ' fsw-btn-lg' : ''}`;
 

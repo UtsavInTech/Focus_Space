@@ -60,37 +60,37 @@ const KNOWLEDGE: Entry[] = [
     keywords: ['price', 'pricing', 'cost', 'plan', 'plans', 'much', 'rupees', 'inr', 'dollar', 'usd', 'subscription', 'pay', 'paid', 'money', 'upi', 'razorpay'],
     title: 'What FocusSpace costs',
     body: `${PLANS.filter((p) => p.id !== 'free')
-      .map((p) => `${p.name} — ${formatAmountless(p.price.monthly)} a month. ${p.tagline}`)
+      .map((p) => `${p.name}: ${formatAmountless(p.price.monthly)} a month. ${p.tagline}`)
       .join('\n')}\n\nFree stays free: ${GUEST_SPACE_LIMIT} Spaces without an account, ${FREE_SPACE_LIMIT} with a free account, and a monthly AI allowance. Indian visitors are charged in rupees through UPI or card; the dollar price is the headline everywhere.`,
     actions: [{ label: 'See full pricing', href: '/pricing' }],
   },
   {
     keywords: ['credit', 'credits', 'quota', 'allowance', 'limit', 'limits', 'usage'],
     title: 'How credits work',
-    body: `One credit is one AI request, weighted by how much work it is:\n${CREDIT_COSTS.map((c) => `• ${c.action} — ${c.credits} credit${c.credits > 1 ? 's' : ''}`).join('\n')}\n\nWatching a video never costs a credit. Nothing is spent until you click an AI action.`,
+    body: `One credit is one AI request, weighted by how much work it is:\n${CREDIT_COSTS.map((c) => `• ${c.action}: ${c.credits} credit${c.credits > 1 ? 's' : ''}`).join('\n')}\n\nWatching a video never costs a credit. Nothing is spent until you click an AI action.`,
     actions: [{ label: 'See full pricing', href: '/pricing' }],
   },
   {
     keywords: ['install', 'download', 'chrome', 'extension', 'add', 'setup', 'start', 'begin'],
     title: 'Installing FocusSpace',
-    body: 'FocusSpace is a Chrome extension. Add it to Chrome, open YouTube, and it asks you one question: what do you want to focus on. Type it in plain words and your home page is rebuilt around it. Nothing else to configure — no API key, no account needed to start.',
+    body: 'FocusSpace is a Chrome extension. Add it to Chrome, open YouTube, and it asks you one question: what do you want to focus on. Type it in plain words and your home page is rebuilt around it. Nothing else to configure, no API key, no account needed to start.',
     actions: [{ label: 'Add to Chrome', href: installHref() }],
   },
   {
     keywords: ['mode', 'modes', 'space', 'spaces', 'topic', 'topics', 'subtopic', 'subtopics'],
     title: 'What a mode is',
-    body: `A mode is one intention — “DSA”, “System design”, “Punjabi music”. FocusSpace works out the topics, vocabulary and searches that express it, then ranks your subscriptions and the wider YouTube against it. You get ${GUEST_SPACE_LIMIT} without an account, ${FREE_SPACE_LIMIT} with a free account, ${planById('pro').limits.modes} on Pro, and unlimited on Unlimited and Max.`,
+    body: `A mode is one intention: “DSA”, “System design”, “Punjabi music”. FocusSpace works out the topics, vocabulary and searches that express it, then ranks your subscriptions and the wider YouTube against it. You get ${GUEST_SPACE_LIMIT} without an account, ${FREE_SPACE_LIMIT} with a free account, ${planById('pro').limits.modes} on Pro, and unlimited on Unlimited and Max.`,
     actions: [{ label: 'See plans', href: '/pricing' }],
   },
   {
     keywords: ['privacy', 'data', 'history', 'track', 'tracking', 'private', 'safe', 'security'],
     title: 'What leaves your browser',
-    body: 'Your watch history, subscriptions and modes stay in your browser and are used locally to rank your feed. When you click an AI action, what leaves is the current moment — the video title, the concept you are on, your course position and a short transcript window. Never your history, never your subscriptions, never the full transcript.',
+    body: 'Your watch history, subscriptions and modes stay in your browser and are used locally to rank your feed. When you click an AI action, what leaves is the current moment, the video title, the concept you are on, your course position and a short transcript window, plus, for a chat message, a few short passages from the same video that match your question. Never your history, never your subscriptions, and a request never carries the full transcript.',
   },
 ];
 
 const FALLBACK: AssistantReply = {
-  text: 'I can answer anything about FocusSpace itself — what a mode is, what it costs in dollars or rupees, how credits work, what leaves your browser, or how to install it. Ask me one of those, or have a look around the page.',
+  text: 'I can answer anything about FocusSpace itself: what a mode is, what it costs in dollars or rupees, how credits work, what leaves your browser, or how to install it. Ask me one of those, or have a look around the page.',
   actions: [
     { label: 'See pricing', href: '/pricing' },
     { label: 'Read the FAQ', href: '/#faq' },

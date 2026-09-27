@@ -178,7 +178,7 @@ function ProfilePanel() {
               <input value={auth.user?.phone ?? 'Not added'} readOnly disabled />
             </label>
           </form>
-          <p className="fsw-account-note">Email and phone are how you sign in, so they change through their own verified flow — not here.</p>
+          <p className="fsw-account-note">Email and phone are how you sign in, so they change through their own verified flow, not here.</p>
           <div className="fsw-profile-actions">
             <button type="button" className="fsw-btn fsw-btn-outline" disabled={state === 'saving'} onClick={(e) => void save(e)}>
               {state === 'saving' ? 'Saving…' : 'Save'}
@@ -249,7 +249,7 @@ function PlanRow({ status, error }: { status: UsageStatus | null; error: string 
               })();
             }}
           >
-            {cancelling ? 'Cancelling…' : 'Stop renewing — keep access until it ends'}
+            {cancelling ? 'Cancelling…' : 'Stop renewing (keep access until it ends)'}
           </button>
         )}
         {cancelError && <p className="fsw-account-note fsw-profile-error">{cancelError}</p>}
@@ -366,7 +366,7 @@ function NotInstalled({ checking }: { checking: boolean }) {
       ) : (
         <>
           <p className="fsw-account-note">
-            Your spaces, channels and settings live inside the extension, in this browser — they are never uploaded. This
+            Your spaces, channels and settings live inside the extension, in this browser. They are never uploaded. This
             page reads them directly from it, so it needs FocusSpace installed here to show them.
           </p>
           <a className="fsw-btn fsw-btn-primary" href={installHref()} {...(hasStoreListing() ? { target: '_blank', rel: 'noreferrer' } : { onClick: onLinkClick(installHref()) })} style={{ marginTop: 14 }}>
@@ -420,7 +420,7 @@ function SpacesPanel({ ext }: { ext: ExtensionLink }) {
       </ul>
 
       <form className="fsw-space-new" onSubmit={create}>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New space — e.g. System design" aria-label="New space name" />
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New space, like System design" aria-label="New space name" />
         <button type="submit" className="fsw-btn fsw-btn-outline" disabled={!name.trim()}>
           Create
         </button>
@@ -535,7 +535,7 @@ function SubscriptionsPanel({ ext }: { ext: ExtensionLink }) {
         </>
       ) : (
         <p className="fsw-account-note">
-          No channels yet. On YouTube, open the space menu and choose “Import my subscriptions” — FocusSpace needs them
+          No channels yet. On YouTube, open the space menu and choose “Import my subscriptions”. FocusSpace needs them
           to put your own creators first.
         </p>
       )}

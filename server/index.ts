@@ -140,7 +140,7 @@ function safeReturnTo(returnTo: string): string {
 }
 
 const google = loadGoogleConfig();
-if (!google) console.warn('[FocusSpace API] Google sign-in is not configured (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REDIRECT_URI) — every other sign-in method is unaffected.');
+if (!google) console.warn('[FocusSpace API] Google sign-in is not configured (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REDIRECT_URI), every other sign-in method is unaffected.');
 
 const AUTH_ROUTES = new Set([HANDOFF_CREATE_ROUTE, HANDOFF_REDEEM_ROUTE, ME_PROFILE_ROUTE, BILLING_SUBSCRIBE_ROUTE, BILLING_SUBSCRIBE_CONFIRM_ROUTE, BILLING_CANCEL_ROUTE, BILLING_CHECKOUT_ROUTE, BILLING_CONFIRM_ROUTE, ME_PAYMENTS_ROUTE, AUTH_LOGIN_ROUTE, AUTH_REFRESH_ROUTE, AUTH_LOGOUT_ROUTE, SIGNUP_START_ROUTE, SIGNUP_VERIFY_ROUTE, SIGNUP_COMPLETE_ROUTE, RESET_START_ROUTE, RESET_VERIFY_ROUTE, RESET_COMPLETE_ROUTE, PHONE_START_ROUTE, PHONE_VERIFY_ROUTE, ME_ROUTE, ME_USAGE_ROUTE]);
 
@@ -176,14 +176,14 @@ const senders = loadSenders();
 // perfectly well on a deployment where Razorpay is not configured yet — which is
 // every deployment until the account's website is approved.
 const razorpay = loadRazorpayConfig();
-if (!razorpay) console.warn('[FocusSpace API] Razorpay is not configured — checkout is unavailable, everything else is unaffected.');
+if (!razorpay) console.warn('[FocusSpace API] Razorpay is not configured, checkout is unavailable, everything else is unaffected.');
 // Says which mode is live, without ever printing a key, and shouts about the one setting that fails
 // silently: without the webhook secret every webhook is rejected, so a renewal or a payment completed
 // after the browser closed is never recorded.
 if (razorpay) {
   console.log(`[FocusSpace API] Razorpay ${razorpay.test ? 'TEST' : 'LIVE'} mode (key ${razorpay.keyId.slice(0, 12)}…).`);
   if (!razorpay.webhookSecret) {
-    console.error('[FocusSpace API] RAZORPAY_WEBHOOK_SECRET is unset — every webhook will be rejected, so renewals and payments completed without the browser will not be recorded. Create the webhook in this Razorpay mode and set its secret.');
+    console.error('[FocusSpace API] RAZORPAY_WEBHOOK_SECRET is unset, every webhook will be rejected, so renewals and payments completed without the browser will not be recorded. Create the webhook in this Razorpay mode and set its secret.');
   }
 }
 
@@ -315,7 +315,7 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && (path === SETUP_ROUTE || path === VOICE_TRANSCRIBE_ROUTE || path === VOICE_SPEAK_ROUTE)) {
       const identity = authConfig ? tryAuthenticate(getDb(), authConfig, req.headers.authorization) : null;
       const caller = identity?.user.id ?? parseInstallId(req.headers['x-focusspace-install']) ?? clientIp(req, TRUST_PROXY);
-      const slowDown = () => new ApiError(429, 'rate_limited', 'That’s a lot of talking for one setup — give it a few minutes and try again.');
+      const slowDown = () => new ApiError(429, 'rate_limited', 'That’s a lot of talking for one setup. Give it a few minutes and try again.');
       // Voice is metered per account (monthly) or, signed out, per install (daily, setup only) — server/usage/voice.ts.
       const voiceCaller = (): VoiceCaller =>
         identity ? { kind: 'user', userId: identity.user.id } : { kind: 'guest', key: anonymousKeys(clientIp(req, TRUST_PROXY), parseInstallId(req.headers['x-focusspace-install']), authConfig?.tokenSecret ?? config.model).allowance };

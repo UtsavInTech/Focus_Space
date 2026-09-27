@@ -139,10 +139,10 @@ export function loadVoiceConfig(env: NodeJS.ProcessEnv = process.env): VoiceConf
     style:
       env.VOICE_STYLE ??
       [
-        'Sound like a real, warm person having a relaxed chat with a friend — never a robot, never an announcer.',
+        'Sound like a real, warm person having a relaxed chat with a friend, never a robot, never an announcer.',
         'A light, friendly Indian English accent.',
         'Natural pitch that rises and falls with meaning; lively intonation; a little smile in the voice.',
-        'Conversational pace — quicker on easy words, a touch slower on names — with short natural pauses at commas and after "okay" or "hmm".',
+        'Conversational pace, quicker on easy words, a touch slower on names, with short natural pauses at commas and after "okay" or "hmm".',
         'Casual acknowledgements ("okay", "alright", "got it") sound easy and relaxed, not read.',
       ].join(' '),
   };

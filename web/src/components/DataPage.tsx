@@ -19,14 +19,14 @@ import { DATA_DOES, DATA_NEVER } from '../content/data-summary';
  */
 
 const LOST = [
-  'Your Spaces — their topics, and the channels you chose for them',
+  'Your Spaces, their topics, and the channels you chose for them',
   'Your settings and preferences, and the feed FocusSpace built around them',
   'Your watch progress and Continue watching',
   'Your saved notes, mind maps and AI chats in the Library',
 ];
 
 const KEPT = [
-  'Your FocusSpace account — sign in again and it is there',
+  'Your FocusSpace account. Sign in again and it is there',
   'Your plan and payments: a paid plan is not lost, and does not need buying again',
 ];
 
@@ -43,7 +43,7 @@ export function DataPage() {
           <h2 id="remove-heading">Before you remove FocusSpace</h2>
           <p>
             Your work in FocusSpace lives in your browser, not on our servers. Removing the extension from Chrome deletes it at once
-            and for good — there is no copy on our side to restore it from.
+            and for good. There is no copy on our side to restore it from.
           </p>
           <div className="fsw-remove-columns">
             <div>

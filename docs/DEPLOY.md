@@ -56,7 +56,7 @@ Then set `DB_PATH=/data/focusspace.db` (below) so both database connections —
 | `MAIL_FROM` | `FocusSpace <hello@yourdomain>` | Must be on a domain verified in Resend. Unset falls back to Resend's sandbox sender, which only delivers to your own address. |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Optional. |
 | `MAX_TOKENS` | `700` | Optional. Ceiling on one AI answer's length. |
-| `OUTLINE_DAILY_LIMIT` | `500` | Optional. Most new video outlines made per day across everyone (each ≈ ₹0.05–0.50 of AI). Stored outlines are reused free and never count. |
+| `OUTLINE_DAILY_LIMIT` | `500` | Optional. Most new video outlines made per day across everyone (each ≈ ₹0.05–0.50 of AI; a video over three hours is outlined in ~1-hour parts, ≈ ₹1.5 for five hours). Stored outlines are reused free and never count. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | from Google Cloud | Google sign-in. Unset, Google sign-in is simply unavailable. |
 | `GOOGLE_REDIRECT_URI` | `https://api.focusspace.xyz/v1/auth/google/callback` | Must match the Google client *exactly*. |
 | `WEB_ORIGINS` | `https://focusspace.xyz` | Comma-separated allow-list of where a finished sign-in may return to. |

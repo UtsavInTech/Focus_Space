@@ -41,7 +41,7 @@ function allowanceFor(db: UsageDb, caller: VoiceCaller, purpose: VoicePurpose, n
     const plan = resolvePlan(db.getEntitlement(caller.userId), now);
     return { key: caller.userId, period: currentPeriod(now), limitSeconds: limitsFor(plan).voiceSecondsPerPeriod };
   }
-  if (purpose !== 'setup') throw new ApiError(403, 'forbidden', 'Sign in to talk with FocusSpace — a free account includes voice minutes every month.');
+  if (purpose !== 'setup') throw new ApiError(403, 'forbidden', 'Sign in to talk with FocusSpace. A free account includes voice minutes every month.');
   return { key: `guest:${caller.key}`, period: currentPeriod(now), limitSeconds: GUEST_SETUP_VOICE_MINUTES_PER_MONTH * 60 };
 }
 
@@ -54,8 +54,8 @@ export function assertVoiceAllowed(db: UsageDb, caller: VoiceCaller, purpose: Vo
     429,
     'quota_exceeded',
     caller.kind === 'guest'
-      ? `That’s the ${minutes} minutes of voice for setting up without an account. Keep typing — or sign in for 30 minutes a month.`
-      : `You’ve used your ${minutes} minutes of voice this month. Typing still works — or upgrade for more.`,
+      ? `That’s the ${minutes} minutes of voice for setting up without an account. Keep typing, or sign in for 30 minutes a month.`
+      : `You’ve used your ${minutes} minutes of voice this month. Typing still works, or upgrade for more.`,
   );
 }
 

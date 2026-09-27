@@ -182,7 +182,7 @@ describe('answer length is budgeted per action', () => {
   it('notes and mind maps get room to cover a whole lecture; a moment’s explanation keeps the configured cap', async () => {
     const { maxTokensFor } = await import('./orchestrator');
     expect(maxTokensFor('explain', 700)).toBe(700);
-    expect(maxTokensFor('ask', 700)).toBe(700);
+    expect(maxTokensFor('explain', 700)).toBe(700);
     expect(maxTokensFor('mindmap', 700)).toBeGreaterThanOrEqual(1500);
     expect(maxTokensFor('notes', 700)).toBeGreaterThanOrEqual(2000);
     // The configured cap is a floor, never lowered.

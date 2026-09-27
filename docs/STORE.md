@@ -80,7 +80,7 @@ reason, not the technical one.
 Tick these, and nothing else:
 
 - **Personally identifiable information** — yes: email address, and optionally name, phone and city, for the account.
-- **Website content** — yes: when the user clicks an AI action, the current video's title, position and a short transcript window are sent to our server to produce an answer.
+- **Website content** — yes: when the user clicks an AI action, the current video's title, position and a short transcript window are sent to our server to produce an answer — for a chat message, also a few short passages of the same video's transcript that match the question. To build a video's outline, its captions are sent once; only the outline is stored.
 - **Not collected:** health, financial, authentication, personal communications, location, web history, user activity.
 
 Certify all three: not sold to third parties; used only for the stated single

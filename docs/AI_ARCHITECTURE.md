@@ -11,7 +11,7 @@
 | `VideoClassifier` | `src/learning/classifier.ts`, `src/ai/registry.ts` | Rules classifier | AI classifier that augments the rules |
 | `IntentEngine` | `src/modes/intent.ts` | Catalogue + composed intents | AI intent → topics and signals |
 | `Sidekick.assess()` | `src/ai/sidekick.ts` | Deterministic on-track verdict | LLM rationale |
-| **AI actions** | `src/learning/ai/actions.ts` | What am I learning? · Explain · Example · Quiz me · Ask about this moment | Summaries, notes, flashcards, interview/coding questions, simplify, compare: one entry + one task line each |
+| **AI actions** | `src/learning/ai/actions.ts` | What am I learning? · Explain · Example · Quiz me (questions go to chat) | Summaries, notes, flashcards, interview/coding questions, simplify, compare: one entry + one task line each |
 | **AI providers** | `src/learning/ai/service.ts`, `src/background/ai.ts` | The hosted FocusSpace API (`server/`, metered per account and per install); Chrome's on-device model; a self-hosted endpoint for development | — |
 | **Learning context** | `src/learning/context/context.ts` | Moment, concept outline, course position, space topic path | Learning-plan queries ("what am I missing before trees?") |
 | **Knowledge sources** | `src/learning/knowledge/types.ts` | chapters, description, comments, transcript | `'ai'` source for concept labelling/refinement (base confidence 0.5) |
@@ -65,6 +65,27 @@ The transcript window:
 
 A 3-hour transcript still produces a prompt under 4,000 characters (tested).
 
+## Chat: passages from elsewhere in the video
+
+The moment window answers "what is he saying now?", and the whole-video outline answers "where is X taught?". Neither answers "what did he say about collisions?" asked an hour later — the outline names topics, not what was said. For that, chat searches the full transcript **locally** (`src/learning/knowledge/passages.ts`) and adds only what it finds.
+
+```
+learner sends a chat message ─► ChatPanel: buildLearningContext({ …, question })
+                              ─► findRelatedPassages(transcript, question)   ← in the browser, no network
+                                   passages of ~45–60 s, BM25 over stemmed words,
+                                   + exact phrases ("binary search"), + the outline section / map node the question names,
+                                   nearness to the playhead only as a tie-breaker
+                              ─► context.relatedPassages: ≤ 3 excerpts, ≤ 1,800 characters, each with its time
+                              ─► chat prompt block "[From elsewhere in this video]" ─► same provider path as before
+```
+
+- **Built on first question, never on playback.** The passage index is made the first time a question is asked on a video and kept in memory for that transcript (a `WeakMap` keyed by the segments array). Nothing is persisted.
+- **Bounded by design.** A 12-hour transcript is ~1,000 passages to search; the prompt still carries at most three short excerpts. Prompt size does not grow with video length (tested).
+- **Nothing forced in.** A greeting, a general question, or a term the video never uses returns no passages, and chat behaves exactly as before. A passage mostly inside the moment window is skipped — it is already in the prompt.
+- **Chat only.** Explain, Example, Quiz me, notes and mind maps never pass a question into the context, so they never get passages.
+- **Long videos get a finer outline.** Past three hours the outline is made in ~1-hour parts (`outlineParts`), a few requests at a time, then merged — up to 200 topics instead of 40. A section far longer than the rest (≥ 20 min and 4× the median) is a stretch the model skipped, and is outlined once more on its own (`longGaps`, `spliceGap`). In a part past the first hour the model is asked for `h:mm:ss`, and an hourless time that lands outside its part is re-read with the part's hour (`parseOutline` with `part`) — on a real 5h22m course two whole parts came back as "9:25"-style times. Up to three hours the upload, prompt and parsing are unchanged, so stored outlines still match.
+- **Cited times are links.** The chat prompt asks for `[mm:ss]` / `[mm:ss–mm:ss]`, only from times given in the context; `RichText` with `onSeek` turns them into buttons that use the Knowledge Map's seek (`src/content/data/knowledge.ts`). Everywhere else they stay text.
+
 ## Quiz quality
 
 "Quiz me" tests whether the learner understands the subject, not whether they remember how the YouTube course is organised.
@@ -99,7 +120,7 @@ endpoint both speak.
 - **Endpoint contract:** `POST <url>`
 
   ```json
-  { "version": 1, "action": "ask", "question": "Why is prev required here?", "context": { "…": "LearningContext" }, "prompt": { "system": "…", "user": "…" } }
+  { "version": 1, "action": "chat", "question": "Why is prev required here?", "context": { "…": "LearningContext" }, "prompt": { "system": "…", "user": "…" } }
   ```
 
   The endpoint returns `{ "answer": "…" }`. It must allow cross-origin POSTs (CORS), so no extra extension permissions are needed.
@@ -108,7 +129,7 @@ endpoint both speak.
 
 ## Data sent to the AI
 
-- **Sent:**
+- **Sent with an AI action or chat message:**
   - video title and channel
   - timestamp
   - current, previous and upcoming concept titles
@@ -116,7 +137,9 @@ endpoint both speak.
   - the space's name and topic names
   - the transcript window
   - the question
-- **Not sent:** watch history, subscriptions, other videos, the full transcript, comments.
+  - chat only: up to three passages from elsewhere in the same video that match the question (≤ 1,800 characters), picked in the browser
+- **Sent to make an outline** (`POST /v1/outline`, only when no stored outline matches): the video's captions, condensed for long videos (`condenseTranscript`). The API stores only the outline and a hash of those captions.
+- **Never sent:** watch history, subscriptions, other videos, comments. No AI action or chat message carries the full transcript.
 
 ## Next steps
 

@@ -26,7 +26,7 @@ interface Turn {
 
 const SEEN_KEY = 'fs.assistant.seen';
 const GREETING =
-  'Hi — I am the FocusSpace guide. Ask me what this does, what it costs in dollars or rupees, or how to get started.';
+  'Hi, I am the FocusSpace guide. Ask me what this does, what it costs in dollars or rupees, or how to get started.';
 
 export function ChatLauncher() {
   const [open, setOpen] = useState(false);

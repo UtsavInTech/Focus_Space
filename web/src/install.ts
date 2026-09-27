@@ -32,7 +32,7 @@ export const SITE_LINK = 'https://focusspace.xyz';
  * it where there is no share sheet. Resolves to what happened, so the button can say so.
  */
 export async function sendLinkToComputer(): Promise<'shared' | 'copied' | 'failed'> {
-  const share = { title: 'FocusSpace', text: 'FocusSpace — open this on your computer to add it to Chrome.', url: SITE_LINK };
+  const share = { title: 'FocusSpace', text: 'FocusSpace: open this on your computer to add it to Chrome.', url: SITE_LINK };
   try {
     if (navigator.share) {
       await navigator.share(share);

@@ -51,8 +51,12 @@ describe('validateAiApiRequest', () => {
     expect(badRequest({ context: learningContext }).code).toBe('invalid_request');
   });
 
-  it('rejects "ask"/"chat" with neither a question nor a prompt', () => {
-    const err = badRequest({ action: 'ask', context: learningContext });
+  it('no longer accepts the removed "ask" action — questions go through chat', () => {
+    expect(badRequest({ action: 'ask', context: learningContext, question: 'why?' }).message).toMatch(/action/);
+  });
+
+  it('rejects "chat" with neither a question nor a prompt', () => {
+    const err = badRequest({ action: 'chat', context: learningContext });
     expect(err.message).toMatch(/question/i);
     expect(badRequest({ action: 'chat', context: homepageContext }).message).toMatch(/question/i);
   });

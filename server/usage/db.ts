@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS remote_plans (
 );
 
 -- What a checkout was started for, recorded by the server before the browser ever sees the order.
--- Confirmation grants exactly this row — never a plan named by the browser — and only to its owner.
+-- Confirmation grants exactly this row, never a plan named by the browser, and only to its owner.
 CREATE TABLE IF NOT EXISTS checkouts (
   ref            TEXT PRIMARY KEY,
   kind           TEXT NOT NULL,
@@ -161,7 +161,7 @@ CREATE TABLE IF NOT EXISTS spaces (
 );
 
 -- Anonymous AI allowance: keyed by a salted hash of the caller's IP, never the IP itself, and
--- reset daily. Deliberately not in usage_events — that table is per-account (user_id REFERENCES
+-- reset daily. Deliberately not in usage_events, that table is per-account (user_id REFERENCES
 -- users) and feeds the learner's own monthly usage view; this is an abuse/goodwill limit only.
 CREATE TABLE IF NOT EXISTS anon_usage (
   key        TEXT NOT NULL,

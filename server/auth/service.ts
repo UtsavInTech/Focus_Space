@@ -30,8 +30,8 @@ export interface AuthConfig {
 
 export function loadAuthConfig(env: NodeJS.ProcessEnv = process.env): AuthConfig {
   const tokenSecret = env.AUTH_TOKEN_SECRET;
-  if (!tokenSecret) throw new Error('Set AUTH_TOKEN_SECRET (a long random string used to sign access tokens — never commit it).');
-  if (tokenSecret.length < 32) throw new Error('AUTH_TOKEN_SECRET must be at least 32 characters — generate one with `openssl rand -base64 32`.');
+  if (!tokenSecret) throw new Error('Set AUTH_TOKEN_SECRET (a long random string used to sign access tokens, never commit it).');
+  if (tokenSecret.length < 32) throw new Error('AUTH_TOKEN_SECRET must be at least 32 characters, generate one with `openssl rand -base64 32`.');
   return { tokenSecret };
 }
 

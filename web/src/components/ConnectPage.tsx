@@ -110,9 +110,9 @@ export function ConnectPage() {
               </button>
             )}
             <p className="fsw-auth-switch">
-              You are signed in on this website either way —{' '}
+              You are signed in on this website either way.{' '}
               <button type="button" className="fsw-link" onClick={() => navigate('/account')}>
-                open your account
+                Open your account
               </button>
               .
             </p>

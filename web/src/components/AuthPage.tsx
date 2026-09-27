@@ -261,7 +261,7 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
 
           {devCode && step === 'code' && (
             <p className="fsw-auth-dev">
-              Development server — no email was sent. Your code is <strong>{devCode}</strong>.
+              Development server: no email was sent. Your code is <strong>{devCode}</strong>.
             </p>
           )}
 

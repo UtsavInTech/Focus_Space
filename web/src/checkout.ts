@@ -135,7 +135,7 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutResul
           .then((grant) => resolve({ plan: grant.plan, expiresAt: grant.expiresAt, autoRenew: 'autoRenew' in grant ? grant.autoRenew === true : false }))
           // The money is taken by this point, and the webhook will still grant the
           // plan — so this says "we will sort it out", never "payment failed".
-          .catch(() => reject(new Error('Payment went through, but confirming it here failed. Refresh in a moment — it will appear.')));
+          .catch(() => reject(new Error('Payment went through, but confirming it here failed. Refresh in a moment. It will appear.')));
       },
       modal: {
         ondismiss: () => {

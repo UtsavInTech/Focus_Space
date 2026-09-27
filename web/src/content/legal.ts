@@ -51,8 +51,12 @@ export const PRIVACY: LegalDoc = {
     {
       heading: 'What is sent to us, and when',
       body: [
-        'Only when you click an AI action — Explain, Quiz me, Make Notes, a mind map, or a chat message — and only the context of that moment: the video title and channel, your position in it, the concept you are on, the names of nearby concepts, your space and topic names, and a short window of the transcript around that moment.',
-        'Never sent: your watch history, your subscriptions, your other videos, the full transcript, or the contents of any page you are not asking about.',
+        'Only when you click an AI action (Explain, Quiz me, Make Notes, a mind map, or a chat message), and only the context of that moment: the video title and channel, your position in it, the concept you are on, the names of nearby concepts, your space and topic names, and a short window of the transcript around that moment.',
+        'For a chat message, also up to three short passages from elsewhere in the same video that match your question, about 1,800 characters in all. Your browser picks them from the captions it already has; the transcript is not uploaded to find them.',
+        'For an outline of the whole video, which chat and notes use: when you open FocusSpace AI on a video that has no outline yet, the extension sends that video’s captions, shortened for long videos, once. We keep only the resulting outline, which anyone watching the same video then gets; the captions themselves are not stored.',
+        'Never sent: your watch history, your subscriptions, your other videos, or the contents of any page you are not asking about. An AI action or chat message never carries the full transcript.',
+        'Only when you use voice (Talk, the microphone button, or reading an answer aloud): the recording of what you say is sent to us and on to OpenAI to turn it into text, and the text of a reply is sent to OpenAI to turn it into speech. Your microphone is used only after you tap Talk or the microphone, and Chrome asks you for it first.',
+        'When you set up with the guide, what you type or say to it, and the names of your spaces and their creators, are sent so it can work out which spaces and channels to create.',
         'Watching a video sends nothing. Nothing in the playback path contacts our servers.',
       ],
     },
@@ -63,8 +67,9 @@ export const PRIVACY: LegalDoc = {
         'Your sessions, so you stay signed in, and so you can sign out. Each session records the browser it was started from, so you can tell them apart.',
         'Usage records: which kind of AI action you ran, what it cost in credits, when, the model that answered, and the token counts reported back to us. We do not store your prompts, the transcripts sent with them, or the answers produced.',
         'If you use the AI signed out: a random identifier the extension generated at install, kept only as a salted hash alongside a daily counter, so the free allowance can be shared out fairly. It is not connected to any account, and your IP address is never stored.',
-        'Payments: the plan, period, amount, and the payment identifier from Razorpay. We never see or store your card number, UPI ID or bank details — those go directly to Razorpay.',
+        'Payments: the plan, period, amount, and the payment identifier from Razorpay. We never see or store your card number, UPI ID or bank details. Those go directly to Razorpay.',
         'The names and identifiers of spaces you create while signed in, so your plan’s space allowance can be enforced. The contents of those spaces stay in your browser.',
+        'Voice usage: how many seconds of voice you used each month, so your plan’s voice allowance applies (signed out, against the same hashed install identifier). We never keep the recordings, or what was said.',
       ],
     },
     {
@@ -80,7 +85,7 @@ export const PRIVACY: LegalDoc = {
     {
       heading: 'Your choices',
       body: [
-        'You can use FocusSpace fully signed out. Most of it — spaces, ranking, the learning path, the knowledge map — never needed an account.',
+        'You can use FocusSpace fully signed out. Most of it (spaces, ranking, the learning path, the knowledge map) never needed an account.',
         'You can turn Focus Mode off at any time, which leaves YouTube exactly as it was.',
         'You can delete your account by writing to us, and we will remove your account, sessions, usage records and space records. Payment records are kept where tax law requires.',
         'Uninstalling the extension removes everything it stored in your browser.',
@@ -113,7 +118,7 @@ export const TERMS: LegalDoc = {
     {
       heading: 'Plans and payment',
       body: [
-        'Paid plans grant access for the period you buy — one month or twelve months — starting when the payment succeeds.',
+        'Paid plans grant access for the period you buy (one month or twelve months), starting when the payment succeeds.',
         'You choose at checkout whether the plan renews automatically. If it does, we charge the same amount each period until you stop it, and you can stop it at any time from your account page. If it does not, the plan simply ends and the account returns to the Free plan.',
         'When a plan ends, for either reason, nothing is deleted.',
         'Prices are shown in US dollars and, for customers in India, charged in Indian rupees through Razorpay. The rupee amount shown at checkout is what you are charged.',
@@ -124,7 +129,7 @@ export const TERMS: LegalDoc = {
     {
       heading: 'What we do not promise',
       body: [
-        'AI output can be wrong. FocusSpace labels it as such. Do not rely on it as your only source for anything that matters — an exam, an interview, or a decision.',
+        'AI output can be wrong. FocusSpace labels it as such. Do not rely on it as your only source for anything that matters: an exam, an interview, or a decision.',
         'FocusSpace depends on YouTube’s website continuing to work the way it currently does. A large change at YouTube’s end can break features until we update.',
         'The service is provided as is. We do not guarantee uninterrupted availability.',
       ],
@@ -149,7 +154,7 @@ export const REFUNDS: LegalDoc = {
     {
       heading: 'Cancelling',
       body: [
-        'If your plan renews automatically, stop it from your account page — one click, no explanation needed, no email to write. You keep access for every day of the period you already paid for, and are not charged again.',
+        'If your plan renews automatically, stop it from your account page: one click, no explanation needed, no email to write. You keep access for every day of the period you already paid for, and are not charged again.',
         'If you bought a single period instead, there is nothing to cancel: it ends by itself.',
         'Your spaces, notes and mind maps are not deleted when a plan ends. They are in your browser, where they always were.',
       ],
@@ -160,7 +165,7 @@ export const REFUNDS: LegalDoc = {
         'If you are unhappy within 7 days of a payment and have used only a small part of your AI credits for that period, write to us and we will refund it in full.',
         'After 7 days, or once a substantial part of the period’s credits has been used, we refund the unused portion at our discretion.',
         'If FocusSpace is unavailable for an extended period through our fault, we refund that time whether or not you ask.',
-        'If you were charged twice for the same thing, tell us and we will return the duplicate immediately — no questions.',
+        'If you were charged twice for the same thing, tell us and we will return the duplicate immediately, no questions.',
       ],
     },
     {
@@ -184,7 +189,7 @@ export const CONTACT_DOC: LegalDoc = {
       heading: 'Get in touch',
       body: [
         `Email: ${CONTACT}`,
-        'For anything about a payment, include the payment identifier from your account page — it makes it far quicker to find.',
+        'For anything about a payment, include the payment identifier from your account page. It makes it far quicker to find.',
         'For a bug, telling us the video you were on and what you expected to happen is usually enough for us to reproduce it.',
       ],
     },

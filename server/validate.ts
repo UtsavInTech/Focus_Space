@@ -93,7 +93,7 @@ export function validateAiApiRequest(raw: unknown): AiApiRequest {
   if (!looksLikeContext(context)) throw new ApiError(400, 'invalid_request', '"context" is missing or does not match LearningContext/HomepageContext.');
   if (JSON.stringify(context).length > MAX_CONTEXT_JSON_CHARS) throw new ApiError(400, 'invalid_request', '"context" is too large.');
 
-  // The point actions (what/explain/example/ask/quiz) and notes/mindmap are video-only — reusing a
+  // The point actions (what/explain/example/quiz) and notes/mindmap are video-only — reusing a
   // HomepageContext for them would silently reintroduce a "no transcript" style failure elsewhere.
   if (VIDEO_ONLY_ACTIONS.has(action) && isHomepageContext(context)) {
     throw new ApiError(400, 'invalid_request', `"${action}" requires a LearningContext (a specific video), not a HomepageContext.`);
@@ -116,8 +116,8 @@ export function validateAiApiRequest(raw: unknown): AiApiRequest {
   }
   const idempotencyKey: string | undefined = typeof raw.idempotencyKey === 'string' ? raw.idempotencyKey : undefined;
 
-  // ask/chat need a real question unless the caller already built the prompt itself.
-  if ((action === 'ask' || action === 'chat') && !prompt && !question?.trim()) {
+  // chat needs a real question unless the caller already built the prompt itself.
+  if (action === 'chat' && !prompt && !question?.trim()) {
     throw new ApiError(400, 'invalid_request', `"${action}" requires a non-empty "question" (or a pre-built "prompt").`);
   }
   // notes/mindmap don't rebuild prompts server-side yet (Layer 2A) — see orchestrator.ts.

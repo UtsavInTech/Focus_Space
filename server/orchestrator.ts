@@ -56,7 +56,7 @@ function promptFor(request: AiApiRequest): AiPrompt {
   // The remaining actions are the five point actions — video-only. validate.ts already rejected a
   // HomepageContext for these; this is a second, defensive check so the cast below is actually safe.
   if (isHomepageContext(request.context)) throw new ApiError(400, 'invalid_request', `"${request.action}" requires a LearningContext.`);
-  return buildPrompt(request.action as AiAction, request.context as LearningContext, request.question);
+  return buildPrompt(request.action as AiAction, request.context as LearningContext);
 }
 
 /**

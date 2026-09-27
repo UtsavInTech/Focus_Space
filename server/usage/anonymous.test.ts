@@ -30,8 +30,8 @@ afterEach(() => {
 const HOSTEL = '203.0.113.7';
 const use = (keys: ReturnType<typeof anonymousKeys>, n: number) => {
   for (let i = 0; i < n; i++) {
-    assertAnonymousAllowed(db, keys, 'ask');
-    recordAnonymous(db, keys, 'ask');
+    assertAnonymousAllowed(db, keys, 'chat');
+    recordAnonymous(db, keys, 'chat');
   }
 };
 
@@ -40,7 +40,7 @@ describe('signed-out AI allowance', () => {
     const first = anonymousKeys(HOSTEL, randomUUID(), 'secret');
     const second = anonymousKeys(HOSTEL, randomUUID(), 'secret');
     use(first, ANON_DAILY_AI_UNITS);
-    expect(() => assertAnonymousAllowed(db, first, 'ask')).toThrow(/without an account today/);
+    expect(() => assertAnonymousAllowed(db, first, 'chat')).toThrow(/without an account today/);
     expect(() => use(second, ANON_DAILY_AI_UNITS)).not.toThrow();
   });
 
@@ -59,7 +59,7 @@ describe('signed-out AI allowance', () => {
     const keys = anonymousKeys(HOSTEL, null, 'secret');
     expect(keys.ceiling).toBeNull();
     use(keys, ANON_DAILY_AI_UNITS);
-    expect(() => assertAnonymousAllowed(db, keys, 'ask')).toThrow();
+    expect(() => assertAnonymousAllowed(db, keys, 'chat')).toThrow();
   });
 
   it('only a well-formed random install id is accepted', () => {

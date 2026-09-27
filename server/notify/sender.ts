@@ -71,7 +71,7 @@ function consoleSender(channel: Channel): Sender {
   return {
     id: 'console',
     async send(target, code) {
-      console.log(`[FocusSpace API] ${channel} verification code for ${target}: ${code} (development sender — no ${channel === 'email' ? 'email' : 'SMS'} provider configured)`);
+      console.log(`[FocusSpace API] ${channel} verification code for ${target}: ${code} (development sender, no ${channel === 'email' ? 'email' : 'SMS'} provider configured)`);
     },
   };
 }
@@ -84,15 +84,15 @@ export function loadSenders(env: NodeJS.ProcessEnv = process.env): Senders {
   if (!env.RESEND_API_KEY && env.NODE_ENV === 'production') {
     // Loud, because a production server with no mail provider cannot complete a single sign-up:
     // the code is written to a log the learner will never read.
-    console.error('[FocusSpace API] No RESEND_API_KEY in production — email verification codes cannot be delivered and sign-up will not work.');
+    console.error('[FocusSpace API] No RESEND_API_KEY in production, email verification codes cannot be delivered and sign-up will not work.');
   }
   if (env.RESEND_API_KEY && !env.MAIL_FROM) {
-    console.warn(`[FocusSpace API] MAIL_FROM is unset — sending as ${RESEND_FALLBACK_FROM}, which Resend only delivers to your own address. Set MAIL_FROM to an address on a domain you have verified.`);
+    console.warn(`[FocusSpace API] MAIL_FROM is unset, sending as ${RESEND_FALLBACK_FROM}, which Resend only delivers to your own address. Set MAIL_FROM to an address on a domain you have verified.`);
   }
 
   const exposeCodes = env.AUTH_DEV_CODES === '1' && env.NODE_ENV !== 'production';
   if (env.AUTH_DEV_CODES === '1' && env.NODE_ENV === 'production') {
-    console.warn('[FocusSpace API] AUTH_DEV_CODES is ignored in production — verification codes are never returned to callers there.');
+    console.warn('[FocusSpace API] AUTH_DEV_CODES is ignored in production, verification codes are never returned to callers there.');
   }
   // There is no SMS provider. In development the console sender stands in; in production a phone code
   // would only ever reach the server log, so phone sign-in is switched off rather than left to fail.

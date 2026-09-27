@@ -57,7 +57,7 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
       await auth.reload();
       setMessage(
         result.autoRenew
-          ? `You're on ${plan.name}. It renews automatically on ${new Date(result.expiresAt).toLocaleDateString()} — cancel any time.`
+          ? `You're on ${plan.name}. It renews automatically on ${new Date(result.expiresAt).toLocaleDateString()}, cancel any time.`
           : `You're on ${plan.name}. It runs until ${new Date(result.expiresAt).toLocaleDateString()}, and will not renew by itself.`,
       );
     } catch (err) {
@@ -131,8 +131,8 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
         <div className="fsw-credits">
           <h3>What a credit buys</h3>
           <p>
-            One credit is one AI request, weighted by how much work it is. Watching a video never costs a credit —
-            nothing is spent until you click.
+            One credit is one AI request, weighted by how much work it is. Watching a video never costs a credit.
+            Nothing is spent until you click.
           </p>
           <ul>
             {CREDIT_COSTS.map((c) => (

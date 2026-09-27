@@ -394,10 +394,8 @@ await step('AI runs only when asked, with only this moment’s context (test end
   await sleep(1500);
   assert(aiRequests.length === 1, `the same moment should be answered from cache (${aiRequests.length})`);
 
-  await yt.fill(rail('.fs-ask input'), 'Why do we need the head reference?');
-  await yt.press(rail('.fs-ask input'), 'Enter');
-  await waitFor(async () => (await railText(yt.locator(rail('.fs-answer-text')))).includes('question: Why do we need the head reference?'), 'ask answer', 30000);
-  assert(aiRequests[1]?.action === 'ask' && aiRequests[1].question === 'Why do we need the head reference?', 'ask request');
+  // Questions go through FocusSpace AI chat; the old one-line "Ask about this moment" box is gone.
+  assert((await yt.locator(rail('.fs-ask')).count()) === 0, 'the "Ask about this moment" box should be gone');
   await shot(yt, 'watch-ai-answer');
 });
 

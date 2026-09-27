@@ -37,18 +37,18 @@ export function App() {
   useEffect(() => {
     document.title =
       path === '/pricing'
-        ? 'Pricing — FocusSpace'
+        ? 'Pricing · FocusSpace'
         : path === '/signin' || path === '/signup' || path === '/reset'
-          ? 'Sign in — FocusSpace'
+          ? 'Sign in · FocusSpace'
           : path === '/connect'
           ? 'Connecting FocusSpace'
           : path === '/account'
-            ? 'Your account — FocusSpace'
+            ? 'Your account · FocusSpace'
             : path === '/data'
-              ? 'Your data — FocusSpace'
+              ? 'Your data · FocusSpace'
             : LEGAL_DOCS[path]
-              ? `${LEGAL_DOCS[path].title} — FocusSpace`
-              : 'FocusSpace — YouTube, organised around what you came for';
+              ? `${LEGAL_DOCS[path].title} · FocusSpace`
+              : 'FocusSpace · YouTube, organised around what you came for';
   }, [path]);
 
   const isPricing = path === '/pricing';
@@ -78,7 +78,7 @@ export function App() {
             <header className="fsw-page-head">
               <h1>Simple plans, honest limits</h1>
               <p>
-                The part that makes YouTube usable is free forever. What you pay for is AI — every note, mind map and
+                The part that makes YouTube usable is free forever. What you pay for is AI: every note, mind map and
                 explanation is a real request we pay for on your behalf.
               </p>
             </header>

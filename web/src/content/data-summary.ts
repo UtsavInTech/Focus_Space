@@ -56,7 +56,7 @@ export const DATA_GROUPS: DataGroup[] = [
     summary: 'An account is optional. FocusSpace works signed out; an account raises your limits.',
     tone: 'sent',
     points: [
-      'Your email address — and your phone number, name or city only if you add them yourself.',
+      'Your email address, and your phone number, name or city only if you add them yourself.',
       'Your password, as a hash we cannot reverse. We never see the password itself.',
       'Your sessions, so you stay signed in and can sign out. Each one records the browser it was started from.',
       'Your plan, and your AI usage: which kind of action you ran, the credits it cost, the model, and the token counts the provider reported back. Never your prompts or the answers.',
@@ -83,9 +83,12 @@ export const DATA_GROUPS: DataGroup[] = [
     tone: 'sent',
     points: [
       'The moment you asked about: the video’s title and channel, your timestamp, the nearby outline, your space and topic names, a short stretch of the transcript, and your question.',
-      'Not your watch history, not your other videos, not the whole transcript.',
+      'For a chat message, also up to three short passages from elsewhere in the same video that match your question. Your browser picks them; the transcript is not uploaded to find them.',
+      'To outline a video no one has outlined yet, its captions are sent once. Only the outline is kept, and it is shared with everyone watching that video.',
+      'Not your watch history, not your other videos. A request never carries the whole transcript.',
       'OpenAI processes it for us. We do not keep your prompts or the answers.',
-      'If your computer supports Chrome’s built-in on-device AI, you can use that instead — then nothing leaves your browser at all.',
+      'Voice, only when you talk to FocusSpace: your recording is turned into text, and replies into speech, by OpenAI. We keep only how many seconds you used, never the recording or what was said.',
+      'If your computer supports Chrome’s built-in on-device AI, you can use that instead. Then nothing leaves your browser at all.',
       'Signed out, a request also sends a random id the extension made up when you installed it, so your small daily free allowance is yours rather than your whole network’s. It is not linked to you, and the server keeps only a hashed counter against it.',
     ],
   },
@@ -97,7 +100,7 @@ export const DATA_GROUPS: DataGroup[] = [
  */
 export const DATA_DOES: string[] = [
   'Keeps your Spaces, notes, mind maps and history in your browser.',
-  'Sends the AI only the moment you ask about — never your history or subscriptions.',
+  'Sends the AI only the moment you ask about, never your history or subscriptions.',
   'Stores your account and plan only if you sign in.',
 ];
 
@@ -106,5 +109,5 @@ export const DATA_NEVER: string[] = [
   'We do not sell your data, and there is no advertising in FocusSpace.',
   'There is no analytics or tracking in the extension.',
   'Watching a video sends us nothing. Nothing in the playback path touches our servers.',
-  'We cannot read your spaces, notes or history — they are not on our servers to read.',
+  'We cannot read your spaces, notes or history. They are not on our servers to read.',
 ];
