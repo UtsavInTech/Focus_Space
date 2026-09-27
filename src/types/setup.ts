@@ -28,6 +28,8 @@ export interface SetupSpacesAnswer {
   /** What the assistant says back, in one or two spoken-style sentences. */
   reply: string;
   spaces: SetupSpacePlan[];
+  /** Creators named in the same breath — "DSA with Striver", "add Gaurav Sen to system design". */
+  channels: { space: string; names: string[] }[];
 }
 
 export interface SetupChannelsAnswer {

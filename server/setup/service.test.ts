@@ -43,8 +43,13 @@ describe('parseSetupAnswer', () => {
     expect(answer.spaces[1]).toMatchObject({ templateId: 'spanish', icon: 'languages', kind: 'learning' });
   });
 
+  it('keeps creators named alongside a subject, and drops malformed ones', () => {
+    const answer = parseSetupAnswer(spacesRequest, { reply: 'ok', spaces: [], channels: [{ space: 'DSA', names: ['take U forward', ''] }, { space: '', names: ['x'] }, { space: 'SQL', names: [] }, 'junk'] });
+    expect('channels' in answer && answer.channels).toEqual([{ space: 'DSA', names: ['take U forward'] }]);
+  });
+
   it('survives a reply that is not the expected shape', () => {
-    expect(parseSetupAnswer(spacesRequest, null)).toEqual({ reply: 'What would you like to learn or watch?', spaces: [] });
+    expect(parseSetupAnswer(spacesRequest, null)).toEqual({ reply: 'What would you like to learn or watch?', spaces: [], channels: [] });
     expect(parseSetupAnswer({ task: 'channels', text: 'no', space: 'DSA' }, { channels: 'nope' })).toEqual({ reply: 'No problem.', channels: [] });
   });
 });

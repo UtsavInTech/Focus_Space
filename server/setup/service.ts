@@ -10,7 +10,7 @@ import { ApiError } from '../http';
  */
 
 const MAX_SPACES = 8;
-const MAX_TOPICS = 8;
+const MAX_TOPICS = 10;
 const MAX_CHANNELS = 5;
 const clip = (s: unknown, n: number) => (typeof s === 'string' ? s.trim().replace(/\s+/g, ' ').slice(0, n) : '');
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -52,12 +52,13 @@ export function setupPrompt(request: SetupRequest): AiPrompt {
         '- A Space name is the subject alone, 1–4 words, Title Case, correctly spelled: "I want to learn system desing so add it" → "System Design". Never include filler like "I want", "add it", "for now", "please", "space", "mode".',
         '- Languages are named "Learn Spanish", "Learn French", etc.',
         '- If a subject matches one of the templates, set templateId to that template id and use the template name exactly; otherwise templateId is null.',
-        '- For every Space give 4–7 topics a learner would move through (beginner to advanced for learning subjects), each with 2–4 short search keywords; 4–8 Space keywords; a searchHint of 1–3 words; a one-sentence description.',
+        '- For every Space — templates included — give 8 subtopics (never fewer than 6, at most 10) a learner would move through, beginner to advanced for learning subjects, each with 2–4 short YouTube search keywords; 4–8 Space keywords; a searchHint of 1–3 words; a one-sentence description.',
+        '- If they name YouTube creators or channels for a subject ("DSA with Striver", "add Gaurav Sen to system design"), list them in channels under that Space’s name — also when the Space already exists. Spell names the way the channel is known on YouTube when you are confident.',
         `- icon is one of: ${SPACE_ICON_NAMES.join(', ')}. kind is "learning", "media" (music, entertainment) or "general".`,
         '- Skip subjects the person already has a Space for.',
-        '- If they did not name any subject (a greeting, a question, "I don’t know"), return no spaces and use reply to ask, in one friendly sentence, what they would like to learn or watch — suggest two or three examples.',
+        '- If they did not name any subject or creator (a greeting, a question, "I don’t know"), return no spaces and use reply to ask, in one friendly sentence, what they would like to learn or watch — suggest two or three examples.',
         '- Otherwise reply confirms what you understood in one or two sentences, naming the Spaces, e.g. "Got it — System Design, Learn Spanish and Learn French. I’ll set those up for you now."',
-        'Answer with one JSON object: {"reply": string, "spaces": [{"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint"}]}',
+        'Answer with one JSON object: {"reply": string, "spaces": [{"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint"}], "channels": [{"space": string, "names": [string]}]}',
       ].join('\n'),
       user: JSON.stringify({ said: request.text, alreadyHas: request.existing, templates: request.catalog }),
     };
@@ -106,6 +107,14 @@ export function parseSetupAnswer(request: SetupRequest, data: unknown): SetupAns
     });
     if (spaces.length >= MAX_SPACES) break;
   }
-  const answer: SetupSpacesAnswer = { reply: reply || (spaces.length ? `Got it — I’ll set up ${spaces.map((s) => s.name).join(', ')}.` : 'What would you like to learn or watch?'), spaces };
+  const channels = (Array.isArray(raw.channels) ? raw.channels.filter(isObject) : [])
+    .map((c) => ({ space: clip(c.space, 40), names: strings(c.names, MAX_CHANNELS, 80) }))
+    .filter((c) => c.space && c.names.length)
+    .slice(0, MAX_SPACES);
+  const answer: SetupSpacesAnswer = {
+    reply: reply || (spaces.length ? `Got it — I’ll set up ${spaces.map((s) => s.name).join(', ')}.` : 'What would you like to learn or watch?'),
+    spaces,
+    channels,
+  };
   return answer;
 }
