@@ -359,12 +359,48 @@ export function grantPlan(db: UsageDb, input: GrantInput, now = Date.now()): Gra
   return { plan: input.planId, expiresAt, granted: true, autoRenew };
 }
 
-/** Stops the subscription an upgrade replaced, once the upgrade is paid. Never fails the purchase itself. */
-async function stopReplaced(config: RazorpayConfig, purchase: CheckoutRow): Promise<void> {
-  if (!purchase.replaces_subscription) return;
-  await cancelSubscription(config, purchase.replaces_subscription).catch((err) =>
-    console.error(`[FocusSpace billing] Could not stop replaced subscription ${purchase.replaces_subscription}: ${err instanceof Error ? err.message : String(err)}`),
-  );
+/**
+ * Stops the subscription an upgrade replaced, once the upgrade is paid. Never fails the purchase itself,
+ * and never gives up: a cancellation Razorpay has not confirmed is kept and retried
+ * (`retryPendingCancellations`) until it is, because until then the old plan would keep charging the card.
+ */
+async function stopReplaced(config: RazorpayConfig | null | undefined, db: UsageDb, purchase: CheckoutRow, now = Date.now()): Promise<void> {
+  const id = purchase.replaces_subscription;
+  if (!id) return;
+  if (!config) return db.addPendingCancellation(id, purchase.user_id, 'Razorpay is not configured', now);
+  let lastError = '';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await cancelSubscription(config, id);
+      db.clearPendingCancellation(id);
+      return;
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
+    }
+  }
+  db.addPendingCancellation(id, purchase.user_id, lastError, now);
+  console.error(`[FocusSpace billing] Could not stop replaced subscription ${id} (will retry): ${lastError}`);
+}
+
+/** Retries every replaced subscription whose cancellation has not been confirmed. Returns how many are still pending. */
+export async function retryPendingCancellations(config: RazorpayConfig, db: UsageDb, now = Date.now()): Promise<number> {
+  for (const row of db.listPendingCancellations()) {
+    try {
+      // Already ended at Razorpay (cancelled by hand, say): nothing left to stop.
+      const remote = await fetchSubscription(config, row.subscription_id).catch(() => null);
+      if (remote && ['cancelled', 'completed', 'expired'].includes(remote.status)) {
+        db.clearPendingCancellation(row.subscription_id);
+        continue;
+      }
+      await cancelSubscription(config, row.subscription_id);
+      db.clearPendingCancellation(row.subscription_id);
+    } catch (err) {
+      db.addPendingCancellation(row.subscription_id, row.user_id, err instanceof Error ? err.message : String(err), now);
+      if (row.attempts >= 5) console.error(`[FocusSpace billing] Replaced subscription ${row.subscription_id} still not cancelled after ${row.attempts + 1} attempts. Cancel it in the Razorpay dashboard.`);
+    }
+  }
+  return db.listPendingCancellations().length;
 }
 
 const grantFrom = (purchase: CheckoutRow, ids: { orderId: string; paymentId: string; subscriptionId?: string | null }): GrantInput => ({
@@ -409,7 +445,7 @@ export async function confirmPayment(
   if (!verifyPaymentSignature(config, body.orderId, body.paymentId, body.signature)) throw new ApiError(400, 'invalid_signature', UNVERIFIED);
   const purchase = recordedPurchase(db, userId, body.orderId, 'order', body);
   const grant = grantPlan(db, grantFrom(purchase, { orderId: body.orderId, paymentId: body.paymentId }), now);
-  if (grant.granted) await stopReplaced(config, purchase);
+  if (grant.granted) await stopReplaced(config, db, purchase, now);
   return grant;
 }
 
@@ -432,7 +468,7 @@ export async function confirmSubscription(
     throw new ApiError(400, 'purchase_mismatch', UNVERIFIED);
   }
   const grant = grantPlan(db, grantFrom(purchase, { orderId: '', paymentId: body.paymentId, subscriptionId: body.subscriptionId }), now);
-  if (grant.granted) await stopReplaced(config, purchase);
+  if (grant.granted) await stopReplaced(config, db, purchase, now);
   return grant;
 }
 
@@ -493,6 +529,7 @@ export async function applyWebhook(db: UsageDb, event: unknown, now = Date.now()
     const subscriptionId = String(payload.payload?.subscription?.entity?.id ?? '');
     const row = subscriptionId ? db.findBySubscription(subscriptionId) : undefined;
     if (row) db.clearAutoRenew(row.user_id, now);
+    if (subscriptionId) db.clearPendingCancellation(subscriptionId);
     return null;
   }
 
@@ -522,7 +559,7 @@ export async function applyWebhook(db: UsageDb, event: unknown, now = Date.now()
   const grant = firstCharge
     ? grantPlan(db, grantFrom(recorded, { orderId, paymentId, subscriptionId }), now)
     : grantPlan(db, { userId, planId, period, currency: (payment.currency as CurrencyCode) ?? 'INR', amountMinor: Number(payment.amount) || 0, orderId, paymentId, subscriptionId }, now);
-  if (firstCharge && grant.granted && config) await stopReplaced(config, recorded);
+  if (firstCharge && grant.granted) await stopReplaced(config, db, recorded, now);
   return grant;
 }
 

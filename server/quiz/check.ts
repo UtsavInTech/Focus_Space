@@ -53,6 +53,13 @@ const SINGLE_ANSWER = 0.5;
 /** The judge's context holds 32k tokens; the round's transcript is far below that, but never unbounded. */
 const EXCERPT_CHARS = 16_000;
 const NONE = 'NONE';
+/**
+ * How long each check may take. A judge that is slow counts as unsure (the question is settled instead);
+ * a settle that is slow drops the question. Either way a stalled provider never holds the round open.
+ */
+export const JUDGE_TIMEOUT_MS = 15_000;
+export const SETTLE_TIMEOUT_MS = 45_000;
+const within = (ms: number, signal?: AbortSignal) => (signal ? AbortSignal.any([signal, AbortSignal.timeout(ms)]) : AbortSignal.timeout(ms));
 /** The mistake the writer makes most: an output option that is nearly right ("5 10 0 0 0" for "510000"). */
 const EXACT_OUTPUT = "An option that states a program's output is correct only if it matches the exact output character for character: spaces, commas and new lines matter.";
 
@@ -80,7 +87,7 @@ async function judge(q: QuizQuestion, excerpt: string, config: QuizCheckConfig, 
         },
       },
     }),
-    signal,
+    signal: within(JUDGE_TIMEOUT_MS, signal),
   });
   if (!res.ok) return false;
   const json = (await res.json().catch(() => null)) as { answers?: { answer?: { probabilities?: Record<string, number> }; single?: { noul?: number } } } | null;
@@ -112,7 +119,7 @@ async function settle(q: QuizQuestion, excerpt: string, config: QuizCheckConfig,
         { role: 'user', content: user },
       ],
     }),
-    signal,
+    signal: within(SETTLE_TIMEOUT_MS, signal),
   });
   if (!res.ok) return null;
   const json = (await res.json().catch(() => null)) as { choices?: { message?: { content?: string } }[] } | null;
@@ -121,7 +128,7 @@ async function settle(q: QuizQuestion, excerpt: string, config: QuizCheckConfig,
     const letters = Array.isArray(out.correct_options) ? out.correct_options.map((l) => String(l).trim().toUpperCase()) : [];
     const valid = letters.filter((l) => q.options.some((o) => o.letter === l));
     if (valid.length !== 1 || letters.length !== 1) return null;
-    return { letter: valid[0], reason: typeof out.reason === 'string' ? out.reason.trim() : '' };
+    return { letter: valid[0], reason: typeof out.reason === 'string' ? out.reason.replace(/\s+/g, ' ').trim() : '' };
   } catch {
     return null;
   }

@@ -100,3 +100,31 @@ describe('repeated options', () => {
     expect(distinctOptions(q(['456', '4 5 6', '456'], 'A'))).toBeNull();
   });
 });
+
+describe('the check never hangs, and keeps each answer on one line', () => {
+  it('a judge that never answers counts as unsure; a settle that never answers drops the question', async () => {
+    // A provider that never answers; the round's own deadline (here 10 ms) cuts every check short.
+    const hang = ((_: unknown, init?: RequestInit) =>
+      new Promise((_, reject) => {
+        // Like the real fetch: a deadline already passed rejects at once, a later one when it passes.
+        if (init?.signal?.aborted) return reject(new Error('aborted'));
+        init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+      })) as unknown as typeof fetch;
+    const pending = checkQuiz(QUIZ, 'transcript', config, AbortSignal.timeout(10), hang);
+    await expect(pending).rejects.toThrow(/passed its check/);
+  });
+
+  it('a reason with line breaks is written on one line', async () => {
+    const calls: string[] = [];
+    const upstream = (async (url: string | URL | Request, init?: RequestInit) => {
+      if (String(url).includes('openrouter.ai')) return new Response('{}', { status: 500 });
+      calls.push('settle');
+      const q: string = JSON.parse(String(init?.body)).messages[1].content;
+      const letter = q.includes('printf') ? 'B' : q.includes('7 / 2') ? 'B' : 'A';
+      return Response.json({ choices: [{ message: { content: JSON.stringify({ correct_options: q.includes('Which loop') ? ['A', 'B'] : [letter], reason: 'First line.\nSecond line.' }) } }] });
+    }) as typeof fetch;
+    const result = await checkQuiz(QUIZ, 'transcript', config, undefined, upstream);
+    const shown = parseQuiz(result.text)!;
+    expect(shown[0].answer?.reason).toBe('First line. Second line.');
+  });
+});

@@ -24,7 +24,8 @@ import { callOpenAI, callOpenAIJson, loadOpenAIConfig, loadVoiceConfig, speak, t
 import { parseSetupAnswer, setupPrompt, transcriptionHint, validateSetupRequest, validateSpeechText } from './setup/service';
 import { orchestrate } from './orchestrator';
 import { checkQuiz, loadQuizCheckConfig } from './quiz/check';
-import { QUIZ_SIGN_IN_MESSAGE, assertQuizAllowed, quizStatus, recordQuiz } from './usage/quiz';
+import { QUIZ_SIGN_IN_MESSAGE, quizStatus, reserveQuiz, settleQuiz } from './usage/quiz';
+import { QUIZ_QUESTIONS } from '@/learning/ai/actions';
 import { validateAiApiRequest } from './validate';
 import { getDb } from './auth/db';
 import {
@@ -58,7 +59,7 @@ import { activitySubject, isAdmin, metrics, recordActive } from './usage/activit
 import { assertVoiceAllowed, parsePurpose, recordVoice, secondsHeard, secondsToSay, voiceStatus, type VoiceCaller } from './usage/voice';
 import { resolvePlan } from './usage/entitlements';
 import { loadRazorpayConfig, verifyWebhookSignature } from './billing/razorpay';
-import { applyWebhook, cancelPlan, confirmPayment, confirmSubscription, quotes, startCheckout, startSubscription } from './billing/service';
+import { applyWebhook, cancelPlan, confirmPayment, confirmSubscription, quotes, retryPendingCancellations, startCheckout, startSubscription } from './billing/service';
 import { buildReceipt } from './billing/receipt';
 import { getOutlineDb } from './outline/db';
 import { outlineDailyLimit, outlineFor, validateOutlineRequest, validateTranscriptKey, validateVideoId } from './outline/service';
@@ -220,6 +221,15 @@ try {
   console.warn(`[FocusSpace API] Auth routes disabled: ${err instanceof Error ? err.message : String(err)}`);
 }
 
+// Upgrades stop the subscription they replace; any cancellation Razorpay did not confirm is retried here,
+// soon after start and then every 30 minutes, until it is — otherwise the old plan keeps charging the card.
+if (razorpay) {
+  const retry = () =>
+    void retryPendingCancellations(razorpay, getUsageDb()).catch((err) => console.error(`[FocusSpace billing] Retrying cancellations failed: ${err instanceof Error ? err.message : String(err)}`));
+  setTimeout(retry, 60_000).unref();
+  setInterval(retry, 30 * 60_000).unref();
+}
+
 const server = createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, CORS_HEADERS);
@@ -274,11 +284,18 @@ const server = createServer(async (req, res) => {
       if (request.action === 'quiz') {
         if (!identity) throw new ApiError(403, 'forbidden', QUIZ_SIGN_IN_MESSAGE);
         const usageDb = getUsageDb();
-        assertQuizAllowed(usageDb, identity.user.id);
-        const result = await orchestrate(request, { config });
-        const excerpt = 'transcriptWindow' in request.context ? request.context.transcriptWindow?.text ?? '' : '';
-        const checked = await checkQuiz(result.answer, excerpt, quizCheck);
-        recordQuiz(usageDb, identity.user.id, checked.shown);
+        const held = reserveQuiz(usageDb, identity.user.id, QUIZ_QUESTIONS);
+        let checked: Awaited<ReturnType<typeof checkQuiz>>;
+        let result: Awaited<ReturnType<typeof orchestrate>>;
+        try {
+          result = await orchestrate(request, { config });
+          const excerpt = 'transcriptWindow' in request.context ? request.context.transcriptWindow?.text ?? '' : '';
+          checked = await checkQuiz(result.answer, excerpt, quizCheck);
+        } catch (err) {
+          settleQuiz(usageDb, identity.user.id, held, 0);
+          throw err;
+        }
+        settleQuiz(usageDb, identity.user.id, held, checked.shown);
         console.log(`[FocusSpace API] quiz: ${checked.shown} shown, ${checked.settled} settled, ${checked.fixed} fixed, ${checked.dropped} dropped`);
         sendJson(res, 200, { ...result, answer: checked.text });
         return;

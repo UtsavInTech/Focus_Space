@@ -21,6 +21,22 @@ export function assertQuizAllowed(db: UsageDb, userId: string, now = Date.now())
   throw new ApiError(429, 'quota_exceeded', `You’ve used your ${limit} quiz questions this month. They reset at the start of next month, or upgrade for more.`);
 }
 
+/**
+ * Holds a round's questions before any model is called, in the same synchronous step as the check, so
+ * rounds started at the same moment (several tabs, a script) cannot all pass on the same count.
+ * `settleQuiz` then corrects it to what was shown, or gives it all back when the round fails.
+ */
+export function reserveQuiz(db: UsageDb, userId: string, questions: number, now = Date.now()): { period: string; held: number } {
+  assertQuizAllowed(db, userId, now);
+  const period = currentPeriod(now);
+  db.addQuizQuestions(userId, period, questions, now);
+  return { period, held: questions };
+}
+
+export function settleQuiz(db: UsageDb, userId: string, reservation: { period: string; held: number }, shown: number, now = Date.now()): void {
+  if (shown !== reservation.held) db.addQuizQuestions(userId, reservation.period, shown - reservation.held, now);
+}
+
 export function recordQuiz(db: UsageDb, userId: string, questions: number, now = Date.now()): void {
   if (questions > 0) db.addQuizQuestions(userId, currentPeriod(now), questions, now);
 }

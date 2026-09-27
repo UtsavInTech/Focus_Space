@@ -193,6 +193,17 @@ CREATE TABLE IF NOT EXISTS voice_usage (
 );
 
 -- Checked quiz questions shown per month ("2026-09"), per user id (server/usage/quiz.ts).
+-- Subscriptions an upgrade replaced whose cancellation at Razorpay has not been confirmed yet
+-- (server/billing/service.ts). Retried until Razorpay confirms, so nobody is charged for both plans.
+CREATE TABLE IF NOT EXISTS pending_cancellations (
+  subscription_id TEXT PRIMARY KEY,
+  user_id         TEXT NOT NULL,
+  attempts        INTEGER NOT NULL DEFAULT 0,
+  last_error      TEXT,
+  created_at      INTEGER NOT NULL,
+  updated_at      INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS quiz_usage (
   user_id    TEXT NOT NULL,
   period     TEXT NOT NULL,
@@ -469,15 +480,30 @@ export class UsageDb {
       .run(key, period, Math.max(0, Math.round(seconds)), now);
   }
 
+  addPendingCancellation(subscriptionId: string, userId: string, error: string, now = Date.now()): void {
+    this.db
+      .prepare('INSERT INTO pending_cancellations (subscription_id, user_id, attempts, last_error, created_at, updated_at) VALUES (?, ?, 1, ?, ?, ?) ON CONFLICT(subscription_id) DO UPDATE SET attempts = attempts + 1, last_error = excluded.last_error, updated_at = excluded.updated_at')
+      .run(subscriptionId, userId, error.slice(0, 300), now, now);
+  }
+
+  listPendingCancellations(): { subscription_id: string; user_id: string; attempts: number }[] {
+    return this.db.prepare('SELECT subscription_id, user_id, attempts FROM pending_cancellations ORDER BY created_at').all() as unknown as { subscription_id: string; user_id: string; attempts: number }[];
+  }
+
+  clearPendingCancellation(subscriptionId: string): void {
+    this.db.prepare('DELETE FROM pending_cancellations WHERE subscription_id = ?').run(subscriptionId);
+  }
+
   quizQuestions(userId: string, period: string): number {
     const row = this.db.prepare('SELECT questions FROM quiz_usage WHERE user_id = ? AND period = ?').get(userId, period) as { questions: number } | undefined;
     return row?.questions ?? 0;
   }
 
+  /** Adds (or, with a negative number, gives back) questions; the month's count never goes below zero. */
   addQuizQuestions(userId: string, period: string, questions: number, now = Date.now()): void {
-    this.db
-      .prepare('INSERT INTO quiz_usage (user_id, period, questions, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, period) DO UPDATE SET questions = questions + excluded.questions, updated_at = excluded.updated_at')
-      .run(userId, period, Math.max(0, Math.round(questions)), now);
+    const n = Math.round(questions);
+    const updated = this.db.prepare('UPDATE quiz_usage SET questions = MAX(0, questions + ?), updated_at = ? WHERE user_id = ? AND period = ?').run(n, now, userId, period);
+    if (Number(updated.changes) === 0) this.db.prepare('INSERT INTO quiz_usage (user_id, period, questions, updated_at) VALUES (?, ?, ?, ?)').run(userId, period, Math.max(0, n), now);
   }
 
   /** Marks an install active on a day (idempotent) and remembers the first day it was seen. */

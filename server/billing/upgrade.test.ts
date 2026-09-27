@@ -200,3 +200,28 @@ describe('Razorpay Plans follow the price', () => {
     expect(subscription.plan_id).not.toBe('plan_old_2388');
   });
 });
+
+describe('stopping the replaced subscription', () => {
+  it('keeps a cancellation Razorpay refused, and retries it until it goes through', async () => {
+    const { retryPendingCancellations } = await import('./service');
+    let refuse = true;
+    const base = globalThis.fetch;
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (String(url).endsWith('/cancel') && refuse) return { ok: false, status: 503, json: async () => ({}), text: async () => 'down' };
+      return (base as unknown as (u: string, i?: RequestInit) => Promise<unknown>)(url, init);
+    }));
+    const { session: old } = await subscribe('plus', 'monthly', NOW, 'pay_plus');
+    await subscribe('pro', 'monthly', NOW + 10 * DAY, 'pay_pro');
+    expect(usageDb.listPendingCancellations().map((r) => r.subscription_id)).toEqual([old.subscriptionId]);
+
+    refuse = false;
+    expect(await retryPendingCancellations(config, usageDb)).toBe(0);
+    expect(usageDb.listPendingCancellations()).toEqual([]);
+  }, 20_000);
+
+  it('a cancellation Razorpay reports on its own clears the pending one', async () => {
+    usageDb.addPendingCancellation('sub_gone', alice, 'down', NOW);
+    await applyWebhook(usageDb, { event: 'subscription.cancelled', payload: { subscription: { entity: { id: 'sub_gone' } } } }, NOW);
+    expect(usageDb.listPendingCancellations()).toEqual([]);
+  });
+});

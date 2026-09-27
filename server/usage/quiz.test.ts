@@ -39,3 +39,21 @@ describe('quiz allowance', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 });
+
+describe('quiz rounds started at the same moment', () => {
+  it('each holds its questions before any model is called, so they cannot all pass on one count', async () => {
+    const { reserveQuiz, settleQuiz } = await import('./quiz');
+    const db = new UsageDb(':memory:');
+    const limit = planById('free').limits.quizQuestions; // 5
+    const first = reserveQuiz(db, 'u1', 5, NOW);
+    expect(() => reserveQuiz(db, 'u1', 5, NOW)).toThrow(/quiz questions this month/);
+    // The round showed 3 of its 5 (two were dropped by the check): the other two come back.
+    settleQuiz(db, 'u1', first, 3, NOW);
+    expect(quizStatus(db, 'u1', NOW).used).toBe(3);
+    // A round that fails gives everything back, and the count never goes below zero.
+    const failed = reserveQuiz(db, 'u2', 5, NOW);
+    settleQuiz(db, 'u2', failed, 0, NOW);
+    expect(quizStatus(db, 'u2', NOW).used).toBe(0);
+    expect(limit).toBe(5);
+  });
+});

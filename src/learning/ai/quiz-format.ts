@@ -82,7 +82,8 @@ export function parseQuiz(text: string): QuizQuestion[] | null {
  */
 export function formatQuiz(questions: QuizQuestion[]): string {
   const body = questions.map((q, i) => [`${i + 1}. ${q.text}`, ...q.options.map((o) => `   ${o.letter}) ${o.text}`)].join('\n'));
-  const answers = questions.map((q, i) => `${i + 1}. ${q.answer?.letter ?? ''}${q.answer?.reason ? `, ${q.answer.reason}` : ''}`);
+  // One line per answer: the reader parses them line by line, so a line break inside a reason would cut it short.
+  const answers = questions.map((q, i) => `${i + 1}. ${q.answer?.letter ?? ''}${q.answer?.reason ? `, ${q.answer.reason.replace(/\s+/g, ' ').trim()}` : ''}`);
   return `${body.join('\n\n')}\n\nAnswers:\n${answers.join('\n')}`;
 }
 
