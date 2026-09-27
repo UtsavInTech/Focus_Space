@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FREE_MONTHLY_AI_CREDITS, FREE_SPACE_LIMIT, GUEST_DAILY_AI_CREDITS, GUEST_SPACE_LIMIT, PLANS, planById } from '@/billing/plans';
+import { FREE_DAILY_AI_CREDITS, FREE_SPACE_LIMIT, GUEST_DAILY_AI_CREDITS, GUEST_SPACE_LIMIT, PLANS, planById } from '@/billing/plans';
 import { FAQ } from '../../web/src/content/faq';
 import { answer } from '../../web/src/assistant';
 import { limitsFor } from './entitlements';
@@ -22,7 +22,7 @@ describe('the price book advertises only what exists', () => {
   });
 
   it('carries only the limits the product enforces', () => {
-    for (const plan of PLANS) expect(Object.keys(plan.limits).sort()).toEqual(['aiCredits', 'modes', 'voiceMinutes']);
+    for (const plan of PLANS) expect(Object.keys(plan.limits).sort()).toEqual(['aiCredits', 'aiCreditsPerDay', 'modes', 'quizQuestions', 'savedNotes', 'voiceMinutes']);
   });
 
   it('Free is 3 Spaces without an account and 5 with one', () => {
@@ -38,6 +38,7 @@ describe('the server enforces exactly what the price book says', () => {
     const plan = planById(id);
     expect(limitsFor(id).maxSpaces).toBe(plan.limits.modes ?? Infinity);
     expect(limitsFor(id).aiUnitsPerPeriod).toBe(plan.limits.aiCredits ?? Infinity);
+    expect(limitsFor(id).aiUnitsPerDay).toBe(plan.limits.aiCreditsPerDay ?? Infinity);
   });
 
   it('the signed-out daily allowance is the price book’s number', () => {
@@ -56,7 +57,7 @@ describe('the website quotes the same numbers', () => {
 
   it('the FAQ states the guest and free-account allowances from the price book', () => {
     expect(faq).toContain(`${GUEST_SPACE_LIMIT} Spaces and ${GUEST_DAILY_AI_CREDITS} AI credits a day`);
-    expect(faq).toContain(`${FREE_SPACE_LIMIT} Spaces and ${FREE_MONTHLY_AI_CREDITS} AI credits a month`);
+    expect(faq).toContain(`${FREE_SPACE_LIMIT} Spaces and ${FREE_DAILY_AI_CREDITS} AI credits a day`);
   });
 
   it('the FAQ promises no sync — data stays in the browser', () => {
@@ -65,7 +66,7 @@ describe('the website quotes the same numbers', () => {
 
   it('the site assistant quotes the price book for Spaces and pricing', () => {
     const modes = answer('What is a mode?').text;
-    expect(modes).toContain(`${GUEST_SPACE_LIMIT} without an account, ${FREE_SPACE_LIMIT} with a free account, ${planById('pro').limits.modes} on Pro`);
+    expect(modes).toContain(`${GUEST_SPACE_LIMIT} without an account, ${FREE_SPACE_LIMIT} with a free account, ${planById('basic').limits.modes} on Basic`);
     expect(answer('How much does it cost?').text).toContain(`${GUEST_SPACE_LIMIT} Spaces without an account, ${FREE_SPACE_LIMIT} with a free account`);
   });
 });

@@ -59,9 +59,9 @@ const KNOWLEDGE: Entry[] = [
   {
     keywords: ['price', 'pricing', 'cost', 'plan', 'plans', 'much', 'rupees', 'inr', 'dollar', 'usd', 'subscription', 'pay', 'paid', 'money', 'upi', 'razorpay'],
     title: 'What FocusSpace costs',
-    body: `${PLANS.filter((p) => p.id !== 'free')
-      .map((p) => `${p.name}: ${formatAmountless(p.price.monthly)} a month. ${p.tagline}`)
-      .join('\n')}\n\nFree stays free: ${GUEST_SPACE_LIMIT} Spaces without an account, ${FREE_SPACE_LIMIT} with a free account, and a monthly AI allowance. Indian visitors are charged in rupees through UPI or card; the dollar price is the headline everywhere.`,
+    body: `${PLANS.filter((p) => !p.unlisted)
+      .map((p) => (p.oneTime ? `${p.name}: ${formatAmountless(p.oneTime)} once, for life. ${p.tagline}` : `${p.name}: ${formatAmountless(p.price!.monthly)} a month. ${p.tagline}`))
+      .join('\n')}\n\nMoving up later, you only pay the difference. You can also start free: ${GUEST_SPACE_LIMIT} Spaces without an account, ${FREE_SPACE_LIMIT} with a free account, and a small daily AI allowance. Indian visitors are charged in rupees through UPI or card; the dollar price is the headline everywhere.`,
     actions: [{ label: 'See full pricing', href: '/pricing' }],
   },
   {
@@ -79,7 +79,7 @@ const KNOWLEDGE: Entry[] = [
   {
     keywords: ['mode', 'modes', 'space', 'spaces', 'topic', 'topics', 'subtopic', 'subtopics'],
     title: 'What a mode is',
-    body: `A mode is one intention: “DSA”, “System design”, “Punjabi music”. FocusSpace works out the topics, vocabulary and searches that express it, then ranks your subscriptions and the wider YouTube against it. You get ${GUEST_SPACE_LIMIT} without an account, ${FREE_SPACE_LIMIT} with a free account, ${planById('pro').limits.modes} on Pro, and unlimited on Unlimited and Max.`,
+    body: `A mode is one intention: “DSA”, “System design”, “Punjabi music”. FocusSpace works out the topics, vocabulary and searches that express it, then ranks your subscriptions and the wider YouTube against it. You get ${GUEST_SPACE_LIMIT} without an account, ${FREE_SPACE_LIMIT} with a free account, ${planById('basic').limits.modes} on Basic, ${planById('plus').limits.modes} on Plus, ${planById('pro').limits.modes} on Pro, and unlimited on Max.`,
     actions: [{ label: 'See plans', href: '/pricing' }],
   },
   {

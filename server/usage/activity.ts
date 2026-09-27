@@ -87,7 +87,7 @@ export function metrics(db: UsageDb, now = Date.now()): Metrics {
     const plan = resolvePlan(row, now);
     if (plan === 'free') continue;
     byPlan[plan] = (byPlan[plan] ?? 0) + 1;
-    mrrInr += PLANS.find((p) => p.id === plan)?.price.monthly.inr ?? 0;
+    mrrInr += PLANS.find((p) => p.id === plan)?.price?.monthly.inr ?? 0;
   }
 
   return {

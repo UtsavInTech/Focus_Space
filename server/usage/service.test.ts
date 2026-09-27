@@ -81,8 +81,8 @@ describe('user isolation', () => {
     const a = makeUser();
     const b = makeUser();
     const now = Date.now();
-    reserveUsage(usageDb, a, 'quiz', null, now);
-    reserveUsage(usageDb, a, 'quiz', null, now);
+    reserveUsage(usageDb, a, 'explain', null, now);
+    reserveUsage(usageDb, a, 'explain', null, now);
     expect(usageStatus(usageDb, a, now).used).toBeGreaterThan(0);
     expect(usageStatus(usageDb, b, now).used).toBe(0);
   });
@@ -103,7 +103,7 @@ describe('reserve → commit / release', () => {
   it('a failed provider request releases the reservation and does not count against quota', () => {
     const userId = makeUser();
     const now = Date.now();
-    const reservation = reserveUsage(usageDb, userId, 'quiz', null, now);
+    const reservation = reserveUsage(usageDb, userId, 'explain', null, now);
     if (reservation.kind !== 'ok') throw new Error('expected ok');
     expect(usageStatus(usageDb, userId, now).used).toBe(2);
 
@@ -125,9 +125,10 @@ describe('reserve → commit / release', () => {
 
 describe('quota enforcement', () => {
   it('exhausted quota is rejected with 429 quota_exceeded and does not create a reservation', () => {
+    // Plus: a monthly allowance with no daily cap under it, so the month's limit is what is reached.
     const userId = makeUser();
-    usageDb.setPlan(userId, 'free', Date.now());
     const now = Date.now();
+    usageDb.setPlan(userId, 'plus', now, now + 30 * 86_400_000);
 
     // Drain the free allowance exactly (each committed "what" costs 1 unit).
     const status = usageStatus(usageDb, userId, now);
@@ -153,6 +154,7 @@ describe('quota enforcement', () => {
   it('a request that would exceed quota (cost bigger than remaining headroom) is rejected even if some headroom remains', () => {
     const userId = makeUser();
     const now = Date.now();
+    usageDb.setPlan(userId, 'plus', now, now + 30 * 86_400_000);
     const status = usageStatus(usageDb, userId, now);
     // Leave exactly 1 unit of headroom, then try a 3-unit action ("notes").
     for (let i = 0; i < status.limit! - 1; i++) {
@@ -167,6 +169,7 @@ describe('concurrency — two simultaneous requests must not both bypass quota',
   it('when only one unit of headroom remains, two same-tick reservation attempts cannot both succeed', () => {
     const userId = makeUser();
     const now = Date.now();
+    usageDb.setPlan(userId, 'plus', now, now + 30 * 86_400_000);
     const status = usageStatus(usageDb, userId, now);
     for (let i = 0; i < status.limit! - 1; i++) {
       const r = reserveUsage(usageDb, userId, 'what', null, now);
@@ -186,6 +189,33 @@ describe('concurrency — two simultaneous requests must not both bypass quota',
       secondFailed = err instanceof ApiError && err.code === 'quota_exceeded';
     }
     expect(secondFailed).toBe(true);
+  });
+});
+
+describe('daily cap (free account and Basic)', () => {
+  it('stops at the day’s allowance with a way on, and lets the next day’s through', () => {
+    const userId = makeUser();
+    const now = Date.now();
+    for (let i = 0; i < 10; i++) {
+      const r = reserveUsage(usageDb, userId, 'what', null, now);
+      if (r.kind === 'ok') commitUsage(usageDb, r.id, { model: null, promptTokens: null, completionTokens: null }, now);
+    }
+    expect(() => reserveUsage(usageDb, userId, 'what', null, now)).toThrow(/today's 10 AI actions.*Basic is ₹99 once/);
+    // A rolling day: a day later, the same account can ask again (unless the month's allowance is spent).
+    const tomorrow = now + 24 * 3_600_000 + 1;
+    const sameMonth = new Date(tomorrow).getUTCMonth() === new Date(now).getUTCMonth();
+    if (sameMonth) expect(reserveUsage(usageDb, userId, 'what', null, tomorrow).kind).toBe('ok');
+  });
+
+  it('points a Basic owner at Plus with their offer', () => {
+    const userId = makeUser();
+    const now = Date.now();
+    usageDb.setLifetimePlan(userId, 'basic', now);
+    for (let i = 0; i < 20; i++) {
+      const r = reserveUsage(usageDb, userId, 'what', null, now);
+      if (r.kind === 'ok') commitUsage(usageDb, r.id, { model: null, promptTokens: null, completionTokens: null }, now);
+    }
+    expect(() => reserveUsage(usageDb, userId, 'what', null, now)).toThrow(/today's 20 AI actions.*₹100 off/);
   });
 });
 
@@ -236,12 +266,12 @@ describe('idempotent retry', () => {
   it('a retry with the same key after an explicit release (failed request) is allowed through fresh', () => {
     const userId = makeUser();
     const now = Date.now();
-    const first = reserveUsage(usageDb, userId, 'quiz', 'req-4', now);
+    const first = reserveUsage(usageDb, userId, 'explain', 'req-4', now);
     if (first.kind !== 'ok') throw new Error('expected ok');
     releaseUsage(usageDb, first.id, now);
     expect(usageStatus(usageDb, userId, now).used).toBe(0);
 
-    const retry = reserveUsage(usageDb, userId, 'quiz', 'req-4', now);
+    const retry = reserveUsage(usageDb, userId, 'explain', 'req-4', now);
     expect(retry.kind).toBe('ok');
     expect(usageStatus(usageDb, userId, now).used).toBe(2);
   });

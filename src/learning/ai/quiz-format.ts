@@ -25,7 +25,7 @@ export interface QuizQuestion {
 const QUESTION = /^(\d{1,2})[.)]\s+(.+)$/;
 const OPTION = /^([A-Da-d])[).:]\s+(.+)$/;
 const ANSWERS = /^answers?\s*:?\s*$/i;
-const ANSWER = /^(\d{1,2})[.):]?\s*(?:answer\s*:?\s*)?\(?([A-Da-d])\)?(?:[).:]?\s*(?:[—–:-]\s*)?(.*))?$/i;
+const ANSWER = /^(\d{1,2})[.):]?\s*(?:answer\s*:?\s*)?\(?([A-Da-d])\)?(?:[).:]?\s*(?:[—–:,-]\s*)?(.*))?$/i;
 
 /** Markdown emphasis the model sometimes adds around numbers, letters or headings. */
 const plain = (line: string) => line.replace(/\*\*|__/g, '').trim();
@@ -73,4 +73,35 @@ export function parseQuiz(text: string): QuizQuestion[] | null {
 
   const usable = questions.filter((q) => q.options.length >= 2);
   return usable.length && usable.length === questions.length ? usable : null;
+}
+
+/**
+ * Questions back into the plain-text shape `parseQuiz` reads, numbered from 1. The server uses it after
+ * checking a round (server/quiz/check.ts): keys corrected, failed questions left out, and the extension
+ * reads the result exactly as it reads any quiz.
+ */
+export function formatQuiz(questions: QuizQuestion[]): string {
+  const body = questions.map((q, i) => [`${i + 1}. ${q.text}`, ...q.options.map((o) => `   ${o.letter}) ${o.text}`)].join('\n'));
+  const answers = questions.map((q, i) => `${i + 1}. ${q.answer?.letter ?? ''}${q.answer?.reason ? `, ${q.answer.reason}` : ''}`);
+  return `${body.join('\n\n')}\n\nAnswers:\n${answers.join('\n')}`;
+}
+
+const STOP = new Set('a an the of to in on for and or is are be it this that what which does do how when with by as at from if its will would than then there their these those after before code snippet following output print prints value'.split(' '));
+const words = (text: string) => new Set((text.toLowerCase().match(/[a-z_][a-z0-9_]*|\d+/g) ?? []).filter((w) => !STOP.has(w)));
+const codeOf = (text: string) => (text.match(/```[\s\S]*?```|`[^`\n]+`/g) ?? []).join(' ').replace(/```\w*|`/g, '').replace(/\s+/g, '');
+
+/**
+ * The same question asked again in other words: the same code to read, or mostly the same words. Catches
+ * what an exact-match check missed ("What does this print?" twice over the same array), and leaves
+ * questions that only share a topic alone.
+ */
+export function nearDuplicate(a: string, b: string): boolean {
+  const ca = codeOf(a);
+  if (ca.length >= 12 && ca === codeOf(b)) return true;
+  const wa = words(a);
+  const wb = words(b);
+  if (wa.size < 3 || wb.size < 3) return false;
+  let shared = 0;
+  for (const w of wa) if (wb.has(w)) shared++;
+  return shared / (wa.size + wb.size - shared) >= 0.6;
 }

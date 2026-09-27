@@ -213,11 +213,12 @@ function PlanRow({ status, error }: { status: UsageStatus | null; error: string 
         <h2>Plan</h2>
         <p className="fsw-account-big">{plan.name}</p>
         <p className="fsw-account-note">{plan.tagline}</p>
-        {auth.planExpiresAt && (
+        {auth.lifetimePlan && auth.lifetimePlan === plan.id && <p className="fsw-account-note">Yours for life. No renewals.</p>}
+        {auth.planExpiresAt && plan.id !== auth.lifetimePlan && (
           <p className="fsw-account-note">
             {auth.autoRenew
               ? `Renews automatically on ${new Date(auth.planExpiresAt).toLocaleDateString()}.`
-              : `Runs until ${new Date(auth.planExpiresAt).toLocaleDateString()}, then returns to Free. Nothing is deleted.`}
+              : `Runs until ${new Date(auth.planExpiresAt).toLocaleDateString()}, then returns to ${auth.lifetimePlan ? (PLANS.find((p) => p.id === auth.lifetimePlan)?.name ?? 'Free') : 'Free'}. Nothing is deleted.`}
           </p>
         )}
 

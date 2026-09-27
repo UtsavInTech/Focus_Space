@@ -11,7 +11,8 @@ export const ACTION_COST: Record<string, number> = {
   example: 1,
   chat: 1,
   explain: 2,
-  quiz: 2,
+  // Counted in questions instead (server/usage/quiz.ts): a quiz takes no AI credits.
+  quiz: 0,
   notes: 3,
   mindmap: 3,
 };

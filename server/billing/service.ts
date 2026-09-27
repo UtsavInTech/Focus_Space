@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { PLANS, type BillingPeriod, type CurrencyCode, type PlanId } from '@/billing/plans';
+import { BASIC_UPGRADE_CREDIT, PLAN_RANK, PLANS, RETIRED_PLANS, currentPlanId, priceOf, type BillingPeriod, type CurrencyCode, type Plan, type PlanId, type RecurringPeriod } from '@/billing/plans';
 import { ApiError } from '../http';
 import type { CheckoutRow, UsageDb } from '../usage/db';
 import { cancelSubscription, createOrder, createPlan, createSubscription, fetchSubscription, verifyPaymentSignature, verifySubscriptionSignature, type RazorpayConfig } from './razorpay';
@@ -23,10 +23,12 @@ import { cancelSubscription, createOrder, createPlan, createSubscription, fetchS
  */
 
 /** Only these can be bought. 'free' is the absence of a payment, not a purchase. */
-const PURCHASABLE: PlanId[] = ['pro', 'unlimited'];
+const PURCHASABLE: PlanId[] = ['basic', 'plus', 'pro', 'max'];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const PERIOD_DAYS: Record<BillingPeriod, number> = { monthly: 30, annual: 365 };
+const PERIOD_DAYS: Record<RecurringPeriod, number> = { monthly: 30, annual: 365 };
+/** Razorpay's smallest charge. An upgrade never costs less, whatever the credit. */
+const MIN_CHARGE_MINOR: Record<CurrencyCode, number> = { INR: 100, USD: 50 };
 
 export interface CheckoutRequest {
   planId: string;
@@ -46,11 +48,12 @@ export interface CheckoutSession {
   description: string;
 }
 
-function parse(request: CheckoutRequest): { plan: (typeof PLANS)[number]; period: BillingPeriod; currency: CurrencyCode } {
+function parse(request: CheckoutRequest): { plan: Plan; period: BillingPeriod; currency: CurrencyCode } {
   const plan = PLANS.find((p) => p.id === request.planId);
   if (!plan || !PURCHASABLE.includes(plan.id)) throw new ApiError(400, 'invalid_request', 'That plan cannot be purchased.');
-  if (request.period !== 'monthly' && request.period !== 'annual') throw new ApiError(400, 'invalid_request', 'Billing period must be "monthly" or "annual".');
+  if (request.period !== 'monthly' && request.period !== 'annual' && request.period !== 'lifetime') throw new ApiError(400, 'invalid_request', 'Billing period must be "monthly", "annual" or "lifetime".');
   if (request.currency !== 'INR' && request.currency !== 'USD') throw new ApiError(400, 'invalid_request', 'Currency must be "INR" or "USD".');
+  if (!priceOf(plan, request.period)) throw new ApiError(400, 'invalid_request', plan.oneTime ? `${plan.name} is a single payment for life.` : `${plan.name} renews monthly or yearly.`);
   return { plan, period: request.period, currency: request.currency };
 }
 
@@ -62,14 +65,109 @@ function minorUnits(amount: number): number {
   return Math.round(amount * 100);
 }
 
+const fullPrice = (plan: Plan, period: BillingPeriod, currency: CurrencyCode) => {
+  const price = priceOf(plan, period)!;
+  return minorUnits(currency === 'INR' ? price.inr : price.usd);
+};
+
+const dateLabel = (ms: number) => new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+/* ─── What a purchase costs this account ─────────────────────────────────── */
+
+export interface Quote {
+  planId: PlanId;
+  period: BillingPeriod;
+  currency: CurrencyCode;
+  /** The plan's price. */
+  fullMinor: number;
+  /** Taken off it. */
+  creditMinor: number;
+  /** What is charged now. */
+  chargeMinor: number;
+  creditNote: string | null;
+  /** The plan starts over today: the old plan's unused days were turned into the credit. */
+  startsNow: boolean;
+  /** The renewing subscription this purchase replaces, stopped once it is paid for. */
+  replacesSubscription: string | null;
+}
+
+/**
+ * The price of a plan for this account, as it stands today. Nobody pays twice for the same days:
+ *
+ * - Moving up (Plus → Pro, Pro monthly → Pro yearly, …) credits what is left of the current period,
+ *   pro rata to what was paid for it, and the new plan starts from today.
+ * - A Basic owner's first renewing plan is `BASIC_UPGRADE_CREDIT` cheaper.
+ * - Moving down waits for the current period to end: its days are already paid for.
+ *
+ * The server decides this and the browser only shows it; checkout charges exactly `chargeMinor`.
+ */
+export function quote(db: UsageDb, userId: string, plan: Plan, period: BillingPeriod, currency: CurrencyCode, now = Date.now()): Quote {
+  const fullMinor = fullPrice(plan, period, currency);
+  const base: Quote = { planId: plan.id, period, currency, fullMinor, creditMinor: 0, chargeMinor: fullMinor, creditNote: null, startsNow: false, replacesSubscription: null };
+  const current = db.getEntitlement(userId);
+
+  if (period === 'lifetime') {
+    if (currentPlanId(current?.lifetime_plan) === plan.id) throw new ApiError(409, 'conflict', `You already have ${plan.name} for life.`);
+    return base;
+  }
+
+  const activeRaw = current && current.plan !== 'free' && current.expires_at && current.expires_at > now ? current.plan : null;
+  const active = activeRaw ? currentPlanId(activeRaw) : null;
+  if (active && current?.expires_at) {
+    const activeName = PLANS.find((p) => p.id === active)?.name ?? active;
+    if (PLAN_RANK[plan.id] < PLAN_RANK[active]) {
+      throw new ApiError(400, 'invalid_request', `You’re on ${activeName} until ${dateLabel(current.expires_at)}. You can move to ${plan.name} when it ends: turn off renewal from your account, then choose ${plan.name}.`);
+    }
+    const last = db.lastPaymentFor(userId, activeRaw!);
+    const samePlanAndPeriod = active === plan.id && last?.period === period;
+    if (samePlanAndPeriod) return base; // Renewing early: the new period is added after the current one.
+    if (!last || last.period === 'lifetime' || last.currency !== currency) return { ...base, startsNow: true, replacesSubscription: current.auto_renew === 1 ? current.subscription_id : null };
+
+    const periodMs = PERIOD_DAYS[last.period as RecurringPeriod] * DAY_MS;
+    const left = Math.min(Math.max(current.expires_at - now, 0), periodMs);
+    const paidFor = last.amount_minor + (last.credit_minor ?? 0);
+    const creditMinor = Math.floor((paidFor * left) / periodMs);
+    const chargeMinor = fullMinor - creditMinor;
+    if (chargeMinor < MIN_CHARGE_MINOR[currency]) {
+      throw new ApiError(400, 'invalid_request', `The ${activeName} time you have left is worth more than ${plan.name} ${period === 'annual' ? 'for a year' : 'for a month'}. Choose yearly, or switch when ${activeName} ends on ${dateLabel(current.expires_at)}.`);
+    }
+    return { ...base, creditMinor, chargeMinor, creditNote: `Unused ${activeName} time`, startsNow: true, replacesSubscription: current.auto_renew === 1 ? current.subscription_id : null };
+  }
+
+  if (currentPlanId(current?.lifetime_plan) === 'basic' && !db.hasRecurringPayment(userId)) {
+    const creditMinor = minorUnits(currency === 'INR' ? BASIC_UPGRADE_CREDIT.inr : BASIC_UPGRADE_CREDIT.usd);
+    return { ...base, creditMinor, chargeMinor: Math.max(fullMinor - creditMinor, MIN_CHARGE_MINOR[currency]), creditNote: 'Basic owner offer' };
+  }
+  return base;
+}
+
+/** The price a signed-in account would pay for each plan it can buy now, for the pricing page. */
+export function quotes(db: UsageDb, userId: string, currency: CurrencyCode, now = Date.now()): (Quote | { planId: PlanId; period: BillingPeriod; error: string })[] {
+  const out: (Quote | { planId: PlanId; period: BillingPeriod; error: string })[] = [];
+  for (const plan of PLANS.filter((p) => PURCHASABLE.includes(p.id))) {
+    for (const period of ['monthly', 'annual', 'lifetime'] as BillingPeriod[]) {
+      if (!priceOf(plan, period)) continue;
+      try {
+        out.push(quote(db, userId, plan, period, currency, now));
+      } catch (err) {
+        out.push({ planId: plan.id, period, error: err instanceof Error ? err.message : 'Not available.' });
+      }
+    }
+  }
+  return out;
+}
+
+const describe = (plan: Plan, period: BillingPeriod, q: Quote, renewing: boolean) => {
+  const what = period === 'lifetime' ? 'for life' : renewing ? `renews ${period === 'annual' ? 'yearly' : 'monthly'}` : period === 'annual' ? '12 months' : '1 month';
+  return `FocusSpace ${plan.name} · ${what}${q.creditMinor ? ` · ${q.creditNote} taken off` : ''}`;
+};
+
 export async function startCheckout(config: RazorpayConfig, db: UsageDb, userId: string, request: CheckoutRequest, now = Date.now()): Promise<CheckoutSession> {
   const { plan, period, currency } = parse(request);
-  const price = plan.price[period];
-  const amountMinor = minorUnits(currency === 'INR' ? price.inr : price.usd);
-  if (amountMinor <= 0) throw new ApiError(400, 'invalid_request', 'That plan has no price in this currency.');
+  const q = quote(db, userId, plan, period, currency, now);
 
   const order = await createOrder(config, {
-    amountMinor,
+    amountMinor: q.chargeMinor,
     currency,
     // Razorpay caps receipts at 40 characters.
     receipt: `fs_${userId.slice(0, 8)}_${Date.now().toString(36)}`.slice(0, 40),
@@ -78,25 +176,30 @@ export async function startCheckout(config: RazorpayConfig, db: UsageDb, userId:
     notes: { userId, planId: plan.id, period },
   });
   // The purchase is fixed here, server-side. Confirmation grants this row and nothing else.
-  db.putCheckout({ ref: order.id, kind: 'order', user_id: userId, plan: plan.id, period, currency, amount_minor: amountMinor, remote_plan_id: null, created_at: now });
-
-  return {
-    orderId: order.id,
-    amountMinor,
-    currency,
-    keyId: config.keyId,
-    test: config.test,
-    planId: plan.id,
+  db.putCheckout({
+    ref: order.id,
+    kind: 'order',
+    user_id: userId,
+    plan: plan.id,
     period,
-    description: `FocusSpace ${plan.name} · ${period === 'annual' ? '12 months' : '1 month'}`,
-  };
+    currency,
+    amount_minor: q.chargeMinor,
+    remote_plan_id: null,
+    created_at: now,
+    credit_minor: q.creditMinor,
+    credit_note: q.creditNote,
+    replaces_subscription: q.replacesSubscription,
+    starts_now: q.startsNow ? 1 : 0,
+  });
+
+  return { orderId: order.id, amountMinor: q.chargeMinor, currency, keyId: config.keyId, test: config.test, planId: plan.id, period, description: describe(plan, period, q, false) };
 }
 
 /* ─── Subscriptions ──────────────────────────────────────────────────────── */
 
 /** Razorpay needs a finite cycle count; ten years is "until cancelled" in practice. */
-const TOTAL_CYCLES: Record<BillingPeriod, number> = { monthly: 120, annual: 10 };
-const RAZORPAY_PERIOD: Record<BillingPeriod, 'monthly' | 'yearly'> = { monthly: 'monthly', annual: 'yearly' };
+const TOTAL_CYCLES: Record<RecurringPeriod, number> = { monthly: 120, annual: 10 };
+const RAZORPAY_PERIOD: Record<RecurringPeriod, 'monthly' | 'yearly'> = { monthly: 'monthly', annual: 'yearly' };
 
 /**
  * The Razorpay Plan for a (plan, period, currency), created once and
@@ -104,14 +207,13 @@ const RAZORPAY_PERIOD: Record<BillingPeriod, 'monthly' | 'yearly'> = { monthly: 
  * live-mode plans are different objects living in different worlds — caching
  * them under one key would hand a live subscription a test plan id.
  */
-async function ensureRemotePlan(config: RazorpayConfig, db: UsageDb, plan: (typeof PLANS)[number], period: BillingPeriod, currency: CurrencyCode, now: number): Promise<string> {
+async function ensureRemotePlan(config: RazorpayConfig, db: UsageDb, plan: Plan, period: RecurringPeriod, currency: CurrencyCode, now: number): Promise<string> {
   const key = `${config.keyId}:${plan.id}:${period}:${currency}`;
   const cached = db.getRemotePlan(key);
   if (cached) return cached;
 
-  const price = plan.price[period];
   const created = await createPlan(config, {
-    amountMinor: minorUnits(currency === 'INR' ? price.inr : price.usd),
+    amountMinor: fullPrice(plan, period, currency),
     currency,
     period: RAZORPAY_PERIOD[period],
     name: `FocusSpace ${plan.name} (${period === 'annual' ? 'yearly' : 'monthly'})`,
@@ -141,6 +243,8 @@ export async function startSubscription(
   now = Date.now(),
 ): Promise<SubscriptionSession> {
   const { plan, period, currency } = parse(request);
+  if (period === 'lifetime') throw new ApiError(400, 'invalid_request', `${plan.name} is a single payment, it does not renew.`);
+  const q = quote(db, userId, plan, period, currency, now);
   const remotePlanId = await ensureRemotePlan(config, db, plan, period, currency, now);
   const subscription = await createSubscription(config, {
     planId: remotePlanId,
@@ -149,9 +253,11 @@ export async function startSubscription(
     // months later with no browser attached, and this is how it knows whose it is.
     notes: { userId, planId: plan.id, period },
     email,
+    // With a credit, the first period is its own smaller charge today and the plan's own charges start one
+    // period later, so the renewal date is where the paid period ends.
+    upfront: q.creditMinor ? { amountMinor: q.chargeMinor, currency, name: `${plan.name}, first ${period === 'annual' ? 'year' : 'month'} (${q.creditNote} taken off)`, startAt: now + PERIOD_DAYS[period] * DAY_MS } : undefined,
   });
 
-  const price = plan.price[period];
   db.putCheckout({
     ref: subscription.id,
     kind: 'subscription',
@@ -159,20 +265,15 @@ export async function startSubscription(
     plan: plan.id,
     period,
     currency,
-    amount_minor: minorUnits(currency === 'INR' ? price.inr : price.usd),
+    amount_minor: q.chargeMinor,
     remote_plan_id: remotePlanId,
     created_at: now,
+    credit_minor: q.creditMinor,
+    credit_note: q.creditNote,
+    replaces_subscription: q.replacesSubscription,
+    starts_now: q.startsNow ? 1 : 0,
   });
-  return {
-    subscriptionId: subscription.id,
-    keyId: config.keyId,
-    test: config.test,
-    planId: plan.id,
-    period,
-    currency,
-    amountMinor: minorUnits(currency === 'INR' ? price.inr : price.usd),
-    description: `FocusSpace ${plan.name} · renews ${period === 'annual' ? 'yearly' : 'monthly'}`,
-  };
+  return { subscriptionId: subscription.id, keyId: config.keyId, test: config.test, planId: plan.id, period, currency, amountMinor: q.chargeMinor, description: describe(plan, period, q, true) };
 }
 
 export interface GrantInput {
@@ -185,11 +286,16 @@ export interface GrantInput {
   paymentId: string;
   /** Set when a subscription is paying for this, so renewals and cancellation can find it. */
   subscriptionId?: string | null;
+  creditMinor?: number;
+  creditNote?: string | null;
+  /** An upgrade credited with the old plan's unused days: the new period starts today. */
+  startsNow?: boolean;
 }
 
 export interface Grant {
   plan: PlanId;
-  expiresAt: number;
+  /** Null for a plan kept for life. */
+  expiresAt: number | null;
   /** False when this payment had already been applied — the caller should still report success. */
   granted: boolean;
   /** True while a subscription will renew this by itself. */
@@ -202,7 +308,8 @@ export interface Grant {
  * each other cannot extend someone's plan twice.
  *
  * Buying again while still subscribed extends from the existing expiry rather
- * than from today — nobody should lose days for renewing early.
+ * than from today — nobody should lose days for renewing early. An upgrade has
+ * already been credited for those days, so it starts from today instead.
  */
 export function grantPlan(db: UsageDb, input: GrantInput, now = Date.now()): Grant {
   const fresh = db.recordPayment({
@@ -215,24 +322,53 @@ export function grantPlan(db: UsageDb, input: GrantInput, now = Date.now()): Gra
     amount_minor: input.amountMinor,
     status: 'captured',
     created_at: now,
+    credit_minor: input.creditMinor ?? 0,
+    credit_note: input.creditNote ?? null,
   });
 
   const current = db.getEntitlement(input.userId);
-  const activeUntil = current && current.plan !== 'free' && current.expires_at && current.expires_at > now ? current.expires_at : now;
+  const standing = (): Grant => ({ plan: effectivePlan(current, now) as PlanId, expiresAt: current?.expires_at ?? null, granted: false, autoRenew: current?.auto_renew === 1 });
 
-  if (!fresh) {
-    // Already applied. Report the entitlement as it stands rather than adding to it.
-    return { plan: (current?.plan as PlanId) ?? input.planId, expiresAt: current?.expires_at ?? activeUntil, granted: false, autoRenew: current?.auto_renew === 1 };
+  if (input.period === 'lifetime') {
+    if (fresh) db.setLifetimePlan(input.userId, input.planId, now);
+    const after = db.getEntitlement(input.userId);
+    return { plan: effectivePlan(after, now) as PlanId, expiresAt: after?.expires_at ?? null, granted: fresh, autoRenew: after?.auto_renew === 1 };
   }
+  if (!fresh) return standing(); // Already applied. Report the entitlement as it stands rather than adding to it.
 
-  const expiresAt = activeUntil + PERIOD_DAYS[input.period] * DAY_MS;
+  const activeUntil = current && current.plan !== 'free' && current.expires_at && current.expires_at > now ? current.expires_at : now;
+  // A late charge from a subscription that an upgrade replaced must never take the account back down.
+  const active = activeUntil > now ? currentPlanId(current!.plan) : null;
+  if (active && input.subscriptionId && current?.subscription_id !== input.subscriptionId && PLAN_RANK[input.planId] < PLAN_RANK[active]) return standing();
+
+  const expiresAt = (input.startsNow ? now : activeUntil) + PERIOD_DAYS[input.period] * DAY_MS;
   // A one-off purchase on top of a subscription must not silently cancel it, so an
-  // absent subscriptionId keeps whatever was already there.
-  const subscriptionId = input.subscriptionId ?? current?.subscription_id ?? null;
-  const autoRenew = input.subscriptionId ? true : current?.auto_renew === 1;
+  // absent subscriptionId keeps whatever was already there — unless this purchase replaces it.
+  const subscriptionId = input.subscriptionId ?? (input.startsNow ? null : current?.subscription_id ?? null);
+  const autoRenew = input.subscriptionId ? true : input.startsNow ? false : current?.auto_renew === 1;
   db.setPlan(input.userId, input.planId, now, expiresAt, input.paymentId, subscriptionId, autoRenew);
   return { plan: input.planId, expiresAt, granted: true, autoRenew };
 }
+
+/** Stops the subscription an upgrade replaced, once the upgrade is paid. Never fails the purchase itself. */
+async function stopReplaced(config: RazorpayConfig, purchase: CheckoutRow): Promise<void> {
+  if (!purchase.replaces_subscription) return;
+  await cancelSubscription(config, purchase.replaces_subscription).catch((err) =>
+    console.error(`[FocusSpace billing] Could not stop replaced subscription ${purchase.replaces_subscription}: ${err instanceof Error ? err.message : String(err)}`),
+  );
+}
+
+const grantFrom = (purchase: CheckoutRow, ids: { orderId: string; paymentId: string; subscriptionId?: string | null }): GrantInput => ({
+  userId: purchase.user_id,
+  planId: purchase.plan as PlanId,
+  period: purchase.period as BillingPeriod,
+  currency: purchase.currency as CurrencyCode,
+  amountMinor: purchase.amount_minor,
+  creditMinor: purchase.credit_minor ?? 0,
+  creditNote: purchase.credit_note ?? null,
+  startsNow: purchase.starts_now === 1,
+  ...ids,
+});
 
 const UNVERIFIED = 'That payment could not be verified. If money left your account, contact support and nothing will be lost.';
 
@@ -254,28 +390,18 @@ function recordedPurchase(db: UsageDb, userId: string, ref: string, kind: Checko
 }
 
 /** Confirms a one-off payment the browser reported: a valid signature for an order this account started. */
-export function confirmPayment(
+export async function confirmPayment(
   config: RazorpayConfig,
   db: UsageDb,
   userId: string,
   body: { orderId: string; paymentId: string; signature: string; planId?: string; period?: string; currency?: string },
   now = Date.now(),
-): Grant {
+): Promise<Grant> {
   if (!verifyPaymentSignature(config, body.orderId, body.paymentId, body.signature)) throw new ApiError(400, 'invalid_signature', UNVERIFIED);
   const purchase = recordedPurchase(db, userId, body.orderId, 'order', body);
-  return grantPlan(
-    db,
-    {
-      userId,
-      planId: purchase.plan as PlanId,
-      period: purchase.period as BillingPeriod,
-      currency: purchase.currency as CurrencyCode,
-      amountMinor: purchase.amount_minor,
-      orderId: body.orderId,
-      paymentId: body.paymentId,
-    },
-    now,
-  );
+  const grant = grantPlan(db, grantFrom(purchase, { orderId: body.orderId, paymentId: body.paymentId }), now);
+  if (grant.granted) await stopReplaced(config, purchase);
+  return grant;
 }
 
 /**
@@ -296,20 +422,9 @@ export async function confirmSubscription(
   if (!purchase.remote_plan_id || remote.plan_id !== purchase.remote_plan_id || (remote.notes?.userId && remote.notes.userId !== userId)) {
     throw new ApiError(400, 'purchase_mismatch', UNVERIFIED);
   }
-  return grantPlan(
-    db,
-    {
-      userId,
-      planId: purchase.plan as PlanId,
-      period: purchase.period as BillingPeriod,
-      currency: purchase.currency as CurrencyCode,
-      amountMinor: purchase.amount_minor,
-      orderId: '',
-      paymentId: body.paymentId,
-      subscriptionId: body.subscriptionId,
-    },
-    now,
-  );
+  const grant = grantPlan(db, grantFrom(purchase, { orderId: '', paymentId: body.paymentId, subscriptionId: body.subscriptionId }), now);
+  if (grant.granted) await stopReplaced(config, purchase);
+  return grant;
 }
 
 /**
@@ -351,8 +466,11 @@ function canApplyWebhookCharge(db: UsageDb, planId: PlanId, userId: string, orde
 /**
  * Applies a `payment.captured` webhook. The notes carried on the order are the
  * only link back to who paid for what, which is why `startCheckout` sets them.
+ * The purchase this account recorded at checkout, when there is one, decides the
+ * credit and whether the plan starts today — for an order, and for the first
+ * charge of a subscription (a renewal is a plain charge at full price).
  */
-export function applyWebhook(db: UsageDb, event: unknown, now = Date.now()): Grant | null {
+export async function applyWebhook(db: UsageDb, event: unknown, now = Date.now(), config?: RazorpayConfig | null): Promise<Grant | null> {
   const payload = event as {
     event?: string;
     payload?: { payment?: { entity?: Record<string, unknown> }; subscription?: { entity?: Record<string, unknown> } };
@@ -380,37 +498,34 @@ export function applyWebhook(db: UsageDb, event: unknown, now = Date.now()): Gra
 
   // A renewal's payment carries no notes of its own; the subscription's do.
   const userId = notes.userId ?? subscriptionNotes.userId;
-  const planId = (notes.planId ?? subscriptionNotes.planId) as PlanId | undefined;
+  const rawPlan = notes.planId ?? subscriptionNotes.planId;
+  // A retired plan still renewing (Unlimited) renews as the plan that replaced it.
+  const planId = (rawPlan && RETIRED_PLANS[rawPlan] ? RETIRED_PLANS[rawPlan] : rawPlan) as PlanId | undefined;
   const period = (notes.period ?? subscriptionNotes.period) as BillingPeriod | undefined;
   const subscriptionId = String(payment.subscription_id ?? subscriptionEntity?.id ?? '') || null;
   const orderId = String(payment.order_id ?? '');
-  // New purchases use PURCHASABLE. A coming-soon plan can still renew if this
-  // charge already belongs to one of our Max (or otherwise unlistable) rows.
   if (!userId || !planId || !period || !canApplyWebhookCharge(db, planId, userId, orderId, subscriptionId)) return null;
 
-  return grantPlan(
-    db,
-    {
-      userId,
-      planId,
-      period,
-      currency: (payment.currency as CurrencyCode) ?? 'INR',
-      amountMinor: Number(payment.amount) || 0,
-      orderId,
-      paymentId: String(payment.id ?? randomUUID()),
-      subscriptionId,
-    },
-    now,
-  );
+  const paymentId = String(payment.id ?? randomUUID());
+  const recorded = orderId ? db.getCheckout(orderId) : subscriptionId ? db.getCheckout(subscriptionId) : undefined;
+  const firstCharge = recorded && recorded.user_id === userId && (recorded.kind === 'order' || db.getEntitlement(userId)?.subscription_id !== subscriptionId);
+  const grant = firstCharge
+    ? grantPlan(db, grantFrom(recorded, { orderId, paymentId, subscriptionId }), now)
+    : grantPlan(db, { userId, planId, period, currency: (payment.currency as CurrencyCode) ?? 'INR', amountMinor: Number(payment.amount) || 0, orderId, paymentId, subscriptionId }, now);
+  if (firstCharge && grant.granted && config) await stopReplaced(config, recorded);
+  return grant;
 }
 
 /**
- * A paid plan that has run out is free again. Enforced on read rather than by
- * a scheduled job: there is no scheduler here, and a lapsed row that nobody
- * has looked at yet has no effect on anything until it is read.
+ * What an account is on right now. A paid period that has run out falls back to
+ * what was bought for life (Basic), else to free. Enforced on read rather than by
+ * a scheduled job: there is no scheduler here, and a lapsed row that nobody has
+ * looked at yet has no effect on anything until it is read. Retired plans read as
+ * the plan that replaced them.
  */
-export function effectivePlan(entitlement: { plan: string; expires_at: number | null } | undefined, now = Date.now()): string {
-  if (!entitlement || entitlement.plan === 'free') return 'free';
-  if (entitlement.expires_at && entitlement.expires_at <= now) return 'free';
-  return entitlement.plan;
+export function effectivePlan(entitlement: { plan: string; expires_at: number | null; lifetime_plan?: string | null } | undefined, now = Date.now()): string {
+  const lifetime = entitlement?.lifetime_plan ? currentPlanId(entitlement.lifetime_plan) : 'free';
+  if (!entitlement || entitlement.plan === 'free') return lifetime;
+  if (entitlement.expires_at && entitlement.expires_at <= now) return lifetime;
+  return currentPlanId(entitlement.plan);
 }

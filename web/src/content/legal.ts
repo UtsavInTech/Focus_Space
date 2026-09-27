@@ -78,6 +78,7 @@ export const PRIVACY: LegalDoc = {
       heading: 'Who else is involved',
       body: [
         'OpenAI processes AI requests on our behalf and receives the moment context described above.',
+        'OpenRouter checks Quiz me questions on our behalf before you see them, using a model from TypeSafe. It receives each question, its options and the stretch of transcript the question was written from, and nothing about you.',
         'Razorpay processes payments and receives whatever you enter into its own payment form.',
         'Resend delivers verification emails and receives your email address.',
         'Railway hosts the service and stores our database.',

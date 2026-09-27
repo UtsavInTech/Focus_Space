@@ -4,7 +4,7 @@
  * my data → how do I stop paying.
  */
 
-import { FREE_MONTHLY_AI_CREDITS, FREE_SPACE_LIMIT, GUEST_DAILY_AI_CREDITS, GUEST_SPACE_LIMIT } from './plans';
+import { FREE_DAILY_AI_CREDITS, FREE_SPACE_LIMIT, GUEST_DAILY_AI_CREDITS, GUEST_SPACE_LIMIT } from './plans';
 
 export interface FaqItem {
   q: string;
@@ -18,19 +18,23 @@ export const FAQ: FaqItem[] = [
   },
   {
     q: 'Is FocusSpace free?',
-    a: 'Yes, and the part that makes YouTube usable is free forever: modes, the ranked feed, the learning path, the knowledge map and Shorts removal all run on your own machine and cost us nothing to give away. What a paid plan buys is AI, notes, mind maps, explanations and quizzes, because every one of those is a real request we pay for, plus more Spaces.',
+    a: 'Yes, and the part that makes YouTube usable is free forever: modes, the ranked feed, the learning path, the knowledge map and Shorts removal all run on your own machine and cost us nothing to give away. What a paid plan buys is AI, notes, mind maps, explanations and quizzes, because every one of those is a real request we pay for, plus more Spaces. The cheapest way in is Basic: ₹99 once, yours for life.',
   },
   {
     q: 'Do I need an account?',
-    a: `No. FocusSpace works fully signed out, with ${GUEST_SPACE_LIMIT} Spaces and ${GUEST_DAILY_AI_CREDITS} AI credits a day. A free account raises that to ${FREE_SPACE_LIMIT} Spaces and ${FREE_MONTHLY_AI_CREDITS} AI credits a month. Your Spaces, notes and history stay in the browser you use, an account carries your plan and allowance, not your data.`,
+    a: `No. FocusSpace works fully signed out, with ${GUEST_SPACE_LIMIT} Spaces and ${GUEST_DAILY_AI_CREDITS} AI credits a day. A free account raises that to ${FREE_SPACE_LIMIT} Spaces and ${FREE_DAILY_AI_CREDITS} AI credits a day. Basic is ₹99 once, for life. Your Spaces, notes and history stay in the browser you use, an account carries your plan and allowance, not your data.`,
   },
   {
     q: 'Do I need my own OpenAI API key?',
     a: 'No. That is exactly what we did not want to build. The AI runs on our servers, on our key, metered against your plan. If you would rather nothing left your browser at all, Chrome’s built-in on-device model is still supported as an option, but it is never something you have to set up.',
   },
   {
+    q: 'What happens when I move to a bigger plan?',
+    a: 'You only pay the difference. Whatever is left of your current plan is taken off the new one, and the new plan starts that day. If you bought Basic, your first paid month of Plus, Pro or Max is ₹100 off, and Basic stays yours when it ends.',
+  },
+  {
     q: 'What is a credit?',
-    a: 'One AI request, weighted by how much work it is. Asking about a moment or a chat turn costs 1 credit; “Explain this” and “Quiz me” cost 2; a set of notes or a mind map costs 3. Nothing on the page costs a credit until you click something, watching a video never does.',
+    a: 'One AI request, weighted by how much work it is. Asking about a moment or a chat turn costs 1 credit; “Explain this” costs 2; a set of notes or a mind map costs 3. Quiz me is counted separately, in questions, because every question is checked by a second model before you see it. Nothing on the page costs a credit until you click something, watching a video never does.',
   },
   {
     q: 'Does it work on videos without captions?',

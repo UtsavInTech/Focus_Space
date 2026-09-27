@@ -20,8 +20,10 @@
  * to on the server.
  */
 
-export type PlanId = 'free' | 'pro' | 'unlimited' | 'max';
-export type BillingPeriod = 'monthly' | 'annual';
+export type PlanId = 'free' | 'basic' | 'plus' | 'pro' | 'max';
+/** `lifetime` is Basic's single payment; the other two renew (or are bought one period at a time). */
+export type BillingPeriod = 'monthly' | 'annual' | 'lifetime';
+export type RecurringPeriod = Exclude<BillingPeriod, 'lifetime'>;
 export type CurrencyCode = 'USD' | 'INR';
 
 export interface Amount {
@@ -33,20 +35,30 @@ export interface Plan {
   id: PlanId;
   name: string;
   tagline: string;
-  /** Per billing period. Annual is the full yearly charge, not a monthly rate. */
-  price: Record<BillingPeriod, Amount>;
+  /** Per billing period. Annual is the full yearly charge, not a monthly rate. Absent for a one-time plan. */
+  price?: Record<RecurringPeriod, Amount>;
+  /** A single payment that never expires (Basic). */
+  oneTime?: Amount;
   /** Highlighted card. Exactly one plan should set this. */
   featured?: boolean;
+  /** Not shown as a card on the pricing page (the free account). */
+  unlisted?: boolean;
   /**
    * Limits the product enforces — the only ones it has. `null` means unlimited.
    * `modes` is the number of Spaces an account may keep (server/usage/spaces.ts);
-   * `aiCredits` is the monthly allowance in the units of server/usage/cost.ts; `voiceMinutes` is the
-   * monthly allowance of speech — yours and FocusSpace's together (server/usage/voice.ts).
+   * `aiCredits` is the monthly allowance in the units of server/usage/cost.ts, and `aiCreditsPerDay` a
+   * rolling 24-hour ceiling under it (only the cheap plans have one); `voiceMinutes` is the monthly
+   * allowance of speech — yours and FocusSpace's together (server/usage/voice.ts); `quizQuestions` is the
+   * monthly allowance of checked quiz questions (server/usage/quiz.ts); `savedNotes` is how many notes
+   * and mind maps the Library keeps (content/ui/NotesPanel.tsx).
    */
   limits: {
     modes: number | null;
     aiCredits: number | null;
+    aiCreditsPerDay: number | null;
     voiceMinutes: number;
+    quizQuestions: number;
+    savedNotes: number | null;
   };
   /** Only what the product actually does today — pricing, FAQ and the extension quote this list. */
   features: string[];
@@ -56,6 +68,9 @@ export interface Plan {
   /** Visible on pricing, but not for sale. Existing entitlements are unchanged. */
   comingSoon?: boolean;
 }
+
+/** Plans no longer sold whose entitlements still exist: they get the plan that replaced them. */
+export const RETIRED_PLANS: Record<string, PlanId> = { unlimited: 'max' };
 
 /**
  * The annual discount differs slightly by currency, because every displayed
@@ -73,9 +88,13 @@ export const ANNUAL_DISCOUNT_LABEL = 'Save up to 33%';
 export const GUEST_SPACE_LIMIT = 3;
 export const GUEST_DAILY_AI_CREDITS = 10;
 
-/** The Free account's allowances — the same numbers as the Free plan's `limits`, named for the copy that quotes them. */
+/**
+ * The free account: enough to see what FocusSpace does, small enough that ₹99 for Basic is the obvious
+ * next step. The same numbers as the Free plan's `limits`, named for the copy that quotes them.
+ */
 export const FREE_SPACE_LIMIT = 5;
-export const FREE_MONTHLY_AI_CREDITS = 200;
+export const FREE_MONTHLY_AI_CREDITS = 150;
+export const FREE_DAILY_AI_CREDITS = 10;
 
 /**
  * Talking costs real money per second — the natural voice most of all (about ₹1.3 a minute at worst) —
@@ -86,65 +105,102 @@ export const FREE_MONTHLY_AI_CREDITS = 200;
  * account would get: 5 minutes a month per install.
  */
 export const FREE_MONTHLY_VOICE_MINUTES = 30;
+
+/**
+ * Quiz me needs an account and is counted in questions, not credits: every question is written and then
+ * checked by a second model before anyone sees it, so a question costs more than its credit share would
+ * say. No plan is without limit. Choosing a difficulty and keeping score come with Plus and above.
+ */
+export const FREE_MONTHLY_QUIZ_QUESTIONS = 5;
+export const QUIZ_EXTRAS_PLANS: readonly string[] = ['plus', 'pro', 'max'];
 export const GUEST_SETUP_VOICE_MINUTES_PER_MONTH = 5;
+export const FREE_SAVED_NOTES = 5;
+
+/**
+ * Basic is paid for once and kept for life, so every allowance it has is a ceiling FocusSpace can afford
+ * forever on ₹99: at most ~300 AI actions a month (about ₹25 of AI at worst), a handful of quiz questions,
+ * the free half hour of voice. Past that, the way on is Plus, and a Basic owner's first paid month is
+ * ₹100 cheaper (`BASIC_UPGRADE_CREDIT`).
+ */
+export const BASIC_UPGRADE_CREDIT: Amount = { inr: 100, usd: 1 };
 
 export const PLANS: Plan[] = [
   {
     id: 'free',
     name: 'Free',
-    tagline: 'Everything that makes YouTube usable again, at no cost.',
-    price: { monthly: { usd: 0, inr: 0 }, annual: { usd: 0, inr: 0 } },
-    limits: { modes: FREE_SPACE_LIMIT, aiCredits: FREE_MONTHLY_AI_CREDITS, voiceMinutes: FREE_MONTHLY_VOICE_MINUTES },
+    tagline: 'Try FocusSpace with an account.',
+    unlisted: true,
+    limits: { modes: FREE_SPACE_LIMIT, aiCredits: FREE_MONTHLY_AI_CREDITS, aiCreditsPerDay: FREE_DAILY_AI_CREDITS, voiceMinutes: FREE_MONTHLY_VOICE_MINUTES, quizQuestions: FREE_MONTHLY_QUIZ_QUESTIONS, savedNotes: FREE_SAVED_NOTES },
     features: [
       `${GUEST_SPACE_LIMIT} Spaces without an account, ${FREE_SPACE_LIMIT} with a free account`,
       'Relevance-ranked subscriptions and discovery',
       'Learning path, knowledge map and Shorts removal',
-      `${FREE_MONTHLY_AI_CREDITS} AI credits a month with a free account (${GUEST_DAILY_AI_CREDITS} a day without one)`,
+      `${FREE_DAILY_AI_CREDITS} AI credits a day with a free account, up to ${FREE_MONTHLY_AI_CREDITS} a month (${GUEST_DAILY_AI_CREDITS} a day without one)`,
       `Talk to FocusSpace AI: ${FREE_MONTHLY_VOICE_MINUTES} minutes of voice a month with a free account`,
-      'Notes and mind maps in English, हिंदी or Hinglish',
+      `Quiz me: ${FREE_MONTHLY_QUIZ_QUESTIONS} checked questions a month with a free account`,
+      `Notes and mind maps in English, हिंदी or Hinglish, ${FREE_SAVED_NOTES} kept in your Library`,
     ],
     cta: 'Add to Chrome for free',
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    tagline: 'For one subject you are serious about.',
-    // Annual totals are 12 x a .99 monthly figure, so the "/month" line stays clean: $2.99 / ₹199.
-    price: { monthly: { usd: 3.99, inr: 299 }, annual: { usd: 35.88, inr: 2388 } },
-    limits: { modes: 15, aiCredits: 2000, voiceMinutes: 60 },
-    features: ['Everything in Free', '15 Spaces', '2,000 AI credits a month', '1 hour of voice a month', 'Email support'],
-    cta: 'Get Pro',
+    id: 'basic',
+    name: 'Basic',
+    tagline: 'Pay once, keep it for life.',
+    oneTime: { usd: 0.99, inr: 99 },
+    limits: { modes: 15, aiCredits: 300, aiCreditsPerDay: 20, voiceMinutes: FREE_MONTHLY_VOICE_MINUTES, quizQuestions: 10, savedNotes: 15 },
+    features: [
+      '15 Spaces, for life',
+      'Choose the channels in every Space',
+      'Switch Spaces or open a video just by asking FocusSpace AI',
+      '15 notes and mind maps kept in your Library',
+      '20 AI credits a day, up to 300 a month',
+      '10 quiz questions a month',
+      `₹${BASIC_UPGRADE_CREDIT.inr} off your first month of Plus, Pro or Max`,
+    ],
+    cta: 'Get Basic for life',
   },
   {
-    id: 'unlimited',
-    name: 'Unlimited',
+    id: 'plus',
+    name: 'Plus',
+    tagline: 'For a subject you study every week.',
+    // Annual totals are 12 x a .99 monthly figure, so the "/month" line stays clean.
+    price: { monthly: { usd: 1.99, inr: 149 }, annual: { usd: 17.88, inr: 1188 } },
+    limits: { modes: 25, aiCredits: 1000, aiCreditsPerDay: null, voiceMinutes: 60, quizQuestions: 60, savedNotes: null },
+    features: ['Everything in Basic', '25 Spaces', '1,000 AI credits a month, no daily cap', '1 hour of voice a month', '60 quiz questions a month, with difficulty and score', 'Unlimited notes and mind maps'],
+    cta: 'Get Plus',
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
     tagline: 'For everything you are learning at once.',
-    price: { monthly: { usd: 7.99, inr: 599 }, annual: { usd: 71.88, inr: 4788 } },
+    price: { monthly: { usd: 3.99, inr: 299 }, annual: { usd: 35.88, inr: 2388 } },
     featured: true,
-    limits: { modes: null, aiCredits: null, voiceMinutes: 120 },
-    features: ['Everything in Free', 'Unlimited Spaces', 'Unlimited AI credits', '2 hours of voice a month', 'Priority support'],
-    cta: 'Get Unlimited',
+    limits: { modes: 50, aiCredits: 2500, aiCreditsPerDay: null, voiceMinutes: 120, quizQuestions: 150, savedNotes: null },
+    features: ['Everything in Plus', '50 Spaces', '2,500 AI credits a month', '2 hours of voice a month', '150 quiz questions a month, with difficulty and score', 'Email support'],
+    cta: 'Get Pro',
   },
   {
     id: 'max',
     name: 'Max',
-    tagline: 'Everything in Unlimited, for people who want to back FocusSpace.',
-    price: { monthly: { usd: 19.99, inr: 1499 }, annual: { usd: 179.88, inr: 11988 } },
-    limits: { modes: null, aiCredits: null, voiceMinutes: 300 },
-    features: [
-      'Everything in Unlimited',
-      '5 hours of voice a month',
-      'Choose your AI model',
-      'Advanced AI models',
-      'Multiple mind-map formats',
-      'Priority support'],
+    tagline: 'No counting, for people who live on YouTube to learn.',
+    price: { monthly: { usd: 7.99, inr: 599 }, annual: { usd: 71.88, inr: 4788 } },
+    limits: { modes: null, aiCredits: null, aiCreditsPerDay: null, voiceMinutes: 300, quizQuestions: 600, savedNotes: null },
+    features: ['Everything in Pro', 'Unlimited Spaces', 'Unlimited AI credits (fair use)', '5 hours of voice a month', '600 quiz questions a month', 'Priority support'],
     cta: 'Get Max',
-    comingSoon: true,
   },
 ];
 
+/** The order plans rise in: upgrades go up it, never down mid-cycle. */
+export const PLAN_RANK: Record<PlanId, number> = { free: 0, basic: 1, plus: 2, pro: 3, max: 4 };
+
+/** A stored plan id as today's plan: a retired one maps to its replacement, anything unknown to Free. */
+export function currentPlanId(id: string | null | undefined): PlanId {
+  const mapped = (id && RETIRED_PLANS[id]) || id;
+  return PLANS.some((p) => p.id === mapped) ? (mapped as PlanId) : 'free';
+}
+
 /** "Pro plan", "Max plan" — for a plan id that arrived as a plain string from the server. */
-export const planLabel = (id: string): string => `${PLANS.find((p) => p.id === id)?.name ?? id} plan`;
+export const planLabel = (id: string): string => `${planById(currentPlanId(id)).name} plan`;
 
 export const planById = (id: PlanId): Plan => PLANS.find((p) => p.id === id) ?? PLANS[0];
 
@@ -153,9 +209,16 @@ export const planById = (id: PlanId): Plan => PLANS.find((p) => p.id === id) ?? 
  * annually" line. Rounded for display only — the charge is always the exact
  * annual `Amount` above.
  */
-export function perMonth(plan: Plan, period: BillingPeriod): Amount {
+export function perMonth(plan: Plan, period: RecurringPeriod): Amount {
+  if (!plan.price) return plan.oneTime ?? { usd: 0, inr: 0 };
   if (period === 'monthly') return plan.price.monthly;
   return { usd: plan.price.annual.usd / 12, inr: Math.round(plan.price.annual.inr / 12) };
+}
+
+/** What a plan costs for a period, or null when it cannot be bought that way. */
+export function priceOf(plan: Plan, period: BillingPeriod): Amount | null {
+  if (period === 'lifetime') return plan.oneTime ?? null;
+  return plan.price?.[period] ?? null;
 }
 
 /**
@@ -165,6 +228,7 @@ export function perMonth(plan: Plan, period: BillingPeriod): Amount {
  * next to a rupee price would simply be wrong.
  */
 export function annualSavingPercent(plan: Plan, currency: CurrencyCode = 'USD'): number {
+  if (!plan.price) return 0;
   const monthly = currency === 'INR' ? plan.price.monthly.inr : plan.price.monthly.usd;
   const annual = currency === 'INR' ? plan.price.annual.inr : plan.price.annual.usd;
   const yearOfMonthly = monthly * 12;
@@ -180,6 +244,6 @@ export function annualSavingPercent(plan: Plan, currency: CurrencyCode = 'USD'):
 export const CREDIT_COSTS: { action: string; credits: number }[] = [
   { action: 'A chat message', credits: 1 },
   { action: 'What am I learning? · Example', credits: 1 },
-  { action: 'Explain this · Quiz me', credits: 2 },
+  { action: 'Explain this', credits: 2 },
   { action: 'Notes or a mind map', credits: 3 },
 ];

@@ -30,6 +30,13 @@ export interface CheckoutRow {
   amount_minor: number;
   remote_plan_id: string | null;
   created_at: number;
+  /** Taken off the full price at checkout: unused time on the plan being replaced, or the Basic owner's offer. */
+  credit_minor?: number;
+  credit_note?: string | null;
+  /** The subscription this purchase replaces, stopped once it is paid for. */
+  replaces_subscription?: string | null;
+  /** 1 when the plan starts over from the day it is paid for (an upgrade credited with the old plan's unused time). */
+  starts_now?: number;
 }
 
 export interface EntitlementRow {
@@ -44,6 +51,8 @@ export interface EntitlementRow {
   subscription_id: string | null;
   /** 1 while that subscription is live. Cleared on cancellation, which leaves the paid period intact. */
   auto_renew: number;
+  /** A plan paid for once and kept for life (Basic): what the account falls back to when a paid period ends. */
+  lifetime_plan?: string | null;
 }
 
 /**
@@ -68,6 +77,8 @@ export interface PaymentRow {
   amount_minor: number;
   status: string;
   created_at: number;
+  credit_minor?: number;
+  credit_note?: string | null;
 }
 
 export interface SpaceRow {
@@ -181,6 +192,15 @@ CREATE TABLE IF NOT EXISTS voice_usage (
   PRIMARY KEY (key, period)
 );
 
+-- Checked quiz questions shown per month ("2026-09"), per user id (server/usage/quiz.ts).
+CREATE TABLE IF NOT EXISTS quiz_usage (
+  user_id    TEXT NOT NULL,
+  period     TEXT NOT NULL,
+  questions  INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, period)
+);
+
 -- Active-use counts (server/usage/activity.ts). \`subject\` is a salted hash of the extension's random
 -- install id — never an account id, an address or anything about what was watched. One row per
 -- install per day it was used; first_day says when it was first seen, for retention.
@@ -224,6 +244,32 @@ export class UsageDb {
     if (!columns.has('payment_id')) this.db.exec('ALTER TABLE entitlements ADD COLUMN payment_id TEXT');
     if (!columns.has('subscription_id')) this.db.exec('ALTER TABLE entitlements ADD COLUMN subscription_id TEXT');
     if (!columns.has('auto_renew')) this.db.exec('ALTER TABLE entitlements ADD COLUMN auto_renew INTEGER NOT NULL DEFAULT 0');
+    if (!columns.has('lifetime_plan')) this.db.exec('ALTER TABLE entitlements ADD COLUMN lifetime_plan TEXT');
+    const checkoutColumns = new Set((this.db.prepare('PRAGMA table_info(checkouts)').all() as { name: string }[]).map((c) => c.name));
+    if (!checkoutColumns.has('credit_minor')) this.db.exec('ALTER TABLE checkouts ADD COLUMN credit_minor INTEGER NOT NULL DEFAULT 0');
+    if (!checkoutColumns.has('credit_note')) this.db.exec('ALTER TABLE checkouts ADD COLUMN credit_note TEXT');
+    if (!checkoutColumns.has('replaces_subscription')) this.db.exec('ALTER TABLE checkouts ADD COLUMN replaces_subscription TEXT');
+    if (!checkoutColumns.has('starts_now')) this.db.exec('ALTER TABLE checkouts ADD COLUMN starts_now INTEGER NOT NULL DEFAULT 0');
+    const paymentColumns = new Set((this.db.prepare('PRAGMA table_info(payments)').all() as { name: string }[]).map((c) => c.name));
+    if (!paymentColumns.has('credit_minor')) this.db.exec('ALTER TABLE payments ADD COLUMN credit_minor INTEGER NOT NULL DEFAULT 0');
+    if (!paymentColumns.has('credit_note')) this.db.exec('ALTER TABLE payments ADD COLUMN credit_note TEXT');
+  }
+
+  /** Basic, bought once: kept under whatever paid period is running, and never expires. */
+  setLifetimePlan(userId: string, plan: string, at: number): void {
+    this.db
+      .prepare(`INSERT INTO entitlements (user_id, plan, updated_at, lifetime_plan) VALUES (?, 'free', ?, ?) ON CONFLICT(user_id) DO UPDATE SET lifetime_plan = excluded.lifetime_plan, updated_at = excluded.updated_at`)
+      .run(userId, at, plan);
+  }
+
+  /** The newest payment for a plan, for working out how much of it is still unused. */
+  lastPaymentFor(userId: string, plan: string): PaymentRow | undefined {
+    return this.db.prepare(`SELECT * FROM payments WHERE user_id = ? AND plan = ? AND status = 'captured' ORDER BY created_at DESC LIMIT 1`).get(userId, plan) as PaymentRow | undefined;
+  }
+
+  /** Whether the account has ever paid for a plan that renews (the Basic owner's offer is for the first one). */
+  hasRecurringPayment(userId: string): boolean {
+    return !!this.db.prepare(`SELECT 1 FROM payments WHERE user_id = ? AND period IN ('monthly', 'annual') LIMIT 1`).get(userId);
   }
 
   close(): void {
@@ -278,8 +324,8 @@ export class UsageDb {
 
   putCheckout(row: CheckoutRow): void {
     this.db
-      .prepare('INSERT INTO checkouts (ref, kind, user_id, plan, period, currency, amount_minor, remote_plan_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(row.ref, row.kind, row.user_id, row.plan, row.period, row.currency, row.amount_minor, row.remote_plan_id, row.created_at);
+      .prepare('INSERT INTO checkouts (ref, kind, user_id, plan, period, currency, amount_minor, remote_plan_id, created_at, credit_minor, credit_note, replaces_subscription, starts_now) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(row.ref, row.kind, row.user_id, row.plan, row.period, row.currency, row.amount_minor, row.remote_plan_id, row.created_at, row.credit_minor ?? 0, row.credit_note ?? null, row.replaces_subscription ?? null, row.starts_now ?? 0);
   }
 
   getCheckout(ref: string): CheckoutRow | undefined {
@@ -295,8 +341,8 @@ export class UsageDb {
   /** Insert-or-ignore, so the webhook and the client callback racing on the same payment grant it once. */
   recordPayment(row: PaymentRow): boolean {
     const result = this.db
-      .prepare('INSERT OR IGNORE INTO payments (id, user_id, order_id, plan, period, currency, amount_minor, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(row.id, row.user_id, row.order_id, row.plan, row.period, row.currency, row.amount_minor, row.status, row.created_at);
+      .prepare('INSERT OR IGNORE INTO payments (id, user_id, order_id, plan, period, currency, amount_minor, status, created_at, credit_minor, credit_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(row.id, row.user_id, row.order_id, row.plan, row.period, row.currency, row.amount_minor, row.status, row.created_at, row.credit_minor ?? 0, row.credit_note ?? null);
     return Number(result.changes) > 0;
   }
 
@@ -366,6 +412,14 @@ export class UsageDb {
     return row.total;
   }
 
+  /** Units spent since a moment (the rolling day of a daily cap), counted like `sumUnitsForPeriod`. */
+  sumUnitsSince(userId: string, since: number, reservedCutoff: number): number {
+    const row = this.db
+      .prepare(`SELECT COALESCE(SUM(units), 0) AS total FROM usage_events WHERE user_id = ? AND created_at > ? AND (status = 'committed' OR (status = 'reserved' AND created_at > ?))`)
+      .get(userId, since, reservedCutoff) as { total: number };
+    return row.total;
+  }
+
   insertReservation(row: UsageEventRow): void {
     this.db
       .prepare(
@@ -413,6 +467,17 @@ export class UsageDb {
     this.db
       .prepare('INSERT INTO voice_usage (key, period, seconds, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(key, period) DO UPDATE SET seconds = seconds + excluded.seconds, updated_at = excluded.updated_at')
       .run(key, period, Math.max(0, Math.round(seconds)), now);
+  }
+
+  quizQuestions(userId: string, period: string): number {
+    const row = this.db.prepare('SELECT questions FROM quiz_usage WHERE user_id = ? AND period = ?').get(userId, period) as { questions: number } | undefined;
+    return row?.questions ?? 0;
+  }
+
+  addQuizQuestions(userId: string, period: string, questions: number, now = Date.now()): void {
+    this.db
+      .prepare('INSERT INTO quiz_usage (user_id, period, questions, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, period) DO UPDATE SET questions = questions + excluded.questions, updated_at = excluded.updated_at')
+      .run(userId, period, Math.max(0, Math.round(questions)), now);
   }
 
   /** Marks an install active on a day (idempotent) and remembers the first day it was seen. */

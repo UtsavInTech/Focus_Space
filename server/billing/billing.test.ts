@@ -44,7 +44,7 @@ const input = (overrides: Partial<Parameters<typeof grantPlan>[1]> = {}) => ({
 });
 
 describe('grantPlan', () => {
-  it('grants the plan for the period bought', () => {
+  it('grants the plan for the period bought', async () => {
     const now = 1_000_000;
     const grant = grantPlan(usageDb, input(), now);
     expect(grant).toMatchObject({ plan: 'pro', granted: true });
@@ -52,12 +52,12 @@ describe('grantPlan', () => {
     expect(resolvePlan(usageDb.getEntitlement(userId), now)).toBe('pro');
   });
 
-  it('an annual purchase lasts a year', () => {
+  it('an annual purchase lasts a year', async () => {
     const now = 1_000_000;
     expect(grantPlan(usageDb, input({ period: 'annual' }), now).expiresAt).toBe(now + 365 * DAY);
   });
 
-  it('replaying the same payment never extends the plan twice', () => {
+  it('replaying the same payment never extends the plan twice', async () => {
     const now = 1_000_000;
     const first = grantPlan(usageDb, input(), now);
     // The webhook and the browser callback both report the same payment id.
@@ -66,17 +66,17 @@ describe('grantPlan', () => {
     expect(second.expiresAt).toBe(first.expiresAt);
   });
 
-  it('renewing early extends from the existing expiry, not from today', () => {
+  it('renewing early extends from the existing expiry, not from today', async () => {
     const now = 1_000_000;
     const first = grantPlan(usageDb, input(), now);
     const second = grantPlan(usageDb, input({ paymentId: 'pay_2' }), now + DAY);
     // Buying a day later must add 30 days to what was left, not reset to 30 from now.
-    expect(second.expiresAt).toBe(first.expiresAt + 30 * DAY);
+    expect(second.expiresAt).toBe(first.expiresAt! + 30 * DAY);
   });
 });
 
 describe('expiry', () => {
-  it('a lapsed paid plan reads as free again', () => {
+  it('a lapsed paid plan reads as free again', async () => {
     const now = 1_000_000;
     grantPlan(usageDb, input(), now);
     const row = usageDb.getEntitlement(userId);
@@ -85,10 +85,13 @@ describe('expiry', () => {
     expect(resolvePlan(row, now + 31 * DAY)).toBe('free');
   });
 
-  it('limits follow the plan, and unlimited plans really are unlimited', () => {
-    expect(limitsFor('free').aiUnitsPerPeriod).toBe(200);
-    expect(limitsFor('pro').aiUnitsPerPeriod).toBe(2000);
-    expect(limitsFor('unlimited').aiUnitsPerPeriod).toBe(Infinity);
+  it('limits follow the plan, and unlimited plans really are unlimited', async () => {
+    expect(limitsFor('free').aiUnitsPerPeriod).toBe(150);
+    expect(limitsFor('free').aiUnitsPerDay).toBe(10);
+    expect(limitsFor('basic').aiUnitsPerDay).toBe(20);
+    expect(limitsFor('pro').aiUnitsPerPeriod).toBe(2500);
+    expect(limitsFor('pro').aiUnitsPerDay).toBe(Infinity);
+    expect(limitsFor('max').aiUnitsPerPeriod).toBe(Infinity);
     expect(limitsFor('max').maxSpaces).toBe(Infinity);
   });
 });
@@ -96,7 +99,7 @@ describe('expiry', () => {
 describe('signatures', () => {
   const config: RazorpayConfig = { keyId: 'rzp_test_x', keySecret: 'secret', webhookSecret: 'hooksecret', test: true };
 
-  it('accepts a correctly signed payment and rejects a tampered one', () => {
+  it('accepts a correctly signed payment and rejects a tampered one', async () => {
     // HMAC-SHA256 of "order|payment" with the key secret — Razorpay's documented scheme.
     const { createHmac } = require('node:crypto') as typeof import('node:crypto');
     const good = createHmac('sha256', 'secret').update('order_1|pay_1').digest('hex');
@@ -105,7 +108,7 @@ describe('signatures', () => {
     expect(verifyPaymentSignature(config, 'order_1', 'pay_1', 'deadbeef')).toBe(false);
   });
 
-  it('refuses every webhook when no webhook secret is configured', () => {
+  it('refuses every webhook when no webhook secret is configured', async () => {
     // Otherwise an unconfigured deployment would accept forged upgrade events.
     expect(verifyWebhookSignature({ ...config, webhookSecret: '' }, '{}', 'anything')).toBe(false);
   });
@@ -122,9 +125,9 @@ describe('subscriptions', () => {
     ...overrides,
   });
 
-  it('a renewal reads who it belongs to from the subscription, since the payment carries no notes', () => {
+  it('a renewal reads who it belongs to from the subscription, since the payment carries no notes', async () => {
     const now = 1_000_000;
-    const grant = applyWebhook(
+    const grant = await applyWebhook(
       usageDb,
       {
         event: 'subscription.charged',
@@ -139,25 +142,25 @@ describe('subscriptions', () => {
     expect(usageDb.getEntitlement(userId)).toMatchObject({ subscription_id: 'sub_1', auto_renew: 1 });
   });
 
-  it('the same renewal reported twice only ever extends the plan once', () => {
+  it('the same renewal reported twice only ever extends the plan once', async () => {
     const now = 1_000_000;
     const event = {
       event: 'subscription.charged',
       payload: { payment: { entity: payment() }, subscription: { entity: { id: 'sub_1', notes: { userId, planId: 'pro', period: 'monthly' } } } },
     };
-    const first = applyWebhook(usageDb, event, now);
+    const first = await applyWebhook(usageDb, event, now);
     // Razorpay also sends payment.captured for the same payment; both must not count.
-    const second = applyWebhook(usageDb, { event: 'payment.captured', payload: { payment: { entity: payment({ notes: { userId, planId: 'pro', period: 'monthly' } }) } } }, now + 1000);
+    const second = await applyWebhook(usageDb, { event: 'payment.captured', payload: { payment: { entity: payment({ notes: { userId, planId: 'pro', period: 'monthly' } }) } } }, now + 1000);
     expect(second?.granted).toBe(false);
     expect(second?.expiresAt).toBe(first?.expiresAt);
   });
 
-  it('cancelling stops renewal without shortening the plan', () => {
+  it('cancelling stops renewal without shortening the plan', async () => {
     const now = 1_000_000;
     grantPlan(usageDb, { ...input({ paymentId: 'pay_sub' }), subscriptionId: 'sub_1' }, now);
     const before = usageDb.getEntitlement(userId);
 
-    applyWebhook(usageDb, { event: 'subscription.cancelled', payload: { subscription: { entity: { id: 'sub_1' } } } }, now + 5000);
+    await applyWebhook(usageDb, { event: 'subscription.cancelled', payload: { subscription: { entity: { id: 'sub_1' } } } }, now + 5000);
 
     const after = usageDb.getEntitlement(userId);
     expect(after?.auto_renew).toBe(0);
@@ -165,21 +168,21 @@ describe('subscriptions', () => {
     expect(effectivePlan(after, now)).toBe('pro');
   });
 
-  it('a halted subscription — repeated failed charges — also stops renewing', () => {
+  it('a halted subscription — repeated failed charges — also stops renewing', async () => {
     const now = 1_000_000;
     grantPlan(usageDb, { ...input({ paymentId: 'pay_sub2' }), subscriptionId: 'sub_2' }, now);
-    applyWebhook(usageDb, { event: 'subscription.halted', payload: { subscription: { entity: { id: 'sub_2' } } } }, now);
+    await applyWebhook(usageDb, { event: 'subscription.halted', payload: { subscription: { entity: { id: 'sub_2' } } } }, now);
     expect(usageDb.getEntitlement(userId)?.auto_renew).toBe(0);
   });
 
-  it('a one-off purchase on top of a subscription does not silently cancel it', () => {
+  it('a one-off purchase on top of a subscription does not silently cancel it', async () => {
     const now = 1_000_000;
     grantPlan(usageDb, { ...input({ paymentId: 'pay_a' }), subscriptionId: 'sub_keep' }, now);
     grantPlan(usageDb, input({ paymentId: 'pay_b' }), now + 1000);
     expect(usageDb.getEntitlement(userId)).toMatchObject({ subscription_id: 'sub_keep', auto_renew: 1 });
   });
 
-  it('signs subscriptions payment|subscription, the reverse of an order — getting this backwards fails only after money moves', () => {
+  it('signs subscriptions payment|subscription, the reverse of an order — getting this backwards fails only after money moves', async () => {
     const config: RazorpayConfig = { keyId: 'rzp_test_x', keySecret: 'secret', webhookSecret: 'h', test: true };
     const { createHmac } = require('node:crypto') as typeof import('node:crypto');
     const good = createHmac('sha256', 'secret').update('pay_1|sub_1').digest('hex');

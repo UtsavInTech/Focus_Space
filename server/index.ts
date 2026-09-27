@@ -23,6 +23,8 @@ import { ApiError, clientIp, CORS_HEADERS, readJsonBody, readTextBody, sendJson,
 import { callOpenAI, callOpenAIJson, loadOpenAIConfig, loadVoiceConfig, speak, transcribe } from './openai';
 import { parseSetupAnswer, setupPrompt, transcriptionHint, validateSetupRequest, validateSpeechText } from './setup/service';
 import { orchestrate } from './orchestrator';
+import { checkQuiz, loadQuizCheckConfig } from './quiz/check';
+import { QUIZ_SIGN_IN_MESSAGE, assertQuizAllowed, quizStatus, recordQuiz } from './usage/quiz';
 import { validateAiApiRequest } from './validate';
 import { getDb } from './auth/db';
 import {
@@ -56,7 +58,7 @@ import { activitySubject, isAdmin, metrics, recordActive } from './usage/activit
 import { assertVoiceAllowed, parsePurpose, recordVoice, secondsHeard, secondsToSay, voiceStatus, type VoiceCaller } from './usage/voice';
 import { resolvePlan } from './usage/entitlements';
 import { loadRazorpayConfig, verifyWebhookSignature } from './billing/razorpay';
-import { applyWebhook, cancelPlan, confirmPayment, confirmSubscription, startCheckout, startSubscription } from './billing/service';
+import { applyWebhook, cancelPlan, confirmPayment, confirmSubscription, quotes, startCheckout, startSubscription } from './billing/service';
 import { buildReceipt } from './billing/receipt';
 import { getOutlineDb } from './outline/db';
 import { outlineDailyLimit, outlineFor, validateOutlineRequest, validateTranscriptKey, validateVideoId } from './outline/service';
@@ -88,6 +90,7 @@ const BILLING_SUBSCRIBE_CONFIRM_ROUTE = '/v1/billing/subscribe/confirm';
 const BILLING_CANCEL_ROUTE = '/v1/billing/cancel';
 const BILLING_CONFIRM_ROUTE = '/v1/billing/confirm';
 const BILLING_WEBHOOK_ROUTE = '/v1/billing/webhook';
+const BILLING_QUOTES_ROUTE = '/v1/billing/quotes';
 const ME_PAYMENTS_ROUTE = '/v1/me/payments';
 /** `/v1/me/payments/:id/receipt` — a dynamic segment, matched by prefix/suffix below rather than added to AUTH_ROUTES (which only does exact matches). */
 const receiptPath = (path: string): string | null => {
@@ -198,6 +201,8 @@ function requireRazorpay() {
 }
 
 let config;
+const quizCheck = loadQuizCheckConfig();
+if (!quizCheck.openRouterKey) console.warn('[FocusSpace API] OPENROUTER_API_KEY is not set: every quiz question will be checked by the settle model, which costs more.');
 try {
   config = loadOpenAIConfig();
 } catch (err) {
@@ -249,7 +254,7 @@ const server = createServer(async (req, res) => {
       }
       // Always 200 once the signature checks out: an event we do not act on is not a
       // failure, and Razorpay retries anything else for days.
-      const grant = applyWebhook(getUsageDb(), event);
+      const grant = await applyWebhook(getUsageDb(), event, Date.now(), razorpay);
       sendJson(res, 200, { ok: true, applied: !!grant?.granted });
       return;
     }
@@ -263,6 +268,21 @@ const server = createServer(async (req, res) => {
       // A present-but-invalid/expired token degrades to anonymous rather than failing the request outright —
       // the AI companion must keep working even with a stale token; identity here is optional context, not a gate.
       const identity = authConfig ? tryAuthenticate(getDb(), authConfig, req.headers.authorization) : null;
+
+      // Quiz me: an account, its own monthly allowance in questions (not credits), and every round checked
+      // before it is sent (quiz/check.ts). Only questions that are shown are counted.
+      if (request.action === 'quiz') {
+        if (!identity) throw new ApiError(403, 'forbidden', QUIZ_SIGN_IN_MESSAGE);
+        const usageDb = getUsageDb();
+        assertQuizAllowed(usageDb, identity.user.id);
+        const result = await orchestrate(request, { config });
+        const excerpt = 'transcriptWindow' in request.context ? request.context.transcriptWindow?.text ?? '' : '';
+        const checked = await checkQuiz(result.answer, excerpt, quizCheck);
+        recordQuiz(usageDb, identity.user.id, checked.shown);
+        console.log(`[FocusSpace API] quiz: ${checked.shown} shown, ${checked.settled} settled, ${checked.fixed} fixed, ${checked.dropped} dropped`);
+        sendJson(res, 200, { ...result, answer: checked.text });
+        return;
+      }
 
       if (!identity) {
         const ip = clientIp(req, TRUST_PROXY);
@@ -528,14 +548,14 @@ const server = createServer(async (req, res) => {
         // The plan rides along so the pricing page can stop offering something the
         // learner already owns — one request instead of two on every page load.
         const entitlement = getUsageDb().getEntitlement(user.id);
-        sendJson(res, 200, { ok: true, user, plan: resolvePlan(entitlement), planExpiresAt: entitlement?.expires_at ?? null, autoRenew: entitlement?.auto_renew === 1 });
+        sendJson(res, 200, { ok: true, user, plan: resolvePlan(entitlement), planExpiresAt: entitlement?.expires_at ?? null, autoRenew: entitlement?.auto_renew === 1, lifetimePlan: entitlement?.lifetime_plan ?? null });
         return;
       }
       // Layer 2C — unlike /v1/ai/complete's fail-open policy, this route has nothing meaningful to answer
       // for an unverified caller, so it requires a genuinely valid token and 401s otherwise.
       if (req.method === 'GET' && path === ME_USAGE_ROUTE) {
         const { user } = authenticate(db, authConfig, req.headers.authorization);
-        sendJson(res, 200, { ok: true, ...usageStatus(getUsageDb(), user.id), voice: voiceStatus(getUsageDb(), user.id) });
+        sendJson(res, 200, { ok: true, ...usageStatus(getUsageDb(), user.id), voice: voiceStatus(getUsageDb(), user.id), quiz: quizStatus(getUsageDb(), user.id) });
         return;
       }
 
@@ -571,6 +591,15 @@ const server = createServer(async (req, res) => {
         const body = (await readJsonBody(req, AUTH_MAX_BODY_BYTES)) as { planId?: string; period?: string; currency?: string };
         const session = await startCheckout(requireRazorpay(), getUsageDb(), user.id, { planId: String(body.planId ?? ''), period: String(body.period ?? ''), currency: String(body.currency ?? '') });
         sendJson(res, 200, { ok: true, ...session });
+        return;
+      }
+
+      // What this account would pay for each plan today: upgrade credit and the Basic owner's offer
+      // included. Read-only — checkout recomputes it, so the page can never set a price.
+      if (req.method === 'GET' && path === BILLING_QUOTES_ROUTE) {
+        const { user } = authenticate(db, authConfig, req.headers.authorization);
+        const currency = new URL(req.url ?? '', 'http://x').searchParams.get('currency') === 'USD' ? 'USD' : 'INR';
+        sendJson(res, 200, { ok: true, quotes: quotes(getUsageDb(), user.id, currency) });
         return;
       }
 
@@ -614,7 +643,7 @@ const server = createServer(async (req, res) => {
       if (req.method === 'POST' && path === BILLING_CONFIRM_ROUTE) {
         const { user } = authenticate(db, authConfig, req.headers.authorization);
         const body = (await readJsonBody(req, AUTH_MAX_BODY_BYTES)) as Record<string, string>;
-        const grant = confirmPayment(requireRazorpay(), getUsageDb(), user.id, {
+        const grant = await confirmPayment(requireRazorpay(), getUsageDb(), user.id, {
           orderId: String(body.orderId ?? ''),
           paymentId: String(body.paymentId ?? ''),
           signature: String(body.signature ?? ''),

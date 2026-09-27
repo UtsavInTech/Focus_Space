@@ -61,14 +61,14 @@ describe('UsageDb — entitlements', () => {
 
   it('setPlan upserts: first insert, then update in place', () => {
     usageDb.setPlan(userId, 'pro', 100);
-    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'pro', updated_at: 100, expires_at: null, payment_id: null, subscription_id: null, auto_renew: 0 });
+    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'pro', updated_at: 100, expires_at: null, payment_id: null, subscription_id: null, auto_renew: 0, lifetime_plan: null });
     usageDb.setPlan(userId, 'free', 200);
-    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'free', updated_at: 200, expires_at: null, payment_id: null, subscription_id: null, auto_renew: 0 });
+    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'free', updated_at: 200, expires_at: null, payment_id: null, subscription_id: null, auto_renew: 0, lifetime_plan: null });
   });
 
   it('setPlan records the expiry and the payment that bought it', () => {
     usageDb.setPlan(userId, 'unlimited', 100, 5_000, 'pay_abc');
-    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'unlimited', updated_at: 100, expires_at: 5_000, payment_id: 'pay_abc', subscription_id: null, auto_renew: 0 });
+    expect(usageDb.getEntitlement(userId)).toEqual({ user_id: userId, plan: 'unlimited', updated_at: 100, expires_at: 5_000, payment_id: 'pay_abc', subscription_id: null, auto_renew: 0, lifetime_plan: null });
   });
 
   it('cancelling stops renewal but keeps the period already paid for', () => {

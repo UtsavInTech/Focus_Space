@@ -17,10 +17,14 @@ export type { PlanId };
 
 export interface PlanLimits {
   aiUnitsPerPeriod: number;
+  /** A rolling 24-hour ceiling under the monthly one — only the free account and Basic have one. */
+  aiUnitsPerDay: number;
   /** How many Spaces the account may keep (server/usage/spaces.ts). */
   maxSpaces: number;
   /** Seconds of speech a month, both directions (server/usage/voice.ts). Never unlimited. */
   voiceSecondsPerPeriod: number;
+  /** Checked quiz questions a month (server/usage/quiz.ts). Never unlimited. */
+  quizQuestionsPerPeriod: number;
 }
 
 
@@ -31,7 +35,7 @@ export const PLAN_LIMITS: Record<PlanId, PlanLimits> = Object.fromEntries(
     plan.id,
     // Every plan, Free included, straight from the price book. An environment override here once let the
     // enforced Free limits drift from what the pricing page promised; there is deliberately no such knob now.
-    { aiUnitsPerPeriod: unlimited(plan.limits.aiCredits), maxSpaces: unlimited(plan.limits.modes), voiceSecondsPerPeriod: plan.limits.voiceMinutes * 60 },
+    { aiUnitsPerPeriod: unlimited(plan.limits.aiCredits), aiUnitsPerDay: unlimited(plan.limits.aiCreditsPerDay), maxSpaces: unlimited(plan.limits.modes), voiceSecondsPerPeriod: plan.limits.voiceMinutes * 60, quizQuestionsPerPeriod: plan.limits.quizQuestions },
   ]),
 ) as Record<PlanId, PlanLimits>;
 

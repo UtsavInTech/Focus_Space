@@ -24,6 +24,8 @@ interface AuthState {
   plan: PlanId;
   planExpiresAt: number | null;
   autoRenew: boolean;
+  /** A plan bought once for life (Basic), kept under any paid period. */
+  lifetimePlan: PlanId | null;
   /** False until the stored session has been checked, so the nav does not flash "Sign in" at someone who is. */
   ready: boolean;
   signIn: (email: string, password: string) => Promise<void>;
@@ -65,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [plan, setPlan] = useState<PlanId>('free');
   const [planExpiresAt, setPlanExpiresAt] = useState<number | null>(null);
   const [autoRenew, setAutoRenew] = useState(false);
+  const [lifetimePlan, setLifetimePlan] = useState<PlanId | null>(null);
 
   useEffect(() => {
     const stored = readSession();
@@ -140,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPlan('free');
     setPlanExpiresAt(null);
     setAutoRenew(false);
+    setLifetimePlan(null);
     apply(null); // locally first: signing out must never depend on the network
     if (current) await api.logout(current.refreshToken).catch(() => undefined);
   }, [apply]);
@@ -157,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPlan(result.plan);
       setPlanExpiresAt(result.planExpiresAt);
       setAutoRenew(result.autoRenew);
+      setLifetimePlan(result.lifetimePlan ?? null);
       setSession((prev) => (prev ? { ...prev, user: result.user } : prev));
     } catch {
       // A failed refresh of the profile must never disturb the session itself.
@@ -179,8 +184,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthState>(
-    () => ({ user: session?.user ?? null, plan, planExpiresAt, autoRenew, ready, signIn, completeSignup, completeReset, signInWithHandoff, signOut, token, reload, setProfile }),
-    [session, plan, planExpiresAt, autoRenew, ready, signIn, completeSignup, completeReset, signInWithHandoff, signOut, token, reload, setProfile],
+    () => ({ user: session?.user ?? null, plan, planExpiresAt, autoRenew, lifetimePlan, ready, signIn, completeSignup, completeReset, signInWithHandoff, signOut, token, reload, setProfile }),
+    [session, plan, planExpiresAt, autoRenew, lifetimePlan, ready, signIn, completeSignup, completeReset, signInWithHandoff, signOut, token, reload, setProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

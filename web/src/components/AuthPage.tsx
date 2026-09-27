@@ -192,7 +192,7 @@ export function AuthPage({ mode: initialMode }: { mode: Mode }) {
                 ? `If there is an account for ${email}, a 6-digit code is on its way.`
                 : mode === 'reset'
                   ? 'Tell us your email and we will send a code to set a new password.'
-                  : `Free: ${FREE_SPACE_LIMIT} Spaces and a monthly AI allowance. No card needed.`}
+                  : `Free: ${FREE_SPACE_LIMIT} Spaces and a daily AI allowance. No card needed.`}
         </p>
 
         {/* Only the email step is a dead end otherwise: once you've moved past it, `switchMode` (below,

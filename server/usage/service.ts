@@ -1,4 +1,4 @@
-import { GUEST_DAILY_AI_CREDITS } from '@/billing/plans';
+import { BASIC_UPGRADE_CREDIT, GUEST_DAILY_AI_CREDITS } from '@/billing/plans';
 import { createHash, randomUUID } from 'node:crypto';
 import { ApiError } from '../http';
 import type { UsageDb } from './db';
@@ -51,15 +51,21 @@ export type Reservation =
   /** The identical logical request already succeeded once — give it a fresh answer without charging again. */
   | { kind: 'duplicate-committed' };
 
-function quotaExceeded(limit: number): ApiError {
-  return new ApiError(429, 'quota_exceeded', `You've used all ${limit} AI actions included this period. It resets at the start of next month.`);
+/** Where to go from a limit: Basic owners are reminded their first paid month is cheaper. */
+function upgradeHint(plan: string): string {
+  if (plan === 'free') return ' Basic is ₹99 once, for life, with twice as much.';
+  if (plan === 'basic') return ` Plus has no daily cap, and your first month is ₹${BASIC_UPGRADE_CREDIT.inr} off.`;
+  return ' Upgrade for more.';
 }
 
 function assertWithinQuota(db: UsageDb, userId: string, period: string, units: number, now: number): void {
-  const plan = resolvePlan(db.getEntitlement(userId));
-  const limit = limitsFor(plan).aiUnitsPerPeriod;
+  const plan = resolvePlan(db.getEntitlement(userId), now);
+  const limits = limitsFor(plan);
   const used = db.sumUnitsForPeriod(userId, period, now - RESERVATION_STALE_MS);
-  if (used + units > limit) throw quotaExceeded(limit);
+  if (used + units > limits.aiUnitsPerPeriod) throw new ApiError(429, 'quota_exceeded', `You've used all ${limits.aiUnitsPerPeriod} AI actions included this month. It resets at the start of next month.${upgradeHint(plan)}`);
+  if (Number.isFinite(limits.aiUnitsPerDay) && db.sumUnitsSince(userId, now - 24 * 3_600_000, now - RESERVATION_STALE_MS) + units > limits.aiUnitsPerDay) {
+    throw new ApiError(429, 'quota_exceeded', `You've used today's ${limits.aiUnitsPerDay} AI actions. More come back through the day.${upgradeHint(plan)}`);
+  }
 }
 
 /**

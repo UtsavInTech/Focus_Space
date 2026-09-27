@@ -72,7 +72,8 @@ function loadSdk(): Promise<RazorpayCtor> {
 
 export interface CheckoutResult {
   plan: PlanId;
-  expiresAt: number;
+  /** Null for a plan kept for life. */
+  expiresAt: number | null;
   autoRenew: boolean;
 }
 

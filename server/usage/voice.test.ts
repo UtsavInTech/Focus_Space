@@ -38,6 +38,6 @@ describe('voice allowance', () => {
   });
 
   it('never gives any plan unlimited voice', () => {
-    for (const id of ['free', 'pro', 'unlimited', 'max'] as const) expect(Number.isFinite(planById(id).limits.voiceMinutes)).toBe(true);
+    for (const id of ['free', 'basic', 'plus', 'pro', 'max'] as const) expect(Number.isFinite(planById(id).limits.voiceMinutes)).toBe(true);
   });
 });

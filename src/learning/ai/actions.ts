@@ -88,6 +88,11 @@ Never ask about:
 - anything that can be answered just by reading the list of concepts.
 The only exception: when an ordering is itself the subject being taught (for example the order in which SQL clauses are executed), a question about that ordering is fine.
 
+Answer key:
+- Work out every answer yourself before writing the key. For code, trace it line by line exactly as it runs: output formatting (spaces, commas, new lines), operator precedence and associativity, integer division, string terminators, loop bounds.
+- Exactly one option is correct, and it is always among the options. No two options may be equally correct or mean the same thing (for example "i < n" and "i <= n - 1"), and no two may have the same text.
+- Never use "all of the above", "none of the above" or "both A and B" options.
+
 Before answering, silently check every question: Does it test understanding of the subject rather than the course? Would it help in an exam or interview? Is there exactly one defensible answer, with plausible distractors? Replace any question that fails.
 
 Format (plain text, no markdown):
@@ -105,13 +110,23 @@ const QUIZ = `Write a ${QUIZ_QUESTIONS}-question quiz that checks whether the le
 
 ${QUIZ_RULES}`;
 
-/** A "More questions" round: which part of the video it draws on, and what has been asked already. */
+export type QuizDifficulty = 'easy' | 'medium' | 'hard';
+
+/** A quiz round: which part of the video it draws on, and what has been asked already. */
 export interface QuizMore {
-  /** 'section': the part being taught now, beyond the moment. 'video': the whole video. */
-  scope: 'section' | 'video';
+  /** 'span': one block of the video (the context's range). 'section': the part being taught now. 'video': a sample of the whole video. */
+  scope: 'span' | 'section' | 'video';
   /** Questions already asked in this quiz — never asked again. */
   previous: string[];
+  /** Absent: matched to the material. */
+  difficulty?: QuizDifficulty;
 }
+
+const DIFFICULTY: Record<QuizDifficulty, string> = {
+  easy: 'Difficulty: easy. Check the core ideas and definitions directly, with clearly wrong distractors. Still no trivia about the video.',
+  medium: 'Difficulty: medium. Mix understanding with applying it, and include at least two questions that need reasoning.',
+  hard: 'Difficulty: hard. Mostly reasoning: predicting results of code or queries, edge cases, comparing close alternatives, applying the idea to a new problem. Distractors should be the mistakes a good student would make.',
+};
 
 /** At most this many earlier questions go into the prompt (the newest), each cut short: enough to avoid repeats, never enough to crowd out the transcript. */
 const QUIZ_PREVIOUS_MAX = 20;
@@ -125,13 +140,15 @@ const QUIZ_PREVIOUS_CHARS = 110;
 export function buildQuizMorePrompt(ctx: LearningContext, more: QuizMore): AiPrompt {
   const span = ctx.transcriptWindow ? `${formatTimestamp(ctx.transcriptWindow.startSec)}–${formatTimestamp(ctx.transcriptWindow.endSec)}` : '';
   const scope =
-    more.scope === 'section'
+    more.scope === 'span'
+      ? `this part of the video${span ? ` (${span})` : ''}, spread across what it teaches`
+      : more.scope === 'section'
       ? `the whole part of the video being taught around this moment${span ? ` (${span})` : ''}`
       : 'the whole video, the transcript below samples it from start to end; spread the questions across different topics';
   const previous = more.previous.slice(-QUIZ_PREVIOUS_MAX).map((q) => `- ${q.replace(/\s+/g, ' ').slice(0, QUIZ_PREVIOUS_CHARS)}`);
   const task = `Write ${QUIZ_QUESTIONS} NEW quiz questions on ${scope}, useful in a university exam, a technical interview or a placement test.
 ${previous.length ? `\nThe learner has already answered these. Do not repeat them or ask the same thing in other words, test different ideas:\n${previous.join('\n')}\n` : ''}
-${QUIZ_RULES}`;
+${QUIZ_RULES}${more.difficulty ? `\n\n${DIFFICULTY[more.difficulty]}` : ''}`;
   const language = LANGUAGE_RULE[ctx.language] ? `\n\n${LANGUAGE_RULE[ctx.language]}` : ctx.transcriptWindow && transcriptLanguage(ctx.transcriptWindow.text) ? `\n\n${ENGLISH_FROM_OTHER}` : '';
   return { system: SYSTEM, user: `${contextBlock(ctx)}\n\nTask: ${task}${language}` };
 }

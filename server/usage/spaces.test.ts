@@ -81,8 +81,8 @@ describe('anonymous AI allowance', () => {
   });
 
   it('charges the same per-action cost as an account does, and never records a failed request', () => {
-    assertAnonymousQuota(usageDb, key(), 'quiz');
-    recordAnonymousUsage(usageDb, key(), 'quiz'); // quiz costs 2 units
+    assertAnonymousQuota(usageDb, key(), 'explain');
+    recordAnonymousUsage(usageDb, key(), 'explain'); // quiz costs 2 units
     expect(usageDb.anonUnits(key(), new Date().toISOString().slice(0, 10))).toBe(2);
     assertAnonymousQuota(usageDb, key(), 'what'); // a check alone consumes nothing
     expect(usageDb.anonUnits(key(), new Date().toISOString().slice(0, 10))).toBe(2);

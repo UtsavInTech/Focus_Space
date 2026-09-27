@@ -25,7 +25,7 @@ export interface User {
   createdAt: number;
 }
 
-export type PlanId = 'free' | 'pro' | 'unlimited' | 'max';
+export type PlanId = 'free' | 'basic' | 'plus' | 'pro' | 'max';
 
 export interface Session {
   user: User;
@@ -125,7 +125,7 @@ export const logout = (refreshToken: string) => post<{ ok: true }>('/v1/auth/log
 
 /** The plan rides along so a page never has to make a second call just to know what to offer. */
 export const me = (token: string) =>
-  request<{ ok: true; user: User; plan: PlanId; planExpiresAt: number | null; autoRenew: boolean }>('/v1/me', { headers: { Authorization: `Bearer ${token}` } });
+  request<{ ok: true; user: User; plan: PlanId; planExpiresAt: number | null; autoRenew: boolean; lifetimePlan: PlanId | null }>('/v1/me', { headers: { Authorization: `Bearer ${token}` } });
 
 export const updateProfile = (token: string, patch: { name?: string | null; city?: string | null }) => post<{ ok: true; user: User }>('/v1/me/profile', patch, token);
 
@@ -145,7 +145,7 @@ export const startCheckout = (token: string, body: { planId: string; period: str
   post<{ ok: true } & CheckoutSession>('/v1/billing/checkout', body, token);
 
 export const confirmPayment = (token: string, body: { orderId: string; paymentId: string; signature: string; planId: string; period: string; currency: string }) =>
-  post<{ ok: true; plan: PlanId; expiresAt: number; granted: boolean }>('/v1/billing/confirm', body, token);
+  post<{ ok: true; plan: PlanId; expiresAt: number | null; granted: boolean }>('/v1/billing/confirm', body, token);
 
 export interface SubscriptionSession {
   subscriptionId: string;
@@ -162,7 +162,7 @@ export const startSubscription = (token: string, body: { planId: string; period:
   post<{ ok: true } & SubscriptionSession>('/v1/billing/subscribe', body, token);
 
 export const confirmSubscription = (token: string, body: { subscriptionId: string; paymentId: string; signature: string; planId: string; period: string; currency: string }) =>
-  post<{ ok: true; plan: PlanId; expiresAt: number; granted: boolean; autoRenew: boolean }>('/v1/billing/subscribe/confirm', body, token);
+  post<{ ok: true; plan: PlanId; expiresAt: number | null; granted: boolean; autoRenew: boolean }>('/v1/billing/subscribe/confirm', body, token);
 
 export const cancelPlan = (token: string) => post<{ ok: true; expiresAt: number | null }>('/v1/billing/cancel', {}, token);
 
@@ -182,3 +182,19 @@ export const paymentReceipt = (token: string, paymentId: string) =>
   request<{ ok: true; paymentId: string; html: string }>(`/v1/me/payments/${encodeURIComponent(paymentId)}/receipt`, { headers: { Authorization: `Bearer ${token}` } });
 
 export const usage = (token: string) => request<{ ok: true } & UsageStatus>('/v1/me/usage', { headers: { Authorization: `Bearer ${token}` } });
+
+/** What this account pays for a plan today (server/billing/service.ts `quote`): the price, less any upgrade credit. */
+export interface Quote {
+  planId: PlanId;
+  period: 'monthly' | 'annual' | 'lifetime';
+  currency: 'INR' | 'USD';
+  fullMinor: number;
+  creditMinor: number;
+  chargeMinor: number;
+  creditNote: string | null;
+  startsNow: boolean;
+}
+export type QuoteOrRefusal = Quote | { planId: PlanId; period: Quote['period']; error: string };
+
+export const quotes = (token: string, currency: 'INR' | 'USD') =>
+  request<{ ok: true; quotes: QuoteOrRefusal[] }>(`/v1/billing/quotes?currency=${currency}`, { headers: { Authorization: `Bearer ${token}` } });

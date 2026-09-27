@@ -1,12 +1,13 @@
 import { hasStoreListing, installHref, onPhoneOrTablet, sendLinkToComputer } from '../install';
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { navigate, onLinkClick } from '../router';
 import { useAuth } from '../auth';
 import { Sparkle } from './Sparkle';
 import { CheckoutCancelled, startCheckout } from '../checkout';
 import { formatAmount, looksIndian } from '../currency';
-import { ANNUAL_DISCOUNT_LABEL, CREDIT_COSTS, PLANS, annualSavingPercent, perMonth } from '../content/plans';
-import type { BillingPeriod, CurrencyCode, Plan } from '../content/plans';
+import * as api from '../api';
+import { ANNUAL_DISCOUNT_LABEL, CREDIT_COSTS, FREE_DAILY_AI_CREDITS, FREE_SPACE_LIMIT, PLAN_RANK, PLANS, annualSavingPercent, perMonth } from '../content/plans';
+import type { CurrencyCode, Plan, RecurringPeriod } from '../content/plans';
 
 interface Props {
   currency: CurrencyCode;
@@ -18,7 +19,9 @@ interface Props {
 
 export function PricingSection({ currency, onCurrency, compact, showCredits }: Props) {
   const auth = useAuth();
-  const [period, setPeriod] = useState<BillingPeriod>('annual');
+  const [period, setPeriod] = useState<RecurringPeriod>('annual');
+  /** What this account would pay today for each plan (upgrade credit, the Basic offer). Visitors see list prices. */
+  const [prices, setPrices] = useState<api.QuoteOrRefusal[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   /**
@@ -31,6 +34,20 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
    * Buying requires an account, because a payment has to attach to one. Rather
    * than refusing, send them to sign in — they come back to this page.
    */
+  useEffect(() => {
+    let alive = true;
+    if (!auth.user) return setPrices([]);
+    void auth
+      .token()
+      .then((token) => (token ? api.quotes(token, currency) : null))
+      .then((res) => alive && setPrices(res?.quotes ?? []))
+      .catch(() => alive && setPrices([]));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.user, auth.plan, auth.lifetimePlan, currency]);
+
   async function buy(plan: Plan) {
     if (plan.comingSoon) return;
     if (plan.id === 'free') {
@@ -52,13 +69,16 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
         navigate('/signin');
         return;
       }
-      const result = await startCheckout({ planId: plan.id, period, currency, token, email: auth.user.email, renewing });
+      const lifetime = !!plan.oneTime;
+      const result = await startCheckout({ planId: plan.id, period: lifetime ? 'lifetime' : period, currency, token, email: auth.user.email, renewing: !lifetime && renewing });
       // Re-read from the server rather than trusting what checkout just told us.
       await auth.reload();
       setMessage(
-        result.autoRenew
-          ? `You're on ${plan.name}. It renews automatically on ${new Date(result.expiresAt).toLocaleDateString()}, cancel any time.`
-          : `You're on ${plan.name}. It runs until ${new Date(result.expiresAt).toLocaleDateString()}, and will not renew by itself.`,
+        lifetime
+          ? `${plan.name} is yours for life. Thank you!`
+          : result.autoRenew && result.expiresAt
+            ? `You're on ${plan.name}. It renews automatically on ${new Date(result.expiresAt).toLocaleDateString()}, cancel any time.`
+            : `You're on ${plan.name}${result.expiresAt ? ` until ${new Date(result.expiresAt).toLocaleDateString()}` : ''}. It will not renew by itself.`,
       );
     } catch (err) {
       // Closing the payment sheet is a decision, not an error worth shouting about.
@@ -79,7 +99,7 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
 
       <div className="fsw-pricing-controls">
         <div className="fsw-switch" role="group" aria-label="Billing period">
-          {(['monthly', 'annual'] as BillingPeriod[]).map((p) => (
+          {(['monthly', 'annual'] as RecurringPeriod[]).map((p) => (
             <button key={p} type="button" className={period === p ? 'is-active' : ''} aria-pressed={period === p} onClick={() => setPeriod(p)}>
               {p === 'monthly' ? 'Monthly' : 'Annually'}
               {p === 'annual' && <em>{ANNUAL_DISCOUNT_LABEL}</em>}
@@ -112,10 +132,29 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
       )}
 
       <div className={`fsw-plans${compact ? ' is-compact' : ''}`}>
-        {PLANS.map((plan, i) => (
-          <PlanCard key={plan.id} order={i} plan={plan} period={period} currency={currency} compact={compact} busy={busy === plan.id} current={auth.user ? auth.plan : null} expiresAt={auth.planExpiresAt} autoRenew={auth.autoRenew} renewing={renewing} onBuy={() => void buy(plan)} />
+        {PLANS.filter((plan) => !plan.unlisted).map((plan, i) => (
+          <PlanCard
+            key={plan.id}
+            order={i}
+            plan={plan}
+            period={period}
+            currency={currency}
+            compact={compact}
+            busy={busy === plan.id}
+            current={auth.user ? auth.plan : null}
+            ownedForLife={auth.user ? auth.lifetimePlan === plan.id : false}
+            expiresAt={auth.planExpiresAt}
+            autoRenew={auth.autoRenew}
+            renewing={renewing}
+            price={prices.find((q) => q.planId === plan.id && q.period === (plan.oneTime ? 'lifetime' : period)) ?? null}
+            onBuy={() => void buy(plan)}
+          />
         ))}
       </div>
+
+      <p className="fsw-pricing-note">
+        Not ready to pay? A free account keeps {FREE_SPACE_LIMIT} Spaces with {FREE_DAILY_AI_CREDITS} AI credits a day. Moving up later, you only pay the difference.
+      </p>
 
       {message && <p className="fsw-pricing-note" style={{ marginTop: 20 }}>{message}</p>}
 
@@ -150,9 +189,6 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
   );
 }
 
-/** Where each plan sits relative to the others, so a card can say "upgrade" or "downgrade" honestly. */
-const RANK: Record<string, number> = { free: 0, pro: 1, unlimited: 2, max: 3 };
-
 function PlanCard({
   plan,
   period,
@@ -160,41 +196,41 @@ function PlanCard({
   compact,
   busy,
   current,
+  ownedForLife,
   expiresAt,
   autoRenew,
   renewing,
+  price,
   onBuy,
   order,
 }: {
   order: number;
   plan: Plan;
-  period: BillingPeriod;
+  period: RecurringPeriod;
   currency: CurrencyCode;
   compact?: boolean;
   busy?: boolean;
-  /** Null for a visitor: `auth.plan` defaults to 'free', and marking Free as "Current plan" for someone with no account is untrue. */
+  /** Null for a visitor: `auth.plan` defaults to 'free', and marking a plan "Current" for someone with no account is untrue. */
   current: string | null;
+  /** Bought once and kept (Basic), whatever paid plan runs on top of it. */
+  ownedForLife: boolean;
   expiresAt: number | null;
   autoRenew: boolean;
   /** The "Renew automatically" choice above the cards — what buying this card would set up. */
   renewing: boolean;
+  /** This account's price today, from the server; null for a visitor. */
+  price: api.QuoteOrRefusal | null;
   onBuy: () => void;
 }) {
-  const isFree = plan.id === 'free';
-  const isCurrent = current === plan.id;
+  const lifetime = !!plan.oneTime;
+  const isCurrent = ownedForLife || (!lifetime && current === plan.id);
   const comingSoon = Boolean(plan.comingSoon);
+  const refusal = price && 'error' in price ? price.error : null;
+  const credit = price && !('error' in price) && price.creditMinor > 0 ? price : null;
+  const lower = current !== null && !lifetime && PLAN_RANK[plan.id] < PLAN_RANK[current as keyof typeof PLAN_RANK];
   // Offering "Get Pro" to someone already on Pro is the bug this replaces.
-  const label = isCurrent
-    ? 'Your plan'
-    : comingSoon
-      ? 'Coming soon'
-      : current !== null && RANK[plan.id] < RANK[current]
-        ? `Switch to ${plan.name}`
-        : // On a phone the Free plan's button sends the link on rather than opening a store that cannot install.
-          isFree && onPhoneOrTablet()
-          ? 'Send the link to my computer'
-          : plan.cta;
-  const monthly = perMonth(plan, period);
+  const label = isCurrent ? (lifetime ? 'Yours for life' : 'Your plan') : comingSoon ? 'Coming soon' : lower ? `Switch to ${plan.name}` : credit ? `${plan.cta} for ${formatAmount({ inr: credit.chargeMinor / 100, usd: credit.chargeMinor / 100 }, currency)}` : plan.cta;
+  const shown = lifetime ? plan.oneTime! : perMonth(plan, period);
   const saving = annualSavingPercent(plan, currency);
 
   return (
@@ -204,44 +240,46 @@ function PlanCard({
       // The four plans arrive left to right, a beat apart, so the eye reads them in order.
       style={{ '--fsw-reveal-delay': `${order * 80}ms` } as CSSProperties}
     >
-      {isCurrent ? <span className="fsw-plan-flag is-current">Current plan</span> : plan.featured && <span className="fsw-plan-flag">Most popular</span>}
+      {isCurrent ? <span className="fsw-plan-flag is-current">{lifetime ? 'Yours' : 'Current plan'}</span> : plan.featured ? <span className="fsw-plan-flag">Most popular</span> : lifetime && <span className="fsw-plan-flag">Pay once</span>}
       {/* The plan we recommend twinkles, from its outline so nothing lands on the price. Not once it is yours. */}
       {plan.featured && !isCurrent && <Sparkle from="edge" rate={7} />}
       <h3>{plan.name}</h3>
       <p className="fsw-plan-tagline">{plan.tagline}</p>
 
       <p className="fsw-plan-price">
-        {isFree ? <strong>Free</strong> : <strong>{formatAmount(monthly, currency)}</strong>}
-        {!isFree && <span>/month</span>}
+        <strong>{formatAmount(shown, currency)}</strong>
+        <span>{lifetime ? ' once' : '/month'}</span>
       </p>
 
       {/* The annual charge is stated in full. "$2.42/month" with no yearly figure
           anywhere is the pattern that gets pricing pages accused of hiding the number. */}
       <p className="fsw-plan-sub">
-        {isCurrent && expiresAt
-          ? `${autoRenew ? 'Renews' : 'Runs until'} ${new Date(expiresAt).toLocaleDateString()}`
-          : isFree
-            ? 'No card, no expiry'
-            : period === 'annual'
-              ? `${formatAmount(plan.price.annual, currency)} billed once a year · save ${saving}%`
-              : `${formatAmount(plan.price.monthly, currency)} billed every month`}
+        {credit
+          ? `${credit.creditNote}: ${formatAmount({ inr: credit.creditMinor / 100, usd: credit.creditMinor / 100 }, currency)} off today`
+          : isCurrent && !lifetime && expiresAt
+            ? `${autoRenew ? 'Renews' : 'Runs until'} ${new Date(expiresAt).toLocaleDateString()}`
+            : lifetime
+              ? 'No renewals, no expiry'
+              : period === 'annual'
+                ? `${formatAmount(plan.price!.annual, currency)} billed once a year · save ${saving}%`
+                : `${formatAmount(plan.price!.monthly, currency)} billed every month`}
       </p>
       {/* The renewal term said on the card itself, where the price is read — not only in a checkbox above.
           The line is there on every card, empty where it does not apply, so the four buttons line up. */}
       <p className="fsw-plan-renews">
-        {!isFree && !isCurrent && !comingSoon && (renewing ? `Renews ${period === 'annual' ? 'yearly' : 'monthly'} · cancel anytime` : 'One payment · does not renew')}
+        {refusal && !isCurrent ? refusal : !isCurrent && !comingSoon && (lifetime ? 'One payment · yours for life' : renewing ? `Renews ${period === 'annual' ? 'yearly' : 'monthly'} · cancel anytime` : 'One payment · does not renew')}
       </p>
 
       <button
         type="button"
         className={`fsw-btn ${plan.featured && !isCurrent ? 'fsw-btn-primary' : 'fsw-btn-outline'} fsw-btn-block`}
-        disabled={busy || isCurrent || comingSoon}
+        disabled={busy || isCurrent || comingSoon || !!refusal}
         onClick={comingSoon ? undefined : onBuy}
       >
         {busy ? 'Opening payment…' : label}
       </button>
       {/* Buying the same plan again is a renewal, not a mistake — but it should be a deliberate choice. */}
-      {isCurrent && !isFree && !autoRenew && !comingSoon && (
+      {isCurrent && !lifetime && !autoRenew && !comingSoon && (
         <button type="button" className="fsw-link fsw-plan-renew" onClick={onBuy}>
           Extend by another {period === 'annual' ? 'year' : 'month'}
         </button>

@@ -1,4 +1,4 @@
-import { PLANS } from '@/billing/plans';
+import { PLANS, currentPlanId } from '@/billing/plans';
 import { ApiError } from '../http';
 import type { UsageDb } from '../usage/db';
 
@@ -37,7 +37,9 @@ export function buildReceipt(db: UsageDb, user: { id: string; email: string | nu
   // indistinguishable to the caller, or the endpoint becomes a way to probe which payment ids are real.
   if (!row || row.user_id !== user.id) throw new ApiError(404, 'invalid_request', 'No receipt found for that payment.');
 
-  const planName = PLANS.find((p) => p.id === row.plan)?.name ?? row.plan;
+  const planName = PLANS.find((p) => p.id === currentPlanId(row.plan))?.name ?? row.plan;
+  const credit = row.credit_minor ?? 0;
+  const term = row.period === 'lifetime' ? 'for life' : row.period === 'annual' ? '12 months' : '1 month';
   const date = new Date(row.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
   const amount = money(row.amount_minor, row.currency);
   const buyer = escapeHtml(user.email ?? 'your FocusSpace account');
@@ -72,7 +74,8 @@ export function buildReceipt(db: UsageDb, user: { id: string; email: string | nu
   <p class="muted">Billed to ${buyer}</p>
   <table>
     <tr><td>Date</td><td>${date}</td></tr>
-    <tr><td>Plan</td><td>${escapeHtml(planName)} · ${row.period === 'annual' ? '12 months' : '1 month'}</td></tr>
+    <tr><td>Plan</td><td>${escapeHtml(planName)} · ${term}</td></tr>
+    ${credit ? `<tr><td>Price</td><td>${money(row.amount_minor + credit, row.currency)}</td></tr>\n    <tr><td>${escapeHtml(row.credit_note ?? 'Credit')}</td><td>−${money(credit, row.currency)}</td></tr>` : ''}
     <tr><td>Payment ID</td><td>${escapeHtml(row.id)}</td></tr>
     <tr><td>Status</td><td>${paidStatus}</td></tr>
     <tr class="total"><td>Total</td><td>${amount}</td></tr>

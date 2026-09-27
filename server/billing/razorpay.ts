@@ -123,7 +123,17 @@ export interface RazorpaySubscription {
  */
 export async function createSubscription(
   config: RazorpayConfig,
-  input: { planId: string; totalCount: number; notes: Record<string, string>; email?: string | null },
+  input: {
+    planId: string;
+    totalCount: number;
+    notes: Record<string, string>;
+    email?: string | null;
+    /**
+     * An upgrade: the first cycle is paid now as a one-off "upfront" amount (the full price less the credit),
+     * and the plan's own charges start one period later, at `startAt` (ms).
+     */
+    upfront?: { amountMinor: number; currency: string; name: string; startAt: number };
+  },
 ): Promise<RazorpaySubscription> {
   const res = await fetch(`${API}/subscriptions`, {
     method: 'POST',
@@ -135,6 +145,9 @@ export async function createSubscription(
       customer_notify: 0,
       notes: input.notes,
       ...(input.email ? { notify_info: { notify_email: input.email } } : {}),
+      ...(input.upfront
+        ? { start_at: Math.floor(input.upfront.startAt / 1000), addons: [{ item: { name: input.upfront.name, amount: input.upfront.amountMinor, currency: input.upfront.currency } }] }
+        : {}),
     }),
   });
   if (!res.ok) {
