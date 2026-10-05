@@ -42,12 +42,14 @@ function fakeUpstream(calls: string[], judgeFails = false) {
       if (judgeFails) return new Response('{}', { status: 402 });
       const q: string = body.state.question;
       const probabilities = q.includes('printf') ? { A: 0.01, B: 0.99, C: 0, NONE: 0 } : q.includes('7 / 2') ? { A: 0, B: 1, NONE: 0 } : { A: 0.98, B: 0.02, C: 0, NONE: 0 };
-      const single = q.includes('Which loop') ? 0.06 : 0.97;
-      return Response.json({ answers: { answer: { probabilities }, single: { noul: single } } });
+      // Option by option: the two-correct question rates both of its loops correct, as Jev did on real ones.
+      const optionCorrect = (letter: string) => (q.includes('Which loop') && letter === 'B' ? 0.53 : ((probabilities as Record<string, number>)[letter] ?? 0));
+      const options = Object.fromEntries(Object.keys(body.questions).filter((k) => k.startsWith('option_')).map((k) => [k, { noul: optionCorrect(k.slice(7)) }]));
+      return Response.json({ answers: { answer: { probabilities }, sound: { noul: q.includes('syntax error') ? 0.16 : 0.95 }, ...options } });
     }
     calls.push('settle');
     const q: string = body.messages[1].content;
-    const verdict = q.includes('printf') ? { correct_options: ['B'], reason: 'No space is printed, so the digits run together.' } : q.includes('Which loop') ? { correct_options: ['A', 'B'] } : { correct_options: ['B'], reason: 'Integer division.' };
+    const verdict = q.includes('syntax error') ? { correct_options: [] } : q.includes('printf') ? { correct_options: ['B'], reason: 'No space is printed, so the digits run together.' } : q.includes('Which loop') ? { correct_options: ['A', 'B'] } : { correct_options: ['B'], reason: 'Integer division.' };
     return Response.json({ choices: [{ message: { content: JSON.stringify(verdict) } }] });
   }) as typeof fetch;
 }
@@ -65,6 +67,23 @@ describe('quiz check', () => {
     // The repeat never reached a model; the settle model only saw what the judge flagged.
     expect(calls.filter((c) => c === 'judge')).toHaveLength(3);
     expect(calls.filter((c) => c === 'settle')).toHaveLength(2);
+  });
+
+  it('settles a question built on a false premise, even when its key looks right', async () => {
+    const premise = `1. What syntax error occurs if \`outOfGuesses == 1;\` is written instead of \`outOfGuesses = 1;\`?
+   A) The loop never ends.
+   B) The program crashes.
+2. What does \`7 / 2\` give in C?
+   A) 3.5
+   B) 3
+
+Answers:
+1. A, the flag is never set.
+2. B, integer division drops the fraction.`;
+    const calls: string[] = [];
+    const result = await checkQuiz(premise, 'transcript', config, undefined, fakeUpstream(calls));
+    expect(parseQuiz(result.text)!.map((q) => q.text)).toEqual(['What does `7 / 2` give in C?']);
+    expect(result).toMatchObject({ shown: 1, dropped: 1, settled: 1 });
   });
 
   it('never shows an unchecked question: without the judge, everything is settled', async () => {

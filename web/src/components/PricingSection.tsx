@@ -1,5 +1,5 @@
 import { hasStoreListing, installHref, onPhoneOrTablet, sendLinkToComputer } from '../install';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { navigate, onLinkClick } from '../router';
 import { useAuth } from '../auth';
 import { Sparkle } from './Sparkle';
@@ -25,6 +25,9 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
   const [prices, setPrices] = useState<api.QuoteOrRefusal[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  /** Set once a payment is confirmed: a plain thank-you with the way back to YouTube, not a note under the cards. */
+  const [purchased, setPurchased] = useState<string | null>(null);
+  const purchasedRef = useRef<HTMLDivElement>(null);
   /**
    * Renewing by default, because a plan that lapses silently is worse for
    * everyone — but it is a visible choice, not something done to people.
@@ -64,6 +67,7 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
     }
     setBusy(plan.id);
     setMessage(null);
+    setPurchased(null);
     try {
       const token = await auth.token();
       if (!token) {
@@ -74,9 +78,9 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
       const result = await startCheckout({ planId: plan.id, period: lifetime ? 'lifetime' : period, currency, token, email: auth.user.email, renewing: !lifetime && renewing });
       // Re-read from the server rather than trusting what checkout just told us.
       await auth.reload();
-      setMessage(
+      setPurchased(
         lifetime
-          ? `${plan.name} is yours for life. Thank you!`
+          ? `${plan.name} is yours for life.`
           : result.autoRenew && result.expiresAt
             ? `You're on ${plan.name}. It renews automatically on ${new Date(result.expiresAt).toLocaleDateString()}, cancel any time.`
             : `You're on ${plan.name}${result.expiresAt ? ` until ${new Date(result.expiresAt).toLocaleDateString()}` : ''}. It will not renew by itself.`,
@@ -89,8 +93,25 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
     }
   }
 
+  // Bring the thank-you into view: the payment sheet closes wherever the page happened to be scrolled.
+  useEffect(() => {
+    if (purchased) purchasedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [purchased]);
+
   return (
     <section className="fsw-section fsw-pricing" id="pricing">
+      {purchased && (
+        <div className="fsw-purchased" role="status" ref={purchasedRef}>
+          <div>
+            <strong>Payment received. Thank you!</strong>
+            <p>{purchased}</p>
+          </div>
+          <a className="fsw-btn fsw-btn-primary" href="https://www.youtube.com/" target="_blank" rel="noreferrer">
+            Open YouTube
+          </a>
+        </div>
+      )}
+
       {compact && (
         <div className="fsw-section-head" data-reveal>
           <h2>Free where it can be, paid where it costs us</h2>

@@ -15,7 +15,9 @@ export function startReveal(): void {
     (entries) => {
       for (const entry of entries) {
         if (!entry.isIntersecting) continue;
-        entry.target.classList.add('is-revealed');
+        // An attribute, not a class: React owns `className` and rewrites it when a card's state changes
+        // (a plan becoming yours after checkout), which would wipe a class and hide the card again.
+        entry.target.setAttribute('data-revealed', '');
         io.unobserve(entry.target);
       }
     },

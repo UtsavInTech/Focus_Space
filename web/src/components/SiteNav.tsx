@@ -34,7 +34,7 @@ export function SiteNav() {
           <Logo key={path} animated />
           {/* The sparks belong to the name, not the ring: the ring has its own motion. */}
           <span className="fsw-brand-word">
-            <Wordmark />
+            <Wordmark tagline="short" />
             <Sparkle from="text" rate={5} />
           </span>
         </a>

@@ -1048,7 +1048,7 @@ button {
       opacity 700ms var(--fs-ease) var(--fsw-reveal-delay, 0ms),
       transform 700ms var(--fs-ease) var(--fsw-reveal-delay, 0ms);
   }
-  html.fsw-reveal-ready [data-reveal]:not(.is-revealed) {
+  html.fsw-reveal-ready [data-reveal]:not([data-revealed]) {
     opacity: 0;
     transform: translateY(20px);
   }
@@ -1116,6 +1116,22 @@ button {
   font-size: 13px;
   color: var(--fs-text-3);
 }
+
+.fsw-purchased {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto 28px;
+  padding: 18px 20px;
+  border: 1px solid var(--fs-brand);
+  border-radius: 14px;
+  background: var(--fs-surface-2);
+}
+.fsw-purchased strong { font-size: 16px; }
+.fsw-purchased p { margin: 4px 0 0; font-size: 14px; color: var(--fs-text-2); }
 
 .fsw-plans {
   display: grid;
@@ -2745,6 +2761,12 @@ button {
 .fsw-wordmark { display: inline-flex; flex-direction: column; justify-content: center; gap: 1px; min-width: 0; }
 .fsw-wordmark-name { font-size: inherit; font-weight: 650; letter-spacing: -0.022em; line-height: 1.1; white-space: nowrap; color: inherit; }
 .fsw-wordmark-accent { color: var(--fs-brand); }
+/* The signature stays off the nav on narrow screens, where the bar is already full. */
+@media (max-width: 640px) {
+  .fsw-nav .fsw-wordmark-tagline {
+    display: none;
+  }
+}
 .fsw-wordmark-tagline {
   font-size: 9.5px;
   font-weight: 600;

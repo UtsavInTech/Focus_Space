@@ -11,7 +11,7 @@ export function Footer() {
             {/* Alive as in the nav: the rings turn, the name sparkles, the ring gets no sparks. */}
             <Logo size={24} animated />
             <span className="fsw-brand-word">
-              <Wordmark />
+              <Wordmark tagline />
               <Sparkle from="text" rate={4} />
             </span>
           </a>

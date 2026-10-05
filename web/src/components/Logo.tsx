@@ -58,13 +58,17 @@ export function Logo({
  * "FocusSpace": "Focus" in the surface's own text colour, "Space" in the brand red. Text rather than an
  * image, so it takes the page's font, scales with it, and is still selectable and read aloud as one word.
  */
-export function Wordmark({ tagline = false }: { tagline?: boolean }) {
+/**
+ * The signature under the name: "Intent-driven learning" in the nav, where space is tight, and the full
+ * "Intent-driven learning for YouTube" wherever there is room for it, as in the logo.
+ */
+export function Wordmark({ tagline = false }: { tagline?: boolean | 'short' }) {
   return (
     <span className="fsw-wordmark">
       <span className="fsw-wordmark-name">
         Focus<span className="fsw-wordmark-accent">Space</span>
       </span>
-      {tagline && <span className="fsw-wordmark-tagline">Intent-driven learning for YouTube</span>}
+      {tagline && <span className="fsw-wordmark-tagline">{tagline === 'short' ? 'Intent-driven learning' : 'Intent-driven learning for YouTube'}</span>}
     </span>
   );
 }

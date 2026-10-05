@@ -9,8 +9,9 @@ import { ApiError } from '../http';
  * reach them.
  *
  * 1. Judge: Jev (a decision model on OpenRouter; input is billed, output is free) solves each question on
- *    its own, without seeing the key, and says whether exactly one option is correct. A question passes
- *    when Jev gives the writer's key at least `PASS_PROBABILITY` and finds exactly one correct option.
+ *    its own, without seeing the key, and then judges every option separately. A question passes when Jev
+ *    gives the writer's key at least `PASS_PROBABILITY` both ways, no other option more than
+ *    `OTHER_OPTION_MAX`, and finds the question itself sound (no false premise).
  * 2. Settle: anything else (Jev disagrees, is unsure, finds no correct option or two, or cannot be
  *    reached) goes to a reasoning model, which traces it properly. One correct option: the question is
  *    kept with that key (corrected if it differed). Otherwise it is dropped.
@@ -18,6 +19,8 @@ import { ApiError } from '../http';
  * On 25 hand-made questions (12 broken) the judge flagged all 12 and sent one good question on to be
  * settled, where gpt-4o and gpt-4o-mini as checkers each missed two. The settle model needs the exact
  * output rule: without it, gpt-5-mini accepted "5 10 0 0 0" for a loop that prints "510000".
+ * On 50 live questions from a C course, a single "is exactly one option correct?" let three questions with
+ * two correct options through; judged option by option, Jev rated the second correct option 0.53 to 0.93.
  */
 
 export interface QuizCheckConfig {
@@ -49,7 +52,11 @@ export interface QuizCheckResult {
 }
 
 export const PASS_PROBABILITY = 0.8;
-const SINGLE_ANSWER = 0.5;
+/** Any other option Jev finds this likely to be correct as well sends the question to be settled. */
+export const OTHER_OPTION_MAX = 0.25;
+/** Below this, Jev doubts the question itself and it is settled. */
+export const SOUND_MIN = 0.7;
+const SOUND = 'Is the question itself accurate and well posed? It must not rest on a false premise (for example calling something a syntax error that is not one), must not assume behaviour the language does not have, and must have a definite answer.';
 /** The judge's context holds 32k tokens; the round's transcript is far below that, but never unbounded. */
 const EXCERPT_CHARS = 16_000;
 const NONE = 'NONE';
@@ -80,26 +87,44 @@ async function judge(q: QuizQuestion, excerpt: string, config: QuizCheckConfig, 
           instructions: `Which option correctly answers the quiz question? Trace any code exactly as it executes. ${EXACT_OUTPUT} Choose ${NONE} if no option is correct.`,
           criteria: { ...Object.fromEntries(q.options.map((o) => [o.letter, `Option ${o.letter}: ${o.text}`])), [NONE]: 'None of the options is correct.' },
         },
-        single: {
+        // A wrong premise hides from every option check: "What syntax error occurs if == is used?" when none does.
+        sound: {
           type: 'noul',
-          instructions: `Is exactly one of the options correct (not zero, not two or more)? ${EXACT_OUTPUT}`,
-          criteria: { true: 'Exactly one option is correct.', false: 'No option is correct, or two or more are correct.' },
+          instructions: SOUND,
+          criteria: { true: 'The question is accurate and well posed.', false: 'The question rests on a false premise, is inaccurate, or is ambiguous.' },
         },
+        // Each option on its own, so two correct options cannot hide behind one "exactly one?" answer: asked
+        // that way, Jev let a struct initialiser and the strcpy version both stand as the one right answer.
+        ...Object.fromEntries(
+          q.options.map((o) => [
+            `option_${o.letter}`,
+            {
+              type: 'noul',
+              instructions: `Taken on its own, is option ${o.letter} a correct answer to the quiz question? Judge it independently of the other options; more than one option may be correct. Trace any code exactly as it executes. ${EXACT_OUTPUT}`,
+              criteria: { true: `Option ${o.letter} is correct.`, false: `Option ${o.letter} is not correct.` },
+            },
+          ]),
+        ),
       },
     }),
     signal: within(JUDGE_TIMEOUT_MS, signal),
   });
   if (!res.ok) return false;
-  const json = (await res.json().catch(() => null)) as { answers?: { answer?: { probabilities?: Record<string, number> }; single?: { noul?: number } } } | null;
-  const keyProbability = json?.answers?.answer?.probabilities?.[q.answer.letter] ?? 0;
-  const single = json?.answers?.single?.noul ?? 0;
-  return keyProbability >= PASS_PROBABILITY && single >= SINGLE_ANSWER;
+  const json = (await res.json().catch(() => null)) as { answers?: Record<string, { probabilities?: Record<string, number>; noul?: number }> } | null;
+  const answers = json?.answers ?? {};
+  const keyProbability = answers.answer?.probabilities?.[q.answer.letter] ?? 0;
+  const correct = (letter: string) => answers[`option_${letter}`]?.noul;
+  const keyCorrect = correct(q.answer.letter) ?? 0;
+  const othersWrong = q.options.every((o) => o.letter === q.answer!.letter || (correct(o.letter) ?? 1) <= OTHER_OPTION_MAX);
+  const sound = answers.sound?.noul ?? 0;
+  return keyProbability >= PASS_PROBABILITY && keyCorrect >= PASS_PROBABILITY && othersWrong && sound >= SOUND_MIN;
 }
 
 const SETTLE_SYSTEM = [
   'You check a multiple-choice quiz question before learners see it.',
   'Work out the answer yourself: read the transcript excerpt, trace any code step by step exactly as the language executes it (output formatting, operator precedence and associativity, integer types, string terminators), and judge every option on its own.',
   EXACT_OUTPUT,
+  'If the question itself rests on a false premise, assumes behaviour the language does not have, or has no definite answer, no option is correct.',
   'Reply with JSON only: {"correct_options":["<every letter that is fully correct>"],"reason":"<one or two short sentences: why the correct option is right and why the most tempting wrong one is wrong>"}.',
   NO_DASH,
 ].join(' ');
