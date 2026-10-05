@@ -132,7 +132,7 @@ describe('the wordmark', () => {
     ];
     for (const path of surfaces) {
       const source = read(path);
-      expect(source, path).toContain('<Wordmark />');
+      expect(source, path).toMatch(/<Wordmark\b[^>]*\/>/);
       expect(source, path).not.toMatch(/<span>FocusSpace<\/span>/);
     }
   });
