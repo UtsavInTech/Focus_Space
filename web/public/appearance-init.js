@@ -1,8 +1,6 @@
 // Runs before styles load, and remains compatible with production's script-src 'self'.
 try {
-  if (localStorage.getItem('fs.site.appearance') === 'light') {
-    document.documentElement.dataset.theme = 'light';
-  }
+  document.documentElement.dataset.theme = localStorage.getItem('fs.site.appearance') === 'deep' ? 'dark' : 'light';
 } catch {
-  // Private browsing or blocked storage keeps the default Deep appearance.
+  // Private browsing or blocked storage keeps the default Light appearance.
 }

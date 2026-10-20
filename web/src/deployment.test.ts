@@ -15,9 +15,20 @@ describe('production appearance bootstrap', () => {
     runInNewContext(bootstrap, { document, localStorage: { getItem: () => 'light' } });
     expect(document.documentElement.dataset.theme).toBe('light');
   });
-  it('keeps Deep and does not crash when browser storage is blocked', () => {
-    const document = { documentElement: { dataset: { theme: 'dark' } } };
-    expect(() => runInNewContext(bootstrap, { document, localStorage: { getItem: () => { throw new Error('storage blocked'); } } })).not.toThrow();
+  it('defaults to Light for a new visitor', () => {
+    expect(html).toContain('data-theme="light"');
+    const document = { documentElement: { dataset: { theme: 'light' } } };
+    runInNewContext(bootstrap, { document, localStorage: { getItem: () => null } });
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
+  it('preserves an explicitly saved Deep preference', () => {
+    const document = { documentElement: { dataset: { theme: 'light' } } };
+    runInNewContext(bootstrap, { document, localStorage: { getItem: () => 'deep' } });
     expect(document.documentElement.dataset.theme).toBe('dark');
+  });
+  it('keeps Light and does not crash when browser storage is blocked', () => {
+    const document = { documentElement: { dataset: { theme: 'light' } } };
+    expect(() => runInNewContext(bootstrap, { document, localStorage: { getItem: () => { throw new Error('storage blocked'); } } })).not.toThrow();
+    expect(document.documentElement.dataset.theme).toBe('light');
   });
 });

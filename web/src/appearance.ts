@@ -5,8 +5,8 @@ const KEY = 'fs.site.appearance';
 
 export function useAppearance() {
   const [appearance, setAppearance] = useState<Appearance>(() => {
-    try { return localStorage.getItem(KEY) === 'light' ? 'light' : 'deep'; }
-    catch { return 'deep'; }
+    try { return localStorage.getItem(KEY) === 'deep' ? 'deep' : 'light'; }
+    catch { return 'light'; }
   });
   useEffect(() => {
     document.documentElement.dataset.theme = appearance === 'deep' ? 'dark' : 'light';
