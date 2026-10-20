@@ -1,0 +1,43 @@
+/* Light's secondary pages share the hero's architectural language.
+   Everything settles after entry; interaction never depends on an animation. */
+.fsw-motion-page { position: relative; isolation: isolate; }
+.fsw-page-atmosphere { position: absolute; z-index: -1; top: 0; inset-inline: 0; height: 360px; overflow: hidden; pointer-events: none; mask-image: linear-gradient(#000 40%, transparent); }
+.fsw-page-ribs { position: absolute; inset-block: -45px 0; left: -25px; width: 110px; perspective: 700px; opacity: .6; }
+.fsw-page-ribs-right { left: auto; right: -25px; transform: scaleX(-1); }
+.fsw-page-ribs svg { position: absolute; height: 100%; width: 65px; left: 0; transform-origin: left center; animation: fsw-rib-arrive 850ms cubic-bezier(.2,.7,.2,1) both; }
+.fsw-page-ribs svg:nth-child(2) { left: 21px; top: 25px; animation-delay: 80ms; }
+.fsw-page-ribs svg:nth-child(3) { left: 42px; top: 50px; animation-delay: 160ms; }
+@keyframes fsw-rib-arrive { from { opacity: 0; transform: rotateY(55deg) translateX(-14px); } to { opacity: 1; transform: rotateY(0) translateX(0); } }
+html[data-theme='light'] [data-page-arrived] { animation: fsw-page-settle 450ms cubic-bezier(.2,.7,.2,1) both; }
+html[data-theme='light'] [data-page-arrived][data-page-order='1'] { animation-delay: 55ms; }
+html[data-theme='light'] [data-page-arrived][data-page-order='2'] { animation-delay: 110ms; }
+html[data-theme='light'] [data-page-arrived][data-page-order='3'] { animation-delay: 165ms; }
+@keyframes fsw-page-settle { from { opacity: .72; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+html[data-theme='light'] .fsw-price-amount { display: inline-block; animation: fsw-price-settle 220ms ease-out both; }
+@keyframes fsw-price-settle { from { opacity: .55; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+.fsw-faq-answer { display: none; }
+.fsw-faq-item.is-open .fsw-faq-answer { display: block; }
+html[data-theme='light'] .fsw-faq-answer { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 260ms cubic-bezier(.2,.7,.2,1), opacity 180ms ease; }
+html[data-theme='light'] .fsw-faq-item.is-open .fsw-faq-answer { grid-template-rows: 1fr; opacity: 1; }
+html[data-theme='light'] .fsw-faq-answer > div { min-height: 0; overflow: hidden; }
+html[data-theme='light'] .fsw-faq-item button { transition: color 150ms ease, padding-inline 180ms ease; }
+html[data-theme='light'] .fsw-faq-item.is-open button { color: #35502b; }
+html[data-theme='light'] .fsw-nav-links a { position: relative; }
+html[data-theme='light'] .fsw-nav-links a::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: 5px; height: 1px; background: #718064; transform: scaleX(0); transform-origin: left; transition: transform 180ms ease; }
+html[data-theme='light'] .fsw-nav-links a[aria-current='page']::after { transform: scaleX(1); }
+html[data-theme='light'] .fsw-switch button { transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease; }
+html[data-theme='light'] .fsw-auth-form input, html[data-theme='light'] .fsw-profile input { transition: border-color 160ms ease, box-shadow 160ms ease; }
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme='light'] .fsw-plan { transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease; }
+  html[data-theme='light'] .fsw-plan:hover { transform: translateY(-4px); box-shadow: 0 14px 32px -22px #263d2760; border-color: #a7b49b; }
+  html[data-theme='light'] .fsw-nav-links a:hover::after { transform: scaleX(1); }
+  html[data-theme='light'] .fsw-faq-item button:hover { padding-inline: 10px; }
+  html[data-theme='light'] .fsw-data-card { transition: border-color 180ms ease, box-shadow 180ms ease; }
+  html[data-theme='light'] .fsw-data-card:hover { border-color: #adb99f; box-shadow: 0 9px 28px -24px #263d2780; }
+}
+@media (max-width: 760px) { .fsw-page-ribs { width: 38px; left: -20px; opacity: .3; } .fsw-page-ribs-right { left: auto; right: -20px; } }
+@media (prefers-reduced-motion: reduce) {
+  .fsw-page-ribs svg, html[data-theme='light'] [data-page-arrived], html[data-theme='light'] .fsw-price-amount { animation: none; }
+  html[data-theme='light'] .fsw-faq-answer, html[data-theme='light'] .fsw-plan { transition: none; }
+  html[data-theme='light'] .fsw-plan:hover { transform: none; }
+}

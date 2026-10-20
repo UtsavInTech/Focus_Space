@@ -62,7 +62,7 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
       return;
     }
     if (!auth.user) {
-      navigate('/signin');
+      navigate('/signin?next=%2Fpricing');
       return;
     }
     setBusy(plan.id);
@@ -71,7 +71,7 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
     try {
       const token = await auth.token();
       if (!token) {
-        navigate('/signin');
+        navigate('/signin?next=%2Fpricing');
         return;
       }
       const lifetime = !!plan.oneTime;
@@ -272,7 +272,7 @@ function PlanCard({
       <p className="fsw-plan-tagline">{plan.tagline}</p>
 
       <p className="fsw-plan-price">
-        <strong>{formatAmount(shown, currency)}</strong>
+        <strong key={`${currency}-${formatAmount(shown, currency)}`} className="fsw-price-amount">{formatAmount(shown, currency)}</strong>
         <span>{lifetime ? ' once' : '/month'}</span>
       </p>
 

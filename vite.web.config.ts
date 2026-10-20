@@ -18,6 +18,9 @@ const resolve = (...parts: string[]) => fileURLToPath(new URL(parts.join('/'), `
 const storeListingWarning = {
   name: 'focusspace-store-listing',
   buildStart() {
+    if (!process.env.VITE_API_URL?.trim()) {
+      console.warn('\n⚠  VITE_API_URL is not set — accounts and checkout are disabled in this website build.\n   Set the production API URL before deployment. Dockerfile.web requires it.\n');
+    }
     const url = process.env.VITE_CHROME_WEB_STORE_URL ?? '';
     if (!/^https:\/\/chromewebstore\.google\.com\//.test(url)) {
       console.warn('\n⚠  VITE_CHROME_WEB_STORE_URL is not set — every "Add to Chrome" button only scrolls the page.\n   Set it to the listing URL (https://chromewebstore.google.com/detail/…) before the public launch.\n');

@@ -4,6 +4,8 @@ import { useAuth } from '../auth';
 import { Logo, Wordmark } from './Logo';
 import { InstallCta } from './InstallCta';
 import { Sparkle } from './Sparkle';
+import { Moon, Sun } from 'lucide-react';
+import type { Appearance } from '../appearance';
 
 const LINKS = [
   { label: 'Features', to: '/#features' },
@@ -13,7 +15,7 @@ const LINKS = [
   { label: 'Data', to: '/data' },
 ];
 
-export function SiteNav() {
+export function SiteNav({ appearance, onAppearance }: { appearance: Appearance; onAppearance: (value: Appearance) => void }) {
   const auth = useAuth();
   const path = usePath();
   const [scrolled, setScrolled] = useState(false);
@@ -41,13 +43,17 @@ export function SiteNav() {
 
         <nav className="fsw-nav-links" aria-label="Main">
           {LINKS.map((link) => (
-            <a key={link.to} href={link.to} onClick={onLinkClick(link.to)}>
+            <a key={link.to} href={link.to} onClick={onLinkClick(link.to)} aria-current={!link.to.includes('#') && path === link.to ? 'page' : undefined}>
               {link.label}
             </a>
           ))}
         </nav>
 
         <div className="fsw-nav-actions">
+          <div className="fsw-appearance" role="group" aria-label="Appearance">
+            <button type="button" aria-pressed={appearance === 'deep'} onClick={() => onAppearance('deep')}><Moon size={13} /><span>Deep</span></button>
+            <button type="button" aria-pressed={appearance === 'light'} onClick={() => onAppearance('light')}><Sun size={14} /><span>Light</span></button>
+          </div>
           {/* `ready` guards against flashing "Sign in" at someone who already is. */}
           {auth.ready && auth.user ? (
             <a className="fsw-btn fsw-btn-outline" href="/account" onClick={onLinkClick('/account')}>

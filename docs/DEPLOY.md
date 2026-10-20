@@ -77,10 +77,31 @@ them from Railway if they are set.
 signed-out AI allowance and rate limit are per address). Set `TRUST_PROXY=0`
 only if the API is ever exposed without a proxy in front of it.
 
-**Website service:** add `VITE_CHROME_WEB_STORE_URL` =
+**Website service:** set `VITE_API_URL=https://api.focusspace.xyz` (or the HTTPS
+URL of your API service) before building. Vite bakes this into the website;
+changing it at runtime cannot repair an already-built bundle. `Dockerfile.web`
+refuses to build without it because sign-in and checkout would be disabled.
+
+Add `VITE_CHROME_WEB_STORE_URL` =
 `https://chromewebstore.google.com/detail/…` as soon as the store listing
 exists. Until it is set every "Add to Chrome" button only scrolls the page, and
 `npm run build:web` prints a warning saying so.
+
+Payments use the same checkout handler in Deep and Light. After Razorpay reports
+success, the API verifies the signed response, the website refreshes the account,
+and the pricing page shows **Payment received. Thank you!**, the plan details,
+and an **Open YouTube** button. There is no separate success redirect. Signed-out
+buyers return to pricing after signing in. Webhooks independently record captured
+payments and renewals if the browser callback is interrupted; configure
+`https://api.focusspace.xyz/v1/billing/webhook` in the matching Razorpay mode
+with `payment.captured`, `subscription.charged`, `subscription.cancelled`,
+`subscription.halted`, and `subscription.completed` events and the matching
+`RAZORPAY_WEBHOOK_SECRET`.
+
+The checkout regression tests mock Razorpay and never charge money. Before
+accepting real payments, verify a test-mode payment against the hosted API and
+confirm the success message, updated account plan, and payment receipt. The live
+service must use its live keys and live-mode webhook secret.
 
 **Release order — the API first, always.** An extension build that talks to a
 server older than itself can break: 0.4.1 sends an `X-FocusSpace-Install`

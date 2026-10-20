@@ -19,7 +19,7 @@ ENV VITE_SITE_URL=$VITE_SITE_URL
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build:web
+RUN node -e "if (!process.env.VITE_API_URL?.trim()) throw new Error('Set VITE_API_URL on the website service before building. Accounts and checkout require it.');" && npm run build:web
 
 FROM caddy:2-alpine AS runtime
 COPY --from=build /app/dist-web /srv

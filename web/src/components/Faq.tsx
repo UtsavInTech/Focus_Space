@@ -31,7 +31,9 @@ export function Faq() {
                   </svg>
                 </button>
               </h3>
-              {isOpen && <p>{item.a}</p>}
+              <div className="fsw-faq-answer" aria-hidden={!isOpen}>
+                <div><p>{item.a}</p></div>
+              </div>
             </div>
           );
         })}

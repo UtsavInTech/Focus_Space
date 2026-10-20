@@ -59,10 +59,15 @@ function loadSdk(): Promise<RazorpayCtor> {
     script.onload = () => {
       const ctor = (window as unknown as { Razorpay?: RazorpayCtor }).Razorpay;
       if (ctor) resolve(ctor);
-      else reject(new Error('Could not load the payment form. Try again.'));
+      else {
+        sdk = null;
+        script.remove();
+        reject(new Error('Could not load the payment form. Try again.'));
+      }
     };
     script.onerror = () => {
       sdk = null; // let a later attempt retry rather than failing forever
+      script.remove();
       reject(new Error('Could not reach the payment provider. Check your connection.'));
     };
     document.head.appendChild(script);
@@ -114,6 +119,7 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutResul
       prefill: input.email ? { email: input.email } : undefined,
       theme: { color: '#6d5dfc' },
       handler: (response) => {
+        if (settled) return;
         settled = true;
         const confirm = response.razorpay_subscription_id
           ? api.confirmSubscription(input.token, {
@@ -140,7 +146,10 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutResul
       },
       modal: {
         ondismiss: () => {
-          if (!settled) reject(new CheckoutCancelled());
+          if (!settled) {
+            settled = true;
+            reject(new CheckoutCancelled());
+          }
         },
       },
     });

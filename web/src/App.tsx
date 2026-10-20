@@ -1,4 +1,9 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { useAppearance } from './appearance';
+import { usePageMotion } from './page-motion';
+import { PageAtmosphere } from './components/PageAtmosphere';
+
+const LightHome = lazy(() => import('./components/LightHome'));
 import { usePath } from './router';
 import { initialCurrency, rememberCurrency } from './currency';
 import type { CurrencyCode } from './content/plans';
@@ -27,7 +32,9 @@ import { AuthProvider } from './auth';
  */
 export function App() {
   const path = usePath();
+  const [appearance, setAppearance] = useAppearance();
   const [currency, setCurrency] = useState<CurrencyCode>(initialCurrency);
+  usePageMotion(path, appearance === 'light' && path !== '/');
 
   function chooseCurrency(next: CurrencyCode) {
     setCurrency(next);
@@ -61,8 +68,9 @@ export function App() {
 
   return (
     <AuthProvider>
-      <SiteNav />
-      <main id="main">
+      <SiteNav appearance={appearance} onAppearance={setAppearance} />
+      <main id="main" className={appearance === 'light' && path !== '/' ? 'fsw-motion-page' : undefined}>
+        {appearance === 'light' && path !== '/' && <PageAtmosphere key={path} />}
         {legal ? (
           <LegalPage doc={legal} lead={legal.slug === '/privacy' ? <DataSummary /> : undefined} />
         ) : isConnect ? (
@@ -85,6 +93,12 @@ export function App() {
             <PricingSection currency={currency} onCurrency={chooseCurrency} showCredits />
             <Faq />
           </>
+        ) : appearance === 'light' ? (
+          <Suspense fallback={<div className="fsl-loading" role="status">Opening a little more space…</div>}>
+            <LightHome />
+            <PricingSection currency={currency} onCurrency={chooseCurrency} compact />
+            <Faq />
+          </Suspense>
         ) : (
           <>
             <Hero />
@@ -95,7 +109,7 @@ export function App() {
         )}
       </main>
       {!isAuth && !isConnect && <Footer />}
-      <CursorSparkle />
+      {appearance === 'deep' && <CursorSparkle />}
       <ChatLauncher />
     </AuthProvider>
   );
