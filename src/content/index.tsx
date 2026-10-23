@@ -7,6 +7,7 @@ import { listen } from '@/messaging/runtime';
 import { detectPage } from '@/integrations/youtube/urls';
 import { readSubscriptionsFromSession } from '@/integrations/youtube/innertube';
 import contentCss from './ui/content.css?inline';
+import homeCss from './ui/home.css?inline';
 import { createStore, type ContentState } from './store';
 import { createController } from './controller';
 import { injectStylesheet, setFlags } from './youtube/filters/css-rules';
@@ -77,7 +78,7 @@ function main() {
     exploreAllowed: [],
   });
 
-  const css = `${stylesCss}\n${contentCss}`;
+  const css = `${stylesCss}\n${contentCss}\n${homeCss}`;
   const slots = {
     overlay: new Slot('overlay', css, 'position:fixed;top:0;left:0;width:0;height:0;z-index:2147482000;'),
     // ytd-browse doesn't stretch its children; the home needs the full content width.

@@ -29,6 +29,8 @@ export interface MessageMap {
   'youtube/open': { req: { url: string }; res: { ok: true } | { ok: false; error: string } };
   /** any → background: which AI provider would answer, and whether it's ready. */
   'ai/status': { req: Record<string, never>; res: AiStatus };
+  /** any → background: whether Chrome's on-device model (free, private, no credits) is ready, whatever provider is picked. */
+  'ai/on-device': { req: Record<string, never>; res: { availability: 'available' | 'downloadable' | 'downloading' | 'unavailable'; inUse: boolean } };
   /** YouTube page → background: run a learner-requested AI action on the current moment. */
   'ai/run': { req: ActionRequest; res: AiResult };
   /** YouTube page → background: generate notes/mind-map for a scope, through WS2's generator (src/learning/notes/generator.ts) wired to the real provider. */

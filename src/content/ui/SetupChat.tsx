@@ -4,7 +4,10 @@ import { Keyboard, Mic, Square, Undo2, X } from 'lucide-react';
 import type { ChannelRef, LearningMode } from '@/types/domain';
 import type { SetupAction, SetupPickAnswer, SetupTurnAnswer, SetupTurnState } from '@/types/setup';
 import { WELCOME_CHAT_MAX_LINES, type WelcomeChat, type WelcomeLine } from '@/storage/schema';
-import { addMode, deleteMode, setChannelRule, SpaceLimitError } from '@/modes/service';
+import { addMode, chooseExam, deleteMode, setChannelRule, SpaceLimitError } from '@/modes/service';
+import { examInfo } from '@/modes/exams';
+import { examFromText } from '@/modes/exam-intent';
+import { ExamPicker } from './ExamPicker';
 import { DEFAULT_MODES } from '@/modes/templates';
 import { inferSubjects } from '@/modes/subjects';
 import { getItem, updateItem } from '@/storage/storage';
@@ -43,6 +46,9 @@ const WANTS_TO_TALK = /^\s*(let'?s|lets|can we|could we|i want to|i'd like to|wa
 const greeting = (name: string | null) =>
   `${name ? `Hi ${name.split(/\s+/)[0]}!` : 'Hi!'} Let’s go quick. Tell me your Spaces, and the creators you like for each, all in one go. Like: DSA with Love Babbar and Apna College, and Spanish.`;
 
+/** The guide's first question on a new install (modes/exams.ts). */
+const EXAM_QUESTION = 'First, which exam are you preparing for? UPSC, SSC, banking, railways, JEE, NEET, GATE or CAT? Or tell me what else you want to learn.';
+
 /** Asked once creators come Space by Space ("Go one by one"). */
 const FIRST_SPACE = 'Sure, one at a time. What’s your first Space?';
 
@@ -61,7 +67,10 @@ export function SetupChat({
   name,
   oneByOne,
   talked,
+  exam,
 }: {
+  /** settings.exam: `null` while the guide still has to ask which exam they prepare for. */
+  exam: string | null;
   modes: LearningMode[];
   saved: WelcomeChat | null;
   intro: ReactNode;
@@ -104,6 +113,9 @@ export function SetupChat({
   const activeId = useRef<string | null>(null);
   /** Spaces the conversation already knows about — anything new that appears was picked on the page. */
   const known = useRef<Set<string>>(new Set([...modes.map((m) => m.id), ...(saved?.made ?? []).map((m) => m.id)]));
+
+  /** The exam question is still open: nothing made yet, and the learner hasn't answered it. */
+  const askingExam = exam === null && modes.length === 0 && made.current.length === 0;
 
   const setPhase = (p: Phase) => {
     phaseRef.current = p;
@@ -212,7 +224,7 @@ export function SetupChat({
     const q = openQuestion();
     if (q?.kind === 'channels') ask(`So, ${q.space}. Any teacher or channel you like? Or skip.`);
     else if (phaseRef.current === 'done') ask('Another Space, or a different creator? Just tell me.');
-    else ask(made.current.length ? 'What else would you like to learn or watch?' : oneByOne ? FIRST_SPACE : greeting(name));
+    else ask(made.current.length ? 'What else would you like to learn or watch?' : askingExam ? EXAM_QUESTION : oneByOne ? FIRST_SPACE : greeting(name));
   };
 
   const closeVoice = () => {
@@ -261,6 +273,17 @@ export function SetupChat({
   };
 
   const turn = async (said: string) => {
+    // "I'm preparing for UPSC": build the exam's Space here, exactly as tapping it would. The page's
+    // new-Space effect above then acknowledges it and carries on to creators.
+    const examId = askingExam ? examFromText(said) : null;
+    if (examId) {
+      try {
+        await chooseExam(examId);
+      } catch (err) {
+        say(err instanceof SpaceLimitError ? err.message : 'I couldn’t set that up just now. Try again?');
+      }
+      return;
+    }
     const asking = openQuestion();
     const slowTimer = window.setTimeout(() => setSlow(true), 3000);
     const state: SetupTurnState = {
@@ -497,7 +520,15 @@ export function SetupChat({
         </div>
       )}
 
-      {!lines.length && !made.current.length && !busy && (
+      {askingExam && !busy && (
+        <ExamPicker
+          compact
+          onPick={(id) => add('you', `I’m preparing for ${examInfo(id)?.label ?? id}`)}
+          onSkip={() => add('bot', oneByOne ? FIRST_SPACE : 'No problem! Tell me your Spaces and the creators you like for each, like: DSA with Love Babbar, and Spanish.')}
+        />
+      )}
+
+      {!askingExam && !lines.length && !made.current.length && !busy && (
         <div className="fs-welcome-actions">
           {!oneByOne && (
             <button
@@ -546,7 +577,7 @@ export function SetupChat({
         onChange={setText}
         onSend={send}
         onTalk={() => void openVoice()}
-        placeholder={phase === 'channels' ? 'A name, “skip”, or a correction' : 'Type, like DSA and Spanish'}
+        placeholder={phase === 'channels' ? 'A name, “skip”, or a correction' : askingExam ? 'Type your exam, like UPSC or SSC CGL' : 'Type, like DSA and Spanish'}
         label="Type to the FocusSpace guide"
         disabled={busy}
         purpose="setup"

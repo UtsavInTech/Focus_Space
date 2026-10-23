@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Check, ChevronDown, Pencil, Plus, Power, RefreshCw, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, History, Lock, Pencil, Plus, Power, RefreshCw, Sparkles, Trophy, Users, X } from 'lucide-react';
 import type { LearningMode, Settings, Topic } from '@/types/domain';
 import { activeModeOf, addTemplateWithChannels, missingTemplates, selectMode, setChannelRule, setFocusEnabled, SpaceLimitError } from '@/modes/service';
 import { groupByCategory } from '@/modes/categories';
@@ -19,38 +19,63 @@ import { Modal } from '@/ui/components/Modal';
 import { TemplateCreators } from '@/ui/components/TemplateCreators';
 import type { PickedChannel } from '@/ui/components/ChannelPicker';
 import { useBecauseYouPlayed, useContinueWatching, useDiscovery, useFeedView } from '../data/hooks';
+import { TIER_LABEL } from '@/learning/classifier';
+import type { NextLearningItem } from '@/learning/next';
+import { examInfo } from '@/modes/exams';
+import { isSpaceLocked, unlockHint, type LockState } from '@/modes/unlock';
+import { useLockState } from '@/ui/use-lock';
+import { ExamPicker } from './ExamPicker';
+import { Billboard, type Featured } from './home/Billboard';
+import { Row } from './home/Row';
+import { PosterCard, PosterSkeletons } from './home/PosterCard';
+import { OnDeviceAiBanner } from './home/OnDeviceAi';
 import { continueToVisible, discoveredToVisible, libraryToVisible, publishContinueWatching, publishFeedVideos } from '../data/visible-feed';
-import { CardSkeletons, ContinueCard, FeedCard, SpotlightCard, type CardData } from './FeedCard';
+import type { CardData } from './FeedCard';
 
 const PAGE = 16;
 
-/** FocusSpace's home inside YouTube: pick a space, then videos. */
+/** FocusSpace's home inside YouTube: pick a space (or, first, an exam), then a streaming-style home. */
 export function SpaceHome({ settings, modes, onCreateSpace }: { settings: Settings; modes: LearningMode[]; onCreateSpace: () => void }) {
   const mode = activeModeOf(settings, modes);
   const [topicId, setTopicId] = useState<string | null>(null);
 
   useEffect(() => setTopicId(null), [mode?.id]);
 
-  if (!mode || !settings.onboarded) return <FirstRun modes={modes} onCreate={onCreateSpace} />;
+  if (!mode || !settings.onboarded) return <FirstRun settings={settings} modes={modes} onCreate={onCreateSpace} />;
 
   return (
     <div className="fs-home">
       <SpaceBar mode={mode} modes={modes} topicId={topicId} onTopic={setTopicId} onCreate={onCreateSpace} />
-      <SpaceFeed key={mode.id} mode={mode} topicId={topicId} />
+      <SpaceFeed key={mode.id} mode={mode} topicId={topicId} onTopic={setTopicId} />
     </div>
   );
 }
 
 /**
- * The Spaces the learner already has, then suggestions. A suggestion is only a template until it is
- * picked: choosing one creates the Space (and so counts it against the allowance) — nothing is handed
- * out up front.
+ * First, the exam ("Which exam are you preparing for?") — unless they already answered it or already
+ * have Spaces. Then the Spaces the learner already has, then suggestions. A suggestion is only a
+ * template until it is picked: choosing one creates the Space (and so counts it against the
+ * allowance) — nothing is handed out up front. While new Spaces are locked (modes/unlock.ts) the
+ * suggestions stay visible, each with its lock.
  */
-function FirstRun({ modes, onCreate }: { modes: LearningMode[]; onCreate: () => void }) {
+function FirstRun({ settings, modes, onCreate }: { settings: Settings; modes: LearningMode[]; onCreate: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [pendingTemplate, setPendingTemplate] = useState<LearningMode | null>(null);
   const [busy, setBusy] = useState(false);
+  const lock = useLockState();
   const suggestions = missingTemplates(modes);
+
+  if (settings.exam === null && modes.length === 0) {
+    return (
+      <div className="fs-first-run fs-exam-stage">
+        <div className="fs-exam-stage-glow" aria-hidden />
+        <span className="fs-exam-stage-eyebrow">Step 1 of 2 · Your goal</span>
+        <h1>Which exam are you preparing for?</h1>
+        <p>FocusSpace turns YouTube into a classroom for that exam: only lessons from your syllabus, your teachers first, nothing else on the page.</p>
+        <ExamPicker />
+      </div>
+    );
+  }
 
   const finish = async (mode: LearningMode, channels: PickedChannel[]) => {
     setError(null);
@@ -84,11 +109,15 @@ function FirstRun({ modes, onCreate }: { modes: LearningMode[]; onCreate: () => 
    * grouping does real work: it answers "what else is FocusSpace for?" without turning into a catalogue.
    */
   const groups = groupByCategory(suggestions);
+  const examName = examInfo(lock?.examId)?.label ?? 'your exam';
+  const locked = (id: string) => !!lock && isSpaceLocked(id, lock, modes);
 
   return (
     <div className="fs-first-run fs-animate-in">
       <h1>What do you want to focus on?</h1>
       <p>FocusSpace organises YouTube around it: your subscriptions first, then the best matches from the rest of YouTube. You can switch anytime.</p>
+
+      {lock?.locked && <LockMeter lock={lock} examName={examName} />}
 
       {modes.length > 0 && (
         <div className="fs-first-run-group">
@@ -111,22 +140,31 @@ function FirstRun({ modes, onCreate }: { modes: LearningMode[]; onCreate: () => 
             <small>{category.description}</small>
           </span>
           <div className="fs-chips fs-chips-wrap">
-            {templates.map((m) => (
-              <button key={m.id} type="button" className="fs-chip fs-chip-lg" onClick={() => void choose(m, true)}>
-                <SpaceIcon name={m.icon} size={18} />
-                {m.name}
-              </button>
-            ))}
+            {templates.map((m) =>
+              locked(m.id) ? (
+                <button key={m.id} type="button" className="fs-chip fs-chip-lg is-locked" aria-disabled="true" title={unlockHint(lock!, examName)} onClick={() => setError(`${m.name} is locked for now. ${unlockHint(lock!, examName)}.`)}>
+                  <Lock size={15} aria-hidden />
+                  {m.name}
+                </button>
+              ) : (
+                <button key={m.id} type="button" className="fs-chip fs-chip-lg" onClick={() => void choose(m, true)}>
+                  <SpaceIcon name={m.icon} size={18} />
+                  {m.name}
+                </button>
+              ),
+            )}
           </div>
         </div>
       ))}
 
-      <div className="fs-chips fs-chips-wrap">
-        <button type="button" className="fs-chip fs-chip-lg fs-chip-outline" onClick={onCreate}>
-          <Plus size={18} aria-hidden />
-          Something else
-        </button>
-      </div>
+      {!lock?.locked && (
+        <div className="fs-chips fs-chips-wrap">
+          <button type="button" className="fs-chip fs-chip-lg fs-chip-outline" onClick={onCreate}>
+            <Plus size={18} aria-hidden />
+            Something else
+          </button>
+        </div>
+      )}
       {error && <p className="fs-error" role="alert">{error}</p>}
 
       {/*
@@ -163,6 +201,21 @@ function FirstRun({ modes, onCreate }: { modes: LearningMode[]; onCreate: () => 
   );
 }
 
+/** "Study 38 more min of UPSC to unlock every Space", with how far along they are. */
+export function LockMeter({ lock, examName, compact = false }: { lock: LockState; examName: string; compact?: boolean }) {
+  return (
+    <div className={`fs-lock-meter${compact ? ' is-compact' : ''}`} role="status">
+      <span className="fs-lock-meter-head">
+        <Lock size={14} aria-hidden />
+        {compact ? unlockHint(lock, examName) : `More Spaces unlock as you study. ${unlockHint(lock, examName)}.`}
+      </span>
+      <span className="fs-lock-meter-bar" aria-hidden>
+        <span style={{ width: `${Math.max(4, lock.progress * 100)}%` }} />
+      </span>
+    </div>
+  );
+}
+
 /**
  * Leaves YouTube untouched, but marks onboarding done: the picker has been
  * seen and answered ("not now" is an answer), so it must not reappear every
@@ -177,6 +230,9 @@ async function browseNormally() {
 function SpaceBar({ mode, modes, topicId, onTopic, onCreate }: { mode: LearningMode; modes: LearningMode[]; topicId: string | null; onTopic: (id: string | null) => void; onCreate: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const lock = useLockState();
+  const examName = examInfo(lock?.examId)?.label ?? 'your exam';
+  const lockedSpaces = lock?.locked ? missingTemplates(modes).filter((m) => isSpaceLocked(m.id, lock, modes)) : [];
 
   useEffect(() => {
     if (!open) return;
@@ -216,10 +272,27 @@ function SpaceBar({ mode, modes, topicId, onTopic, onCreate }: { mode: LearningM
               </button>
             ))}
             <div className="fs-menu-sep" />
-            <button type="button" role="menuitem" className="fs-menu-item" onClick={run(onCreate)}>
-              <Plus size={18} aria-hidden />
-              <span>New space</span>
-            </button>
+            {lock?.locked ? (
+              <>
+                <div className="fs-menu-lock">
+                  <LockMeter lock={lock} examName={examName} compact />
+                </div>
+                <div className="fs-menu-locked">
+                  {lockedSpaces.map((m) => (
+                    <span key={m.id} className="fs-menu-locked-item" title={unlockHint(lock, examName)}>
+                      <Lock size={12} aria-hidden />
+                      {m.name}
+                    </span>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <button type="button" role="menuitem" className="fs-menu-item" onClick={run(onCreate)}>
+                <Plus size={18} aria-hidden />
+                <span>New space</span>
+              </button>
+            )}
+            <div className="fs-menu-sep" />
             <button type="button" role="menuitem" className="fs-menu-item" onClick={run(() => void sendMessage('dashboard/open', { route: `/modes/${mode.id}` }))}>
               <Pencil size={18} aria-hidden />
               <span>Edit {mode.name}</span>
@@ -266,13 +339,24 @@ const why = (mode: LearningMode, topicId: string | null, matched: string[]) => {
   return `Matches ${mode.name}${topic ? ` → ${topic}` : ''}${matched.length ? ` (${matched.slice(0, 3).join(', ')})` : ''}`;
 };
 
-function SpaceFeed({ mode, topicId }: { mode: LearningMode; topicId: string | null }) {
+/** One video, whichever list it came from, with what the home's shelves need to sort and group it. */
+interface Pick {
+  card: CardData;
+  relevance: number;
+  topicId: string | null;
+}
+
+const MIN_ROW = 3;
+const MAX_TOPIC_ROWS = 6;
+
+function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: string | null; onTopic: (id: string | null) => void }) {
   const topic = mode.topics.find((t) => t.id === topicId) ?? null;
   const { view, loading, channelIds } = useFeedView(mode);
   const store = useStorage(['watchHistory', 'sync'] as const);
   const subs = useMemo(() => (!view ? [] : topic ? topicItems(view, topic.id) : view.items), [view, topic]);
   const libraryIds = useMemo(() => (view ? view.items.map((v) => v.id) : []), [view]);
   const discovery = useDiscovery(mode, topic, libraryIds, channelIds);
+  const continuing = useContinueWatching(mode, view);
   const progress = useMemo(() => new Map((store?.watchHistory ?? []).map((e) => [e.videoId, e.progress])), [store?.watchHistory]);
   const [visible, setVisible] = useState(PAGE);
 
@@ -309,6 +393,8 @@ function SpaceFeed({ mode, topicId }: { mode: LearningMode; topicId: string | nu
     [entries, visible],
   );
   useEffect(() => publishFeedVideos(shown, topic?.name ?? null), [shown, topic]);
+  const continueShown = useMemo(() => continuing.slice(0, 4).map(continueToVisible), [continuing]);
+  useEffect(() => publishContinueWatching(continueShown), [continueShown]);
 
   const sentinel = useSentinel(() => setVisible((v) => (entries.length > v ? v + PAGE : v)));
 
@@ -337,72 +423,208 @@ function SpaceFeed({ mode, topicId }: { mode: LearningMode; topicId: string | nu
     why: d.reasons.join(' · '),
   });
 
-  const heading = topic ? `${topic.name}` : subs.length ? 'From your subscriptions' : 'Best matches from YouTube';
-  const summary = [subs.length ? `${subs.length} relevant from your channels` : '', discovery.items.length ? `${discovery.items.length} discovered` : ''].filter(Boolean).join(' · ');
+  // Every video once, best first: the pool the billboard, Top 10 and topic shelves draw from.
+  const picks = useMemo(() => {
+    const seen = new Set<string>();
+    const all: Pick[] = [];
+    for (const v of subs) if (!seen.has(v.id) && seen.add(v.id)) all.push({ card: subCard(v), relevance: v.relevance, topicId: v.topicId });
+    for (const d of discovery.items) if (!seen.has(d.video.id) && seen.add(d.video.id)) all.push({ card: discCard(d), relevance: d.cls.relevance, topicId: d.topicId });
+    return all.sort((a, b) => b.relevance - a.relevance);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subs, discovery.items, progress]);
+
+  const topicName = (id: string | null) => mode.topics.find((t) => t.id === id)?.name ?? null;
+  const featured = useMemo<Featured[]>(() => {
+    const out: Featured[] = [];
+    const resume = continuing.find((c) => c.kind === 'resume' && (c.progress ?? 0) > 0.02);
+    if (resume)
+      out.push({ id: resume.videoId, title: resume.title, channelTitle: resume.channelTitle, durationSec: null, eyebrow: 'Continue learning', why: resume.reason, tierLabel: null, progress: resume.progress, topicId: null, topicName: null });
+    picks
+      .filter((p) => p.card.tier === 'excellent' || p.card.tier === 'strong')
+      .slice(0, 5 - out.length)
+      .forEach((p, i) =>
+        out.push({
+          id: p.card.id,
+          title: p.card.title,
+          channelTitle: p.card.channelTitle,
+          durationSec: p.card.durationSec,
+          eyebrow: i === 0 ? `#1 in ${mode.name} today` : p.card.source === 'discovery' ? 'Fresh pick for you' : 'From your channels',
+          why: p.card.why,
+          tierLabel: TIER_LABEL[p.card.tier],
+          progress: p.card.progress,
+          topicId: p.topicId,
+          topicName: topicName(p.topicId),
+        }),
+      );
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picks, continuing, mode]);
+
+  const topicRows = useMemo(() => {
+    if (topic) return [];
+    return mode.topics
+      .map((t) => ({ topic: t, items: picks.filter((p) => p.topicId === t.id).slice(0, 14) }))
+      .filter((r) => r.items.length >= MIN_ROW)
+      .sort((a, b) => b.items.length - a.items.length)
+      .slice(0, MAX_TOPIC_ROWS);
+  }, [picks, mode.topics, topic]);
+
+  const top10 = picks.slice(0, 10);
+  const fromChannels = subs.slice(0, 16).map(subCard);
+  const fresh = discovery.items.slice(0, 16).map(discCard);
+  const summary = [subs.length ? `${subs.length} from your channels` : '', discovery.items.length ? `${discovery.items.length} fresh picks` : ''].filter(Boolean).join(' · ');
   const noChannels = !!view && view.channelCount === 0;
   const empty = !loading && entries.length === 0 && (discovery.exhausted || !mode.discovery);
   const syncError = store?.sync.lastError;
+  const warming = loading || (discovery.loading && picks.length === 0);
+
+  const notes = (
+    <>
+      {syncError && (
+        <div className="fs-note">
+          {syncError}
+          <button type="button" className="fs-link" onClick={() => void sendMessage('library/sync', { force: true })}>
+            <RefreshCw size={14} aria-hidden /> Retry
+          </button>
+        </div>
+      )}
+      {noChannels && (
+        <div className="fs-note">
+          No subscriptions in FocusSpace yet. {mode.discovery ? "We're showing great matches from across YouTube." : 'Turn on discovery or import them.'}
+          <button type="button" className="fs-link" onClick={() => void sendMessage('subscriptions/import', {})}>
+            Import my subscriptions
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  const emptyState = empty && (
+    <div className="fs-empty-yt">
+      <h3>{topic ? `No clear ${topic.name} videos yet` : `No clear ${mode.name} videos yet`}</h3>
+      <p>FocusSpace only shows videos that clearly match. It never fills the page with guesses.</p>
+      <YtLink href={searchUrl(topic ? `${topic.name} ${mode.searchHint || mode.name}` : mode.searchHint || mode.name)} className="fs-btn fs-btn-secondary">
+        Search YouTube for “{topic ? topic.name : mode.name}”
+      </YtLink>
+    </div>
+  );
+
+  const grid = (
+    <>
+      <div className="fs-poster-grid">
+        {entries.slice(0, visible).map((entry) => {
+          if (entry.type === 'divider')
+            return (
+              <div key={entry.key} className="fs-divider-row">
+                <span>{entry.label}</span>
+              </div>
+            );
+          return <PosterCard key={entry.key} card={entry.type === 'primary' ? subCard(entry.item as FeedVideo) : discCard(entry.item)} />;
+        })}
+        {(loading || (discovery.loading && entries.length < visible)) && <PosterSkeletons count={entries.length ? 4 : 8} />}
+      </div>
+      <div ref={sentinel} className="fs-sentinel" aria-hidden />
+    </>
+  );
+
+  if (topic) {
+    return (
+      <>
+        <TopicPlaylist mode={mode} topic={topic} />
+        <section className="fs-section" aria-label={`${topic.name} videos`}>
+          <div className="fs-section-head">
+            <h2>{topic.name} videos</h2>
+            {summary && <span>{summary}</span>}
+          </div>
+          {notes}
+          {grid}
+          {emptyState}
+          {discovery.error && entries.length > 0 && <div className="fs-note">{discovery.error}</div>}
+        </section>
+      </>
+    );
+  }
 
   return (
     <>
-      {!topic && <ContinueRow mode={mode} view={view} />}
-      {!topic && mode.kind !== 'learning' && <BecauseYouPlayed mode={mode} />}
-      {topic && <TopicPlaylist mode={mode} topic={topic} />}
+      {featured.length > 0 ? <Billboard items={featured} onTopic={onTopic} /> : warming ? <div className="fs-billboard fs-billboard-skeleton fs-skeleton" aria-hidden /> : null}
+      {notes}
+      <OnDeviceAiBanner />
 
-      <section className="fs-section" aria-label={heading}>
+      {continuing.length > 0 && (
+        <Row title="Continue learning" icon={<History size={20} aria-hidden />}>
+          {continuing.slice(0, 12).map((item) => (
+            <PosterCard
+              key={item.videoId}
+              card={{ id: item.videoId, url: item.url, title: item.title, channelTitle: item.channelTitle, views: null, time: CONTINUE_LABEL[item.kind], durationSec: null, progress: item.progress, tier: 'strong', source: 'subscription', why: item.reason }}
+            />
+          ))}
+        </Row>
+      )}
+
+      {mode.kind !== 'learning' && <BecauseYouPlayed mode={mode} />}
+
+      {top10.length >= MIN_ROW && (
+        <Row title={`Top ${Math.min(10, top10.length)} in ${mode.name} today`} icon={<Trophy size={20} aria-hidden />} className="fs-row-top10">
+          {top10.map((p, i) => (
+            <PosterCard key={p.card.id} card={p.card} rank={i + 1} />
+          ))}
+        </Row>
+      )}
+      {warming && picks.length === 0 && (
+        <Row title={`Finding the best of ${mode.name}…`}>
+          <PosterSkeletons count={6} />
+        </Row>
+      )}
+
+      {fromChannels.length >= MIN_ROW && (
+        <Row title="From your channels" subtitle="Teachers you already trust" icon={<Users size={20} aria-hidden />}>
+          {fromChannels.map((c) => (
+            <PosterCard key={c.id} card={c} />
+          ))}
+        </Row>
+      )}
+
+      {topicRows.map(({ topic: t, items }) => (
+        <Row
+          key={t.id}
+          title={t.name}
+          action={
+            <button type="button" className="fs-row-more" onClick={() => onTopic(t.id)}>
+              See all <ChevronRight size={14} aria-hidden />
+            </button>
+          }
+        >
+          {items.map((p) => (
+            <PosterCard key={p.card.id} card={p.card} />
+          ))}
+        </Row>
+      ))}
+
+      {fresh.length >= MIN_ROW && (
+        <Row title="Fresh picks from YouTube" subtitle="New teachers, checked against your syllabus" icon={<Sparkles size={20} aria-hidden />}>
+          {fresh.map((c) => (
+            <PosterCard key={c.id} card={c} />
+          ))}
+        </Row>
+      )}
+
+      <section className="fs-section fs-browse" aria-label={`Everything for ${mode.name}`}>
         <div className="fs-section-head">
-          <h2>{topic ? `${topic.name} videos` : heading}</h2>
+          <h2>Everything for {mode.name}</h2>
           {summary && <span>{summary}</span>}
         </div>
-
-        {syncError && (
-          <div className="fs-note">
-            {syncError}
-            <button type="button" className="fs-link" onClick={() => void sendMessage('library/sync', { force: true })}>
-              <RefreshCw size={14} aria-hidden /> Retry
-            </button>
-          </div>
-        )}
-        {noChannels && (
-          <div className="fs-note">
-            No subscriptions in FocusSpace yet. {mode.discovery ? "We're showing great matches from across YouTube." : 'Turn on discovery or import them.'}
-            <button type="button" className="fs-link" onClick={() => void sendMessage('subscriptions/import', {})}>
-              Import my subscriptions
-            </button>
-          </div>
-        )}
-
-        <div className="fs-grid">
-          {entries.slice(0, visible).map((entry) => {
-            if (entry.type === 'divider')
-              return (
-                <div key={entry.key} className="fs-divider-row">
-                  <span>{entry.label}</span>
-                </div>
-              );
-            if (entry.type === 'primary') return <FeedCard key={entry.key} card={subCard(entry.item)} />;
-            return entry.spotlight ? <SpotlightCard key={entry.key} card={discCard(entry.item)} reasons={entry.item.reasons} /> : <FeedCard key={entry.key} card={discCard(entry.item)} />;
-          })}
-          {(loading || (discovery.loading && entries.length < visible)) && <CardSkeletons count={entries.length ? 4 : 8} />}
-        </div>
-        <div ref={sentinel} className="fs-sentinel" aria-hidden />
-
-        {empty && (
-          <div className="fs-empty-yt">
-            <h3>{topic ? `No clear ${topic.name} videos yet` : `No clear ${mode.name} videos yet`}</h3>
-            <p>FocusSpace only shows videos that clearly match. It never fills the page with guesses.</p>
-            <YtLink href={searchUrl(topic ? `${topic.name} ${mode.searchHint || mode.name}` : mode.searchHint || mode.name)} className="fs-btn fs-btn-secondary">
-              Search YouTube for “{topic ? topic.name : mode.name}”
-            </YtLink>
-          </div>
-        )}
+        {grid}
+        {emptyState}
         {discovery.error && entries.length > 0 && <div className="fs-note">{discovery.error}</div>}
       </section>
 
-      {!topic && <ChannelsSection mode={mode} view={view} discovered={discovery.items} channelIds={channelIds} />}
+      <ChannelsSection mode={mode} view={view} discovered={discovery.items} channelIds={channelIds} />
     </>
   );
 }
+
+const CONTINUE_LABEL: Record<NextLearningItem['kind'], string> = { missed: 'You skipped this one', resume: 'Pick up where you left off', next: 'Up next in your course' };
 
 /** Music and other just-for-you Spaces: more like what was played here, from YouTube's own "up next". */
 function BecauseYouPlayed({ mode }: { mode: LearningMode }) {
@@ -411,52 +633,27 @@ function BecauseYouPlayed({ mode }: { mode: LearningMode }) {
   return (
     <>
       {rows.map((row) => (
-        <section key={row.seed.videoId} className="fs-section" aria-label={`Because you played ${row.seed.title}`}>
-          <div className="fs-section-head">
-            <h2>Because you played</h2>
-            <span>{row.seed.title}</span>
-          </div>
-          <div className="fs-grid fs-grid-row">
-            {row.videos.slice(0, 4).map((v) => (
-              <FeedCard
-                key={v.id}
-                card={{
-                  id: v.id,
-                  title: v.title,
-                  channelTitle: v.channelTitle,
-                  views: v.views,
-                  time: v.publishedText,
-                  durationSec: v.durationSec,
-                  progress: v.watchedPercent !== null ? v.watchedPercent / 100 : null,
-                  tier: 'strong',
-                  source: 'discovery',
-                  why: `Because you played ${row.seed.title}`,
-                }}
-              />
-            ))}
-          </div>
-        </section>
+        <Row key={row.seed.videoId} title="Because you played" subtitle={row.seed.title}>
+          {row.videos.slice(0, 12).map((v) => (
+            <PosterCard
+              key={v.id}
+              card={{
+                id: v.id,
+                title: v.title,
+                channelTitle: v.channelTitle,
+                views: v.views,
+                time: v.publishedText,
+                durationSec: v.durationSec,
+                progress: v.watchedPercent !== null ? v.watchedPercent / 100 : null,
+                tier: 'strong',
+                source: 'discovery',
+                why: `Because you played ${row.seed.title}`,
+              }}
+            />
+          ))}
+        </Row>
       ))}
     </>
-  );
-}
-
-function ContinueRow({ mode, view }: { mode: LearningMode; view: FeedView | null }) {
-  const items = useContinueWatching(mode, view);
-  const shown = useMemo(() => items.slice(0, 4).map(continueToVisible), [items]);
-  useEffect(() => publishContinueWatching(shown), [shown]);
-  if (!items.length) return null;
-  return (
-    <section className="fs-section" aria-label="Continue watching">
-      <div className="fs-section-head">
-        <h2>Continue watching</h2>
-      </div>
-      <div className="fs-grid fs-grid-row">
-        {items.slice(0, 4).map((item) => (
-          <ContinueCard key={item.videoId} item={item} />
-        ))}
-      </div>
-    </section>
   );
 }
 

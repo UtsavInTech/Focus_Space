@@ -7,7 +7,7 @@ import { refreshSessionState, registerSessionNotificationHandlers, SESSION_END_A
 import { startRelevanceWarmer, viewFor } from './relevance-warmer';
 import { startPreferenceWarmer } from './preference-warmer';
 import { backgroundYouTube } from './youtube';
-import { aiService, resolveProviders, usageLog } from './ai';
+import { aiService, chromeProvider, resolveProviders, usageLog } from './ai';
 import { videoOutline } from './outline';
 import { generateNoteWithProvider } from '@/learning/ai/notes-integration';
 import { countNotes, deleteNote, listNotes, saveNote } from '@/storage/notes-store';
@@ -162,6 +162,10 @@ listen({
     }
   },
   'ai/status': () => aiService.status(),
+  'ai/on-device': async () => {
+    const [availability, status] = await Promise.all([chromeProvider.availability().catch(() => 'unavailable' as const), aiService.status()]);
+    return { availability, inUse: status.provider === 'chrome' && status.availability === 'available' };
+  },
   'ai/run': (request) => aiService.run(request),
   'notes/generate': async ({ inputs }) => generateNoteWithProvider(inputs, await resolveProviders(), usageLog.sink),
   // Saving is for signed-in learners (src/ui/account/save-gate.ts); the panels already say so, this keeps it true.

@@ -2,6 +2,7 @@ import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from '
 import { Check, ChevronDown, X } from 'lucide-react';
 import type { LearningMode, Settings } from '@/types/domain';
 import { activeModeOf } from '@/modes/service';
+import { isExamId } from '@/modes/exams';
 import { updateItem } from '@/storage/storage';
 import { sendMessage } from '@/messaging/runtime';
 import { useStorage } from '@/ui/hooks';
@@ -123,7 +124,8 @@ function Guide({ settings, modes }: { settings: Settings; modes: LearningMode[] 
               saved={store.welcome.chat}
               signedIn={signedIn}
               name={name ?? store.auth.user?.name ?? null}
-              intro={<SpaceIntro signedIn={signedIn} name={name ?? store.auth.user?.name ?? null} spaceLimit={signedIn ? spaceLimit : GUEST_SPACE_LIMIT} />}
+              exam={settings.exam}
+              intro={<SpaceIntro signedIn={signedIn} name={name ?? store.auth.user?.name ?? null} spaceLimit={signedIn ? spaceLimit : GUEST_SPACE_LIMIT} askExam={settings.exam === null ? modes.length === 0 : isExamId(settings.exam)} />}
               onDone={() => void updateItem('welcome', (w) => ({ ...w, chat: w.chat ? { ...w.chat, finished: true } : w.chat }))}
               onSkip={() => void updateItem('welcome', (w) => ({ ...w, spacesSkipped: true }))}
               oneByOne={store.welcome.oneByOne}
@@ -172,7 +174,7 @@ function SignInStep({ waiting, onSignIn, onLater }: { waiting: boolean; onSignIn
   );
 }
 
-function SpaceIntro({ signedIn, name, spaceLimit }: { signedIn: boolean; name: string | null; spaceLimit: number | null | undefined }) {
+function SpaceIntro({ signedIn, name, spaceLimit, askExam }: { signedIn: boolean; name: string | null; spaceLimit: number | null | undefined; askExam: boolean }) {
   const allowance = spaceLimit === undefined ? null : spaceLimit === null ? 'as many Spaces as you like' : `up to ${spaceLimit} Spaces`;
   const first = name?.split(/\s+/)[0] ?? null;
   return (
@@ -182,6 +184,23 @@ function SpaceIntro({ signedIn, name, spaceLimit }: { signedIn: boolean; name: s
       ) : (
         <Bot>No problem, you can sign in any time from FocusSpace’s home. Without an account you can keep {GUEST_SPACE_LIMIT} Spaces.</Bot>
       )}
+      {askExam ? (
+        <>
+          <Bot>
+            <b>First, which exam are you preparing for?</b> Tap it below and I’ll build your whole YouTube around it: your syllabus as topics, the best teachers first, nothing off-topic.
+          </Bot>
+          <Bot>Not preparing for an exam? Tap “I’m not preparing for an exam”, or just tell me what you’d like to learn.</Bot>
+        </>
+      ) : (
+        <SpacesIntro signedIn={signedIn} allowance={allowance} />
+      )}
+    </>
+  );
+}
+
+function SpacesIntro({ signedIn, allowance }: { signedIn: boolean; allowance: string | null }) {
+  return (
+    <>
       <Bot>
         <b>First, Spaces.</b> A Space is a mode for one thing you study, like DSA or Spanish{allowance ? `, and you can keep ${allowance}` : ''}. Tell me your Spaces and the creators you like for each, all in one go:
       </Bot>

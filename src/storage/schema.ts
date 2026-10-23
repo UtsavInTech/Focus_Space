@@ -15,6 +15,7 @@ import type {
 } from '@/types/domain';
 import { DEFAULT_MODES } from '@/modes/templates';
 import { iconForEmoji, isSpaceIcon } from '@/modes/icons';
+import { isExamId } from '@/modes/exams';
 import type { ModeCacheSnapshot } from '@/learning/classifier';
 import type { FeedViewStore } from '@/learning/feed-view';
 import type { YtVideo } from '@/integrations/youtube/innertube-parse';
@@ -232,6 +233,8 @@ export const DEFAULT_SETTINGS: Settings = {
   density: 'comfortable',
   displayName: '',
   onboarded: false,
+  exam: null,
+  spacesUnlocked: false,
   debugRelevance: false,
   shareUsageCounts: true,
   ai: { provider: 'auto', endpointUrl: '', language: 'en' },
@@ -309,6 +312,8 @@ export function normalize<K extends StorageKey>(key: K, raw: unknown): StorageSc
       if (!['auto', 'chrome', 'endpoint', 'off'].includes(merged.ai.provider)) merged.ai.provider = 'auto';
       if (!['en', 'hi', 'hinglish'].includes(merged.ai.language)) merged.ai.language = 'en';
       merged.api = { ...DEFAULT_SETTINGS.api, ...(s.api ?? {}) };
+      if (merged.exam !== null && merged.exam !== 'none' && !isExamId(merged.exam)) merged.exam = null;
+      merged.spacesUnlocked = merged.spacesUnlocked === true;
       return merged as StorageSchema[K];
     }
     case 'modes': {

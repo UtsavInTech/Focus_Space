@@ -5,6 +5,8 @@ import { getItems, updateItem, setItems } from '@/storage/storage';
 import { FILTER_PRESETS } from '@/storage/schema';
 import { uniqueId } from '@/learning/text';
 import { blankMode, DEFAULT_MODES } from './templates';
+import { examInfo, type ExamId } from './exams';
+import { isSpaceLocked, lockState, unlockHint } from './unlock';
 
 /** All mode + focus state mutations live here so every surface behaves the same. */
 
@@ -22,9 +24,25 @@ export class SpaceLimitError extends Error {
   }
 }
 
+/**
+ * A new learner's other Spaces are locked until they have studied in their exam Space (modes/unlock.ts).
+ * A SpaceLimitError, so every surface that already explains a full allowance explains this too.
+ */
+export class SpaceLockedError extends SpaceLimitError {
+  constructor(message: string) {
+    super(message, null);
+    this.name = 'SpaceLockedError';
+  }
+}
+
 async function authorizeSpace(id: string, name: string): Promise<void> {
-  const modes = await getItems(['modes']).then((s) => s.modes);
+  const { modes, settings, watchHistory } = await getItems(['modes', 'settings', 'watchHistory']);
   if (modes.some((m) => m.id === id)) return; // already exists locally: an update, not a new Space
+  const lock = lockState(settings, watchHistory);
+  if (isSpaceLocked(id, lock, modes)) {
+    const exam = examInfo(lock.examId)?.label ?? 'your exam';
+    throw new SpaceLockedError(`${name} is locked for now. ${unlockHint(lock, exam)}, and every Space opens.`);
+  }
   // If the background cannot answer, the allowance was not checked — so the Space is not created.
   const result = await sendMessage('spaces/authorize', { spaceId: id, name }).catch(
     (): SpaceAuthorization => ({ ok: false, code: 'error', error: 'FocusSpace couldn’t check your Space allowance. Reload the page and try again.', allowance: null }),
@@ -175,4 +193,29 @@ export function channelRuleOf(mode: LearningMode | null, channel: ChannelRef): '
   if (mode.allowedChannels.some((c) => sameChannel(c, channel))) return 'allowed';
   if (mode.blockedChannels.some((c) => sameChannel(c, channel))) return 'blocked';
   return null;
+}
+
+/* ─── Exams (modes/exams.ts) ──────────────────────────────────────────────── */
+
+/**
+ * "I'm preparing for UPSC": creates the exam's Space (or reuses it), makes it the one YouTube shows, and
+ * records the exam — which is what locks the other Spaces for now (modes/unlock.ts). The exam is
+ * recorded first, so the Space being created is the one Space the lock lets through.
+ */
+export async function chooseExam(examId: ExamId): Promise<LearningMode | null> {
+  await updateItem('settings', (s) => ({ ...s, exam: examId }));
+  const mode = await addTemplate(examId);
+  if (!mode) return null;
+  await updateItem('settings', (s) => ({ ...s, activeModeId: examId, focusEnabled: true, onboarded: true, defaultModeId: s.defaultModeId ?? examId }));
+  return mode;
+}
+
+/** "Not preparing for an exam": nothing is locked, and setup carries on as before. */
+export async function skipExam(): Promise<void> {
+  await updateItem('settings', (s) => ({ ...s, exam: s.exam && s.exam !== 'none' ? s.exam : 'none' }));
+}
+
+/** Settings → "Open every Space now". */
+export async function unlockAllSpaces(): Promise<void> {
+  await updateItem('settings', (s) => ({ ...s, spacesUnlocked: true }));
 }

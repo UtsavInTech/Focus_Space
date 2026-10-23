@@ -1,0 +1,362 @@
+/*
+ * The FocusSpace home on youtube.com, streaming-style: a billboard, then shelves of poster cards.
+ *
+ * Built on the tokens in content.css, so it follows YouTube's light/dark theme. The billboard is the
+ * one place that is always dark — it is a picture with words on it, and words on a picture need a
+ * dark scrim whatever the page around it is. Motion comes from `motion/react` in the components; this
+ * file only sets the resting states and the CSS-only hover details.
+ */
+
+.fs-root.fs-yt {
+  --fs-match: #1f9d55;
+  --fs-cinema: #0b0b0d;
+  --fs-poster-w: clamp(220px, 19vw, 300px);
+  --fs-gold: #f5c451;
+}
+.fs-root.fs-yt[data-theme='dark'] { --fs-match: #46d369; }
+
+/* ─── Billboard ────────────────────────────────────────────────────────────── */
+
+.fs-billboard {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: clamp(320px, 42vw, 540px);
+  border-radius: 24px;
+  background: var(--fs-cinema);
+  color: #fff;
+  display: flex;
+  align-items: flex-end;
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.55);
+}
+.fs-billboard-skeleton { box-shadow: none; }
+.fs-billboard-art { position: absolute; inset: 0; z-index: -2; }
+.fs-billboard-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fs-billboard-shade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(8, 8, 10, 0.94) 0%, rgba(8, 8, 10, 0.72) 34%, rgba(8, 8, 10, 0.12) 68%, rgba(8, 8, 10, 0) 100%),
+    linear-gradient(0deg, rgba(8, 8, 10, 0.9) 0%, rgba(8, 8, 10, 0) 46%);
+}
+.fs-billboard-body { position: relative; display: flex; flex-direction: column; gap: 12px; max-width: min(620px, 62%); padding: clamp(24px, 4vw, 56px); }
+.fs-billboard-eyebrow {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fs-billboard-eyebrow::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--fs-brand); box-shadow: 0 0 12px var(--fs-brand); }
+.fs-billboard-title {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 44px);
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.5);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fs-billboard-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 15px; color: rgba(255, 255, 255, 0.86); }
+.fs-billboard-meta > span + span::before { content: '•'; margin-right: 14px; color: rgba(255, 255, 255, 0.45); }
+.fs-billboard-meta .fs-match + span::before { content: none; }
+.fs-billboard-why { margin: 0; font-size: 15px; line-height: 1.5; color: rgba(255, 255, 255, 0.74); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fs-billboard-progress { width: min(320px, 100%); height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
+.fs-billboard-progress span { display: block; height: 100%; background: var(--fs-brand); }
+.fs-billboard-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+.fs-billboard-dots { position: absolute; right: clamp(20px, 3vw, 40px); bottom: clamp(20px, 3vw, 36px); display: flex; gap: 8px; }
+.fs-billboard-dot { position: relative; width: 28px; height: 4px; padding: 0; border: none; border-radius: 2px; background: rgba(255, 255, 255, 0.3); cursor: pointer; overflow: hidden; transition: width 300ms var(--fs-ease), background 200ms ease; }
+.fs-billboard-dot[aria-selected='true'] { width: 44px; background: rgba(255, 255, 255, 0.4); }
+.fs-billboard-dot[aria-selected='true']:not(:has(.fs-billboard-dot-fill)) { background: #fff; }
+.fs-billboard-dot-fill { position: absolute; inset: 0 auto 0 0; background: #fff; }
+
+/* The two buttons a streaming billboard has: a bright Play and a glass secondary. */
+.fs-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 24px 0 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 160ms var(--fs-ease), background 160ms ease, box-shadow 160ms ease;
+}
+.fs-cta:active { transform: scale(0.97); }
+.fs-cta-play { background: #fff; color: #0b0b0d; }
+.fs-cta-play:hover { background: rgba(255, 255, 255, 0.86); box-shadow: 0 8px 28px rgba(255, 255, 255, 0.18); }
+.fs-cta-ghost { background: rgba(109, 109, 110, 0.55); color: #fff; backdrop-filter: blur(10px); }
+.fs-cta-ghost:hover { background: rgba(109, 109, 110, 0.38); }
+.fs-cta:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.6); }
+
+/* ─── Match label ("Excellent match") ──────────────────────────────────────── */
+
+.fs-match { font-size: 13px; font-weight: 700; color: var(--fs-text-2); white-space: nowrap; }
+.fs-match.is-strong { color: var(--fs-match); }
+.fs-billboard .fs-match.is-strong { color: #46d369; }
+
+/* ─── Shelves ──────────────────────────────────────────────────────────────── */
+
+.fs-row { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fs-row-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.fs-row-head h2 { display: inline-flex; align-items: center; gap: 10px; margin: 0; font-size: 21px; line-height: 28px; font-weight: 750; letter-spacing: -0.01em; color: var(--fs-text); }
+.fs-row-head h2 svg { color: var(--fs-brand); }
+.fs-row-sub { font-size: 14px; color: var(--fs-text-2); }
+.fs-row-action { margin-left: auto; }
+.fs-row-more { display: inline-flex; align-items: center; gap: 2px; border: none; background: none; padding: 4px 6px; border-radius: 8px; color: var(--fs-text-2); font-size: 14px; font-weight: 600; cursor: pointer; transition: color 140ms ease, background 140ms ease; }
+.fs-row-more:hover { color: var(--fs-text); background: var(--fs-hover); }
+.fs-row:hover .fs-row-more { color: var(--fs-accent-text); }
+
+.fs-row-frame { position: relative; margin: 0 -24px; }
+/* Room above and below so a lifted card is never clipped; the edges fade instead of cutting. */
+.fs-row-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--fs-poster-w);
+  gap: 16px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding: 0 24px;
+  padding: 18px 24px 22px;
+  scrollbar-width: none;
+}
+.fs-row-track::-webkit-scrollbar { display: none; }
+.fs-row-track > * { scroll-snap-align: start; }
+.fs-row-arrow {
+  position: absolute;
+  top: 18px;
+  bottom: 78px;
+  z-index: 4;
+  width: 52px;
+  display: grid;
+  place-items: center;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.fs-row-arrow.is-prev { left: 0; background: linear-gradient(90deg, rgba(0, 0, 0, 0.6), transparent); border-radius: 0 12px 12px 0; }
+.fs-row-arrow.is-next { right: 0; background: linear-gradient(-90deg, rgba(0, 0, 0, 0.6), transparent); border-radius: 12px 0 0 12px; }
+.fs-row-frame:hover .fs-row-arrow, .fs-row-arrow:focus-visible { opacity: 1; }
+.fs-row-arrow svg { transition: transform 160ms var(--fs-ease); }
+.fs-row-arrow:hover svg { transform: scale(1.25); }
+
+/* ─── Poster card ──────────────────────────────────────────────────────────── */
+
+.fs-poster { position: relative; min-width: 0; transform-origin: center bottom; will-change: transform; }
+.fs-poster-link { display: flex; flex-direction: column; gap: 10px; color: var(--fs-text); text-decoration: none; border-radius: 12px; outline: none; }
+.fs-poster-link:focus-visible .fs-poster-art { box-shadow: var(--fs-ring), 0 0 0 1px var(--fs-accent); }
+.fs-poster-art { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: var(--fs-surface-2); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); transition: box-shadow 220ms var(--fs-ease); }
+.fs-poster:hover .fs-poster-art { box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06); }
+.fs-poster-art img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 600ms var(--fs-ease), filter 300ms ease; }
+.fs-poster:hover .fs-poster-art img { transform: scale(1.06); filter: brightness(0.82); }
+.fs-poster-shade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0, 0, 0, 0.55), transparent 45%); opacity: 0.6; transition: opacity 220ms ease; }
+.fs-poster:hover .fs-poster-shade { opacity: 1; }
+.fs-poster-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  color: #0b0b0d;
+  transform: translate(-50%, -50%) scale(0.6);
+  opacity: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transition: opacity 200ms ease, transform 260ms var(--fs-ease);
+}
+.fs-poster-play svg { margin-left: 3px; }
+.fs-poster:hover .fs-poster-play, .fs-poster-link:focus-visible .fs-poster-play { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.fs-poster-flag { position: absolute; left: 8px; top: 8px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: rgba(220, 38, 38, 0.92); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+.fs-poster-duration { position: absolute; right: 8px; bottom: 8px; padding: 1px 5px; border-radius: 4px; background: rgba(0, 0, 0, 0.8); color: #fff; font-size: 12px; font-weight: 600; line-height: 18px; }
+.fs-poster-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255, 255, 255, 0.35); }
+.fs-poster-progress span { display: block; height: 100%; background: var(--fs-brand); }
+.fs-poster-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 0 2px; }
+.fs-poster-title { font-size: 15px; line-height: 21px; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fs-poster-meta { font-size: 13px; line-height: 18px; color: var(--fs-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-poster-tags { display: flex; align-items: center; gap: 8px; margin-top: 2px; min-width: 0; }
+.fs-poster-src { font-size: 12px; color: var(--fs-text-3); white-space: nowrap; }
+.fs-poster-skeleton .fs-poster-art { display: block; }
+
+/* Top 10: a huge outlined number behind each card, as on a streaming service. */
+.fs-row-top10 .fs-row-track { grid-auto-columns: calc(var(--fs-poster-w) + 56px); }
+.fs-poster-ranked { padding-left: 60px; }
+.fs-poster-rank {
+  position: absolute;
+  left: -6px;
+  top: -14px;
+  z-index: 0;
+  font-size: 128px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+  color: var(--fs-bg);
+  -webkit-text-stroke: 3px var(--fs-text-3);
+  pointer-events: none;
+  user-select: none;
+}
+.fs-poster-ranked .fs-poster-link { position: relative; z-index: 1; }
+.fs-poster-ranked:nth-of-type(-n + 3) .fs-poster-rank { -webkit-text-stroke-color: var(--fs-brand); }
+
+/* The "everything" grid below the shelves: the same posters, wrapped. */
+.fs-poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 32px 18px; }
+.fs-poster-grid .fs-divider-row { grid-column: 1 / -1; }
+@media (min-width: 2200px) { .fs-poster-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); } }
+.fs-browse { margin-top: 8px; }
+
+/* ─── On-device AI ─────────────────────────────────────────────────────────── */
+
+.fs-ondevice {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 56px 24px 24px;
+  border-radius: 20px;
+  background: linear-gradient(120deg, #120d1f 0%, #1a1030 45%, #2a0f16 100%);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.fs-ondevice-glow {
+  position: absolute;
+  z-index: -1;
+  inset: -40% auto auto -10%;
+  width: 60%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.45), transparent 62%);
+  filter: blur(8px);
+  animation: fs-ondevice-drift 14s ease-in-out infinite alternate;
+}
+@keyframes fs-ondevice-drift { from { transform: translate(0, 0); } to { transform: translate(40%, 20%); } }
+@media (prefers-reduced-motion: reduce) { .fs-ondevice-glow { animation: none; } }
+.fs-ondevice-chip {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #8b5cf6, #ef4444);
+  box-shadow: 0 10px 30px -6px rgba(139, 92, 246, 0.7);
+}
+.fs-ondevice-copy { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.fs-ondevice-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #c4b5fd; }
+.fs-ondevice-eyebrow b { padding: 2px 8px; border-radius: 999px; background: #46d369; color: #052e12; letter-spacing: 0.06em; }
+.fs-ondevice h3 { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 750; }
+.fs-ondevice p { margin: 0; font-size: 14px; line-height: 1.5; color: rgba(255, 255, 255, 0.76); max-width: 640px; }
+.fs-ondevice p b { color: #fff; }
+.fs-ondevice-perks { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; padding: 0; }
+.fs-ondevice-perks li { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); font-size: 13px; color: rgba(255, 255, 255, 0.9); }
+.fs-ondevice-perks svg { color: #c4b5fd; }
+.fs-ondevice-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.fs-ondevice-actions .fs-link { color: #c4b5fd; }
+.fs-ondevice-ready { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; background: rgba(70, 211, 105, 0.16); color: #7ee29a; font-size: 14px; font-weight: 700; white-space: nowrap; }
+.fs-ondevice-close { position: absolute; top: 10px; right: 10px; color: rgba(255, 255, 255, 0.6); }
+.fs-ondevice-close:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+@media (max-width: 900px) {
+  .fs-ondevice { grid-template-columns: auto minmax(0, 1fr); }
+  .fs-ondevice-actions { grid-column: 1 / -1; align-items: flex-start; }
+}
+
+.fs-ondevice-badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; background: linear-gradient(90deg, rgba(139, 92, 246, 0.16), rgba(70, 211, 105, 0.16)); color: var(--fs-text); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.fs-ondevice-badge b { color: var(--fs-match); }
+.fs-ondevice-badge svg { color: #8b5cf6; }
+
+/* ─── Exam picker ──────────────────────────────────────────────────────────── */
+
+.fs-exam-stage { position: relative; isolation: isolate; max-width: 980px; margin-top: 6vh; }
+.fs-exam-stage-glow { position: absolute; z-index: -1; inset: -80px 10% auto; height: 320px; background: radial-gradient(ellipse at center, var(--fs-accent-soft), transparent 70%); filter: blur(20px); }
+.fs-exam-stage-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fs-accent-text); }
+.fs-exam-stage h1 { font-size: clamp(28px, 3.4vw, 44px); font-weight: 800; letter-spacing: -0.02em; }
+
+.fs-exams { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; }
+.fs-exam-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; width: 100%; }
+.fs-exams.is-compact .fs-exam-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.fs-exam-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 14px 12px;
+  border: 1px solid var(--fs-border);
+  border-radius: 16px;
+  background: var(--fs-elevated);
+  color: var(--fs-text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 200ms var(--fs-ease), background 160ms ease;
+}
+.fs-exam-card:hover:not(:disabled) { border-color: var(--fs-accent); box-shadow: 0 14px 30px -14px rgba(220, 38, 38, 0.45); }
+.fs-exam-card:focus-visible { outline: none; box-shadow: var(--fs-ring); }
+.fs-exam-card:disabled { cursor: progress; opacity: 0.6; }
+.fs-exam-card[aria-busy='true'] { opacity: 1; border-color: var(--fs-accent); }
+.fs-exam-icon { flex: none; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; background: var(--fs-accent-soft); color: var(--fs-accent-text); }
+.fs-exams.is-compact .fs-exam-card { padding: 8px 10px; border-radius: 12px; gap: 8px; }
+.fs-exams.is-compact .fs-exam-icon { width: 30px; height: 30px; border-radius: 9px; }
+.fs-exam-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.fs-exam-text b { font-size: 15px; font-weight: 700; }
+.fs-exam-text small { font-size: 12px; color: var(--fs-text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-exam-go { flex: none; color: var(--fs-text-3); transition: transform 180ms var(--fs-ease), color 160ms ease; }
+.fs-exam-card:hover .fs-exam-go { color: var(--fs-accent-text); transform: translateX(3px); }
+.fs-exams.is-compact .fs-exam-go { display: none; }
+.fs-exam-skip { font-size: 14px; }
+
+/* ─── Locked Spaces ────────────────────────────────────────────────────────── */
+
+.fs-lock-meter { display: flex; flex-direction: column; gap: 8px; width: min(520px, 100%); padding: 12px 16px; border-radius: 14px; background: var(--fs-surface-2); text-align: left; }
+.fs-lock-meter.is-compact { width: auto; padding: 0; background: none; gap: 6px; }
+.fs-lock-meter-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--fs-text); }
+.fs-lock-meter-head svg { flex: none; color: var(--fs-accent-text); }
+.fs-lock-meter-bar { height: 6px; border-radius: 3px; background: var(--fs-surface-3); overflow: hidden; }
+.fs-lock-meter-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--fs-accent), var(--fs-gold)); transition: width 600ms var(--fs-ease); }
+.fs-chip.is-locked { color: var(--fs-text-3); background: transparent; box-shadow: inset 0 0 0 1px var(--fs-border); cursor: not-allowed; }
+.fs-chip.is-locked:hover { background: var(--fs-hover); }
+.fs-menu-lock { padding: 6px 16px 10px; }
+.fs-menu-locked { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 6px; }
+.fs-menu-locked-item { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border-radius: 6px; background: var(--fs-surface-2); color: var(--fs-text-3); font-size: 12px; }
+
+/* ─── Small screens ────────────────────────────────────────────────────────── */
+
+@media (max-width: 700px) {
+  .fs-billboard { border-radius: 16px; min-height: 360px; }
+  .fs-billboard-body { max-width: 100%; }
+  .fs-billboard-shade { background: linear-gradient(0deg, rgba(8, 8, 10, 0.95) 10%, rgba(8, 8, 10, 0.25) 100%); }
+  .fs-row-frame { margin: 0 -12px; }
+  .fs-row-track { padding: 14px 12px 18px; scroll-padding: 0 12px; }
+  .fs-row-arrow { display: none; }
+  .fs-poster-grid { grid-template-columns: minmax(0, 1fr); }
+  .fs-ondevice { grid-template-columns: 1fr; padding: 20px; }
+}
+
+/* ─── Sidebar map: locked Spaces ───────────────────────────────────────────── */
+
+.fs-guide-lock { display: flex; flex-direction: column; gap: 6px; margin: 8px 12px 4px; padding: 10px 12px; border-radius: 12px; background: var(--fs-surface-2); }
+.fs-guide-lock-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--fs-text); }
+.fs-guide-lock-label svg { color: var(--fs-accent-text); }
+.fs-guide-lock small { font-size: 11px; line-height: 15px; color: var(--fs-text-2); }
+.fs-guide-lock-bar { height: 4px; border-radius: 2px; background: var(--fs-surface-3); overflow: hidden; }
+.fs-guide-lock-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--fs-accent), var(--fs-gold)); }
+.fs-guide-item.is-locked { color: var(--fs-text-3); cursor: not-allowed; }
+.fs-guide-item.is-locked:hover { background: transparent; }
+.fs-guide-item.is-locked > span { flex: 1; }
+.fs-guide-lock-icon { flex: none; opacity: 0.7; }
