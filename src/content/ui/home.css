@@ -360,3 +360,36 @@
 .fs-guide-item.is-locked:hover { background: transparent; }
 .fs-guide-item.is-locked > span { flex: 1; }
 .fs-guide-lock-icon { flex: none; opacity: 0.7; }
+
+/* The Space bar while pinned under YouTube's top bar (usePinnedBar.ts): a frosted strip, like YouTube's own chips. */
+.fs-bar.is-pinned { padding: 10px 24px; background: color-mix(in srgb, var(--fs-bg) 92%, transparent); backdrop-filter: blur(14px); box-shadow: 0 1px 0 var(--fs-border); }
+@media (max-width: 700px) { .fs-bar.is-pinned { padding: 8px 12px; } }
+
+/* ─── FocusSpace History & Library shelves (FocusSpaceRows.tsx) ────────────── */
+
+.fs-note-card { padding: 0; border: none; background: none; text-align: left; color: var(--fs-text); cursor: pointer; display: flex; flex-direction: column; gap: 10px; font: inherit; }
+.fs-note-card:focus-visible { outline: none; }
+.fs-note-card:focus-visible .fs-poster-art { box-shadow: var(--fs-ring); }
+.fs-note-kind { position: absolute; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 6px; background: rgba(139, 92, 246, 0.92); color: #fff; font-size: 11px; font-weight: 700; }
+.fs-open-tile {
+  align-self: start;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 16px;
+  border: 1px dashed var(--fs-border-strong);
+  border-radius: 12px;
+  background: linear-gradient(140deg, var(--fs-accent-softer), var(--fs-surface-2));
+  color: var(--fs-text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.fs-open-tile:hover { border-style: solid; border-color: var(--fs-accent); }
+.fs-open-tile-icon { margin-bottom: auto; color: var(--fs-accent-text); }
+.fs-open-tile b { font-size: 16px; font-weight: 700; }
+.fs-open-tile small { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--fs-text-2); }
+.fs-guide-sep { height: 1px; margin: 8px 12px; background: var(--fs-border); }

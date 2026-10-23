@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink, LogOut, Pencil } from 'lucide-react';
+import { CircleUser, Crown, ExternalLink, Layers, LogIn, LogOut, Pencil, Receipt, ShieldCheck, Sparkles, UserPen } from 'lucide-react';
+import { ActionCard, CardGrid, jumpTo } from './cards';
+import { navigate } from '../router';
 import type { ApiSettings, Settings } from '@/types/domain';
 import type { AuthUser } from '@/types/auth';
 import type { PaymentRecord } from '@/types/account';
@@ -33,11 +35,65 @@ export function AccountPage({ data }: { data: DashboardData }) {
           <p>Your plan, what you have paid, and the details you gave us. Your Spaces, notes and history stay in this browser.</p>
         </div>
       </div>
+      <AccountCards flow={flow} />
       <SignInSection settings={settings} flow={flow} />
       <ProfileSection />
       <PaymentsSection signedIn={!!flow.user} />
       <DataNote signedIn={!!flow.user} />
     </div>
+  );
+}
+
+/**
+ * The account at a glance, as cards: who is signed in, the plan, how much of it is used, and one tap to
+ * each thing people come here to do. The sections below hold the detail.
+ */
+function AccountCards({ flow }: { flow: AccountFlow }) {
+  const { user, usage, spaces, busy, actions } = flow;
+  const paid = !!usage && isPaidPlan(usage.plan);
+  const openSite = (path: string) => void sendMessage('site/open', { path }).catch(() => undefined);
+  return (
+    <CardGrid label="Your account">
+      {user ? (
+        <ActionCard
+          icon={<CircleUser />}
+          tone="accent"
+          title="Signed in as"
+          value={accountIdentity(flow)}
+          hint={user.email && user.emailVerified === false ? 'Email not verified yet' : 'Your plan and receipts follow you'}
+          control={
+            <Button size="sm" variant="ghost" icon={<LogOut size={14} />} disabled={busy} onClick={() => void actions.signOut()}>
+              Sign out
+            </Button>
+          }
+        />
+      ) : (
+        <ActionCard icon={<LogIn />} tone="accent" title="Not signed in" value="Sign in or create a free account" hint="More Spaces, a daily AI allowance, saved notes" onClick={() => void openConnect()} />
+      )}
+      <ActionCard
+        icon={<Crown />}
+        tone={paid ? 'green' : 'default'}
+        title="Your plan"
+        value={usage ? planLabel(usage.plan) : user ? 'Checking…' : 'Free (no account)'}
+        hint={paid ? 'Manage, renew or change it' : 'See what Basic, Plus and Pro add'}
+        onClick={() => openSite(paid ? '/account' : '/pricing')}
+      />
+      {usage && (
+        <ActionCard
+          icon={<Sparkles />}
+          tone="violet"
+          title="AI credits this period"
+          value={usage.limit === null ? 'Unlimited' : `${Math.max(0, usage.limit - usage.used)} left`}
+          hint={<Meter label="" used={usage.used} limit={usage.limit} unit="used" />}
+        />
+      )}
+      {spaces && (
+        <ActionCard icon={<Layers />} title="Spaces" value={spaces.limit === null ? `${spaces.used}, no limit` : `${spaces.used} of ${spaces.limit}`} hint={<Meter label="" used={spaces.used} limit={spaces.limit} unit="spaces" />} onClick={() => navigate('/modes')} />
+      )}
+      {user && <ActionCard icon={<UserPen />} title="Your details" value="Name and city" hint="Optional, only shown to you" onClick={() => jumpTo('details')} />}
+      {user && <ActionCard icon={<Receipt />} title="Payments" value="Receipts and invoices" hint="Every charge on this account" onClick={() => jumpTo('payments')} />}
+      <ActionCard icon={<ShieldCheck />} title="Your data" value="What we keep" hint="Nothing sold, no ads, no tracking" onClick={() => jumpTo('data')} />
+    </CardGrid>
   );
 }
 
@@ -86,7 +142,7 @@ function ProfileSection() {
   };
 
   return (
-    <Section id="details" title="Your details" description="Optional, and only ever shown to you.">
+    <Section id="details" icon={<UserPen />} title="Your details" description="Optional, and only ever shown to you.">
       {filled && !editing ? (
         <>
           <SettingRow title="Name" description={user.name || 'Not added'}>
@@ -149,7 +205,7 @@ function PaymentsSection({ signedIn }: { signedIn: boolean }) {
   // session) — showing "no payments" there would just be a confusing echo of the sign-in prompt above.
   if (!signedIn || payments === null) return null;
   return (
-    <Section id="payments" title="Payments" description="Every charge on this account.">
+    <Section id="payments" icon={<Receipt />} title="Payments" description="Every charge on this account.">
       {payments.length ? (
         <>
           {payments.map((p) => (
@@ -182,7 +238,7 @@ function PaymentsSection({ signedIn }: { signedIn: boolean }) {
  */
 function DataNote({ signedIn }: { signedIn: boolean }) {
   return (
-    <Section id="data" title="Your data" description={signedIn ? 'Everything your account holds.' : 'What an account would hold, if you create one.'}>
+    <Section id="data" icon={<ShieldCheck />} title="Your data" description={signedIn ? 'Everything your account holds.' : 'What an account would hold, if you create one.'}>
       <p className="fs-hint" style={{ padding: '4px 0 0' }}>{LOCAL_DATA_SUMMARY}</p>
       {ACCOUNT_DATA_FACTS.map((fact) => (
         <SettingRow key={fact.id} title={fact.label} description={fact.detail} />
@@ -239,6 +295,7 @@ export function SignInSection({ settings, flow: flowProp }: { settings: Settings
   return (
     <Section
       id="signin"
+      icon={<CircleUser />}
       title={user ? 'Account' : 'Sign in to FocusSpace'}
       description={user ? undefined : 'A free account raises your Space and AI allowance, and keeps your plan, payments and receipts in one place, wherever you sign in.'}
     >

@@ -2,13 +2,20 @@ import type { ReactNode } from 'react';
 import type { Settings } from '@/types/domain';
 import { updateItem } from '@/storage/storage';
 
-/** The flat, hairline-headed section the settings and account pages are both built from. */
-export function Section({ id, title, description, children }: { id: string; title: string; description?: ReactNode; children: ReactNode }) {
+/** A card, the unit the settings and account pages are both built from: icon, title, one line, rows. */
+export function Section({ id, title, description, icon, children }: { id: string; title: string; description?: ReactNode; icon?: ReactNode; children: ReactNode }) {
   return (
     <section id={id} className="fs-settings-section">
       <header>
-        <h2>{title}</h2>
-        {description && <p>{description}</p>}
+        {icon && (
+          <span className="fs-section-icon" aria-hidden>
+            {icon}
+          </span>
+        )}
+        <span className="fs-section-titles">
+          <h2>{title}</h2>
+          {description && <p>{description}</p>}
+        </span>
       </header>
       <div className="fs-settings-rows">{children}</div>
     </section>

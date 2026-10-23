@@ -135,9 +135,15 @@
 /* ─── Settings ─────────────────────────────────────────────────────────────── */
 /* Flat sections with hairline headers — one document, not a stack of cards. */
 
-.fs-settings { gap: 30px; }
-.fs-settings-section { display: flex; flex-direction: column; gap: 4px; }
-.fs-settings-section > header { display: flex; flex-direction: column; gap: 3px; padding-bottom: 10px; border-bottom: 1px solid var(--fs-border); }
+.fs-settings { gap: 20px; }
+/* Every settings/account section is a card: room to breathe, one clear heading, rows inside. */
+.fs-settings-section { display: flex; flex-direction: column; gap: 4px; padding: 20px 22px 12px; border: 1px solid var(--fs-border); border-radius: 18px; background: var(--fs-surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); scroll-margin-top: 24px; transition: box-shadow 220ms var(--fs-ease), border-color 220ms ease; }
+.fs-settings-section:hover { box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.35); }
+.fs-settings-section:target { border-color: var(--fs-accent); }
+.fs-settings-section > header { display: flex; align-items: flex-start; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--fs-border); }
+.fs-section-icon { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; background: var(--fs-accent-soft); color: var(--fs-accent-text); }
+.fs-section-icon svg { width: 18px; height: 18px; }
+.fs-section-titles { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .fs-settings-section > header h2 { font-size: 15px; font-weight: 600; color: var(--fs-text); }
 .fs-settings-section > header p { font-size: 13px; line-height: 1.5; color: var(--fs-text-2); max-width: 64ch; }
 .fs-settings-rows { display: flex; flex-direction: column; }
@@ -389,3 +395,42 @@ html[data-theme='light'] .fs-plan-premium { color: #b91c1c; }
 .fs-mini-bar span { background: linear-gradient(90deg, var(--fs-accent), #f59e0b); }
 .fs-space-chip { transition: border-color 140ms ease, background 140ms ease, transform 160ms var(--fs-ease); }
 .fs-space-chip:active { transform: scale(0.97); }
+
+/* ─── Quick-action cards (pages/cards.tsx) ─────────────────────────────────── */
+
+.fs-qcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.fs-qcard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 92px;
+  padding: 16px;
+  border: 1px solid var(--fs-border);
+  border-radius: 18px;
+  background: var(--fs-surface);
+  color: var(--fs-text);
+  text-align: left;
+  font: inherit;
+  cursor: default;
+  transition: border-color 180ms ease, box-shadow 220ms var(--fs-ease);
+}
+button.fs-qcard { cursor: pointer; }
+.fs-qcard:hover { border-color: var(--fs-border-strong); box-shadow: 0 12px 28px -18px rgba(0, 0, 0, 0.4); }
+button.fs-qcard:hover { border-color: var(--fs-accent); }
+button.fs-qcard:focus-visible { outline: none; box-shadow: var(--fs-ring); }
+.fs-qcard.is-wide { grid-column: span 2; }
+@media (max-width: 640px) { .fs-qcard.is-wide { grid-column: auto; } }
+.fs-qcard-icon { flex: none; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px; background: var(--fs-surface-2); color: var(--fs-text); }
+.fs-qcard-icon svg { width: 22px; height: 22px; }
+.fs-qcard-icon.is-accent { background: var(--fs-accent-soft); color: var(--fs-accent-text); }
+.fs-qcard-icon.is-violet { background: linear-gradient(145deg, #8b5cf6, #ef4444); color: #fff; }
+.fs-qcard-icon.is-green { background: rgba(31, 157, 85, 0.14); color: #1f9d55; }
+.fs-qcard-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.fs-qcard-title { font-size: 12.5px; font-weight: 600; color: var(--fs-text-2); }
+.fs-qcard-value { font-size: 17px; font-weight: 750; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-qcard-hint { font-size: 12.5px; line-height: 1.4; color: var(--fs-text-3); }
+.fs-qcard-control { flex: none; }
+.fs-qcard-go { flex: none; color: var(--fs-text-3); transition: transform 180ms var(--fs-ease), color 160ms ease; }
+button.fs-qcard:hover .fs-qcard-go { color: var(--fs-accent-text); transform: translateX(3px); }
+.fs-qcard .fs-meter { margin-top: 6px; }
+.fs-qcards-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fs-text-3); margin: 4px 0 -6px; }

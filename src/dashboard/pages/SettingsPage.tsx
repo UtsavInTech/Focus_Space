@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Check, Cpu, Download, ExternalLink, Keyboard, Monitor, Moon, RotateCcw, Sun } from 'lucide-react';
+import { Bot, Check, CircleUser, Cpu, Database, Download, ExternalLink, Filter, GraduationCap, History, Info, Keyboard, Layers, Monitor, Moon, Palette, Power, RotateCcw, Sun, Users } from 'lucide-react';
+import { ActionCard, CardGrid, jumpTo } from './cards';
+import { useStorage } from '@/ui/hooks';
 import type { AiSettings, Settings } from '@/types/domain';
 import type { NoteLanguage } from '@/types/notes';
 import type { AiStatus } from '@/learning/ai/service';
@@ -82,7 +84,7 @@ function AiSection({ settings }: { settings: Settings }) {
                   : 'Not available: this browser has no on-device model, and no endpoint is set.';
 
   return (
-    <Section id="ai" title="FocusSpace AI" description="Ask anything about the video or page you're on. It can also explain, give an example, quiz you or take notes, and it runs only when you ask.">
+    <Section id="ai" icon={<Bot />} title="FocusSpace AI" description="Ask anything about the video or page you're on. It can also explain, give an example, quiz you or take notes, and it runs only when you ask.">
       <OnDeviceCard settings={settings} onChange={refresh} />
       <SettingRow
         title="Provider"
@@ -260,6 +262,58 @@ function OnDeviceCard({ settings, onChange }: { settings: Settings; onChange: ()
   );
 }
 
+/* ─── Quick actions ────────────────────────────────────────────────────────── */
+
+function SettingsCards({ settings, spaceCount }: { settings: Settings; spaceCount: number }) {
+  const store = useStorage(['watchHistory'] as const);
+  const [onDevice, setOnDevice] = useState<AiStatus['availability'] | null>(null);
+  useEffect(() => {
+    sendMessage('ai/on-device', {})
+      .then((s) => setOnDevice(s.availability))
+      .catch(() => setOnDevice('unavailable'));
+  }, [settings.ai.provider]);
+  const exam = examInfo(settings.exam);
+  const watched = new Set((store?.watchHistory ?? []).map((e) => e.videoId)).size;
+  const aiValue =
+    settings.ai.provider === 'off' ? 'Off' : settings.ai.provider === 'chrome' ? 'On-device · Free' : onDevice === 'available' ? 'Cloud + on-device backup' : 'FocusSpace AI';
+
+  return (
+    <CardGrid label="Quick settings">
+      <ActionCard
+        icon={<Power />}
+        tone={settings.focusEnabled ? 'accent' : 'default'}
+        title="Focus Mode"
+        value={settings.focusEnabled ? 'On' : 'Off'}
+        hint="Alt + Shift + F anywhere"
+        control={<Switch label="Focus Mode" checked={settings.focusEnabled} onChange={(v) => setFocusEnabled(v)} />}
+      />
+      <ActionCard icon={<GraduationCap />} tone="accent" title="Preparing for" value={exam?.label ?? 'No exam'} hint={exam ? exam.covers : 'Pick an exam for a ready-made Space'} onClick={() => jumpTo('spaces')} />
+      <ActionCard icon={<Cpu />} tone="violet" title="FocusSpace AI" value={aiValue} hint={onDevice === 'downloadable' ? 'Turn on free on-device AI' : 'Explain, quiz, notes and chat'} onClick={() => jumpTo('ai')} />
+      <ActionCard
+        icon={settings.theme === 'dark' ? <Moon /> : settings.theme === 'light' ? <Sun /> : <Monitor />}
+        title="Appearance"
+        value={settings.theme === 'system' ? 'Match my computer' : settings.theme === 'dark' ? 'Dark' : 'Light'}
+        control={
+          <Segmented
+            label="Theme"
+            value={settings.theme}
+            onChange={(theme) => patch({ theme })}
+            options={[
+              { value: 'light', label: 'Light' },
+              { value: 'dark', label: 'Dark' },
+              { value: 'system', label: 'Auto' },
+            ]}
+          />
+        }
+      />
+      <ActionCard icon={<Layers />} title="Your Spaces" value={`${spaceCount} ${spaceCount === 1 ? 'Space' : 'Spaces'}`} hint="Add, edit or remove" onClick={() => navigate('/modes')} />
+      <ActionCard icon={<Users />} title="Subscribed channels" value="Import & sort" hint="Bring in the channels you follow" onClick={() => navigate('/subscriptions')} />
+      <ActionCard icon={<History />} title="Watch history" value={`${watched} ${watched === 1 ? 'video' : 'videos'}`} hint="Kept only in this browser" onClick={() => navigate('/history')} />
+      <ActionCard icon={<Keyboard />} title="Keyboard shortcut" value="Alt + Shift + F" hint="Change it in Chrome" onClick={() => void chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })} />
+    </CardGrid>
+  );
+}
+
 /* ─── Page ─────────────────────────────────────────────────────────────────── */
 
 export function SettingsPage({ data }: { data: DashboardData }) {
@@ -278,7 +332,9 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         </div>
       </div>
 
-      <Section id="account" title="Account" description="Your plan, AI credits, payments and details live on their own page.">
+      <SettingsCards settings={settings} spaceCount={modes.length} />
+
+      <Section id="account" icon={<CircleUser />} title="Account" description="Your plan, AI credits, payments and details live on their own page.">
         <SettingRow
           title={user ? accountIdentity(flow) : 'Not signed in'}
           description={user ? `${usage ? `${planLabel(usage.plan)} plan · ` : ''}Plan, AI credits, payments and your details.` : 'Sign in to raise your Space and AI allowance. Everything works signed out.'}
@@ -289,7 +345,7 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         </SettingRow>
       </Section>
 
-      <Section id="learning" title="Learning" description="How FocusSpace organises YouTube around the space you're in.">
+      <Section id="learning" icon={<Filter />} title="Learning" description="How FocusSpace organises YouTube around the space you're in.">
         <SettingRow
           title="Focus Mode"
           description={
@@ -330,6 +386,7 @@ export function SettingsPage({ data }: { data: DashboardData }) {
 
       <Section
         id="spaces"
+        icon={<Layers />}
         title="Spaces"
         description={`A Space is what you came to YouTube for. ${GUEST_SPACE_LIMIT} without an account, ${FREE_SPACE_LIMIT} with a free account, more on a paid plan. Spaces live in this browser.`}
       >
@@ -341,7 +398,7 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         <ExamRow settings={settings} />
       </Section>
 
-      <Section id="subscriptions" title="Subscribed channels" description="The channels FocusSpace ranks for each Space.">
+      <Section id="subscriptions" icon={<Users />} title="Subscribed channels" description="The channels FocusSpace ranks for each Space.">
         <SettingRow title="Refresh automatically" description="Check your channels for new uploads every 6 hours while Chrome is open.">
           <Switch label="Refresh automatically" checked={settings.autoSyncSubscriptions} onChange={(v) => patch({ autoSyncSubscriptions: v })} />
         </SettingRow>
@@ -353,7 +410,7 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         </details>
       </Section>
 
-      <Section id="appearance" title="Appearance" description="On youtube.com FocusSpace follows YouTube's own theme. These apply to FocusSpace's own pages.">
+      <Section id="appearance" icon={<Palette />} title="Appearance" description="On youtube.com FocusSpace follows YouTube's own theme. These apply to FocusSpace's own pages.">
         <SettingRow title="Theme">
           <Segmented
             label="Theme"
@@ -385,7 +442,7 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         ui/account/data-facts.ts list the Account page renders — so "concise" can never quietly become
         "different from the detailed explanation".
       */}
-      <Section id="privacy" title="Your data" description="Nothing is sold, and there is no advertising or tracking.">
+      <Section id="privacy" icon={<Database />} title="Your data" description="Nothing is sold, and there is no advertising or tracking.">
         <SettingRow title="Count me as an active user" description="Once a day, FocusSpace tells its server that this install was used, so it knows how many people use it and whether they come back. Nothing else is sent: no videos, no history, not your account.">
           <Switch label="Count me as an active user" checked={settings.shareUsageCounts} onChange={(v) => patch({ shareUsageCounts: v })} />
         </SettingRow>
@@ -400,7 +457,7 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         </SettingRow>
       </Section>
 
-      <Section id="about" title="About">
+      <Section id="about" icon={<Info />} title="About">
         <SettingRow title="Keyboard shortcut" description="Change the Focus Mode shortcut in Chrome's extension shortcuts page.">
           <Button size="sm" variant="secondary" icon={<Keyboard />} onClick={() => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })}>
             Shortcuts

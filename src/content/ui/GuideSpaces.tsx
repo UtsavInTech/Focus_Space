@@ -1,4 +1,4 @@
-import { ExternalLink, Lock, Plus } from 'lucide-react';
+import { ExternalLink, History, Library, Lock, Plus } from 'lucide-react';
 import type { LearningMode, Settings } from '@/types/domain';
 import { missingTemplates, selectMode } from '@/modes/service';
 import { examInfo } from '@/modes/exams';
@@ -74,6 +74,16 @@ export function GuideSpaces({ settings, modes, onCreate }: { settings: Settings;
           <span>New space</span>
         </button>
       )}
+      {/* FocusSpace's own pages, one click from YouTube: what you saved, and what you watched with it. */}
+      <div className="fs-guide-sep" role="separator" />
+      <button type="button" className="fs-guide-item" onClick={() => void sendMessage('dashboard/open', { route: '/library' }).catch(() => undefined)}>
+        <Library size={22} aria-hidden />
+        <span>FocusSpace Library</span>
+      </button>
+      <button type="button" className="fs-guide-item" onClick={() => void sendMessage('dashboard/open', { route: '/history' }).catch(() => undefined)}>
+        <History size={22} aria-hidden />
+        <span>FocusSpace History</span>
+      </button>
     </nav>
   );
 }

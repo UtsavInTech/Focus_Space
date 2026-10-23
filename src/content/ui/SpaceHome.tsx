@@ -28,7 +28,8 @@ import { ExamPicker } from './ExamPicker';
 import { Billboard, type Featured } from './home/Billboard';
 import { Row } from './home/Row';
 import { PosterCard, PosterSkeletons } from './home/PosterCard';
-import { OnDeviceAiBanner } from './home/OnDeviceAi';
+import { usePinnedBar } from './home/usePinnedBar';
+import { FocusSpaceHistoryRow, FocusSpaceLibraryRow } from './home/FocusSpaceRows';
 import { continueToVisible, discoveredToVisible, libraryToVisible, publishContinueWatching, publishFeedVideos } from '../data/visible-feed';
 import type { CardData } from './FeedCard';
 
@@ -253,8 +254,12 @@ function SpaceBar({ mode, modes, topicId, onTopic, onCreate }: { mode: LearningM
     fn();
   };
 
+  const pin = usePinnedBar();
+
   return (
-    <div className="fs-bar">
+    <>
+    <div ref={pin.anchor} style={pin.spacer} aria-hidden />
+    <div className={`fs-bar${pin.pinned ? ' is-pinned' : ''}`} ref={pin.bar} style={pin.style}>
       <div className="fs-space-menu" ref={ref}>
         <button type="button" className="fs-space-button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
           <SpaceIcon name={mode.icon} size={18} />
@@ -317,6 +322,7 @@ function SpaceBar({ mode, modes, topicId, onTopic, onCreate }: { mode: LearningM
         </div>
       )}
     </div>
+    </>
   );
 }
 
@@ -448,7 +454,7 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
           title: p.card.title,
           channelTitle: p.card.channelTitle,
           durationSec: p.card.durationSec,
-          eyebrow: i === 0 ? `#1 in ${mode.name} today` : p.card.source === 'discovery' ? 'Fresh pick for you' : 'From your channels',
+          eyebrow: i === 0 ? `Best ${mode.name} video for you` : p.card.source === 'discovery' ? 'Fresh pick for you' : 'From your channels',
           why: p.card.why,
           tierLabel: TIER_LABEL[p.card.tier],
           progress: p.card.progress,
@@ -549,7 +555,6 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
     <>
       {featured.length > 0 ? <Billboard items={featured} onTopic={onTopic} /> : warming ? <div className="fs-billboard fs-billboard-skeleton fs-skeleton" aria-hidden /> : null}
       {notes}
-      <OnDeviceAiBanner />
 
       {continuing.length > 0 && (
         <Row title="Continue learning" icon={<History size={20} aria-hidden />}>
@@ -565,7 +570,7 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
       {mode.kind !== 'learning' && <BecauseYouPlayed mode={mode} />}
 
       {top10.length >= MIN_ROW && (
-        <Row title={`Top ${Math.min(10, top10.length)} in ${mode.name} today`} icon={<Trophy size={20} aria-hidden />} className="fs-shelf-top10">
+        <Row title={`Top ${Math.min(10, top10.length)} best ${mode.name} videos`} icon={<Trophy size={20} aria-hidden />} className="fs-shelf-top10">
           {top10.map((p, i) => (
             <PosterCard key={p.card.id} card={p.card} rank={i + 1} />
           ))}
@@ -574,14 +579,6 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
       {warming && picks.length === 0 && (
         <Row title={`Finding the best of ${mode.name}…`}>
           <PosterSkeletons count={6} />
-        </Row>
-      )}
-
-      {fromChannels.length >= MIN_ROW && (
-        <Row title="From your channels" subtitle="Teachers you already trust" icon={<Users size={20} aria-hidden />}>
-          {fromChannels.map((c) => (
-            <PosterCard key={c.id} card={c} />
-          ))}
         </Row>
       )}
 
@@ -604,6 +601,18 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
       {fresh.length >= MIN_ROW && (
         <Row title="Fresh picks from YouTube" subtitle="New teachers, checked against your syllabus" icon={<Sparkles size={20} aria-hidden />}>
           {fresh.map((c) => (
+            <PosterCard key={c.id} card={c} />
+          ))}
+        </Row>
+      )}
+
+      <FocusSpaceHistoryRow />
+      <FocusSpaceLibraryRow />
+
+      {/* Your subscriptions come last on purpose: the shelves above are what FocusSpace picked for this Space. */}
+      {fromChannels.length >= MIN_ROW && (
+        <Row title="From your channels" subtitle="Teachers you already trust" icon={<Users size={20} aria-hidden />}>
+          {fromChannels.map((c) => (
             <PosterCard key={c.id} card={c} />
           ))}
         </Row>

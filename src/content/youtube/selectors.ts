@@ -87,6 +87,9 @@ export const ITEMS = {
 /** Filter chips (search page) whose label reveals Shorts. Matched by text in JS. */
 export const CHIP = { selector: 'yt-chip-cloud-chip-renderer', shortsLabel: /^shorts$/i };
 
+/** The fixed top bar's container; its bottom edge is where FocusSpace's Space bar pins (falls back to 56 px). */
+export const MASTHEAD_CONTAINER = '#masthead-container, ytd-masthead';
+
 export const MASTHEAD_LOGO_LINK = 'ytd-topbar-logo-renderer a#logo';
 
 /**

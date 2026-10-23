@@ -21,7 +21,8 @@ export function thumbnailUrl(id: string, size: 'maxres' | 'sd' | 'hq' | 'mq' = '
   return `https://i.ytimg.com/vi/${id}/${size}default.jpg`;
 }
 
-export function PosterCard({ card, rank }: { card: CardData; rank?: number }) {
+/** `plain`: no match label (a history item is shown because you watched it, not because it matched). */
+export function PosterCard({ card, rank, plain = false }: { card: CardData; rank?: number; plain?: boolean }) {
   const reduce = useReducedMotion();
   const url = card.url ?? watchUrl(card.id);
   const duration = formatDuration(card.durationSec);
@@ -63,10 +64,10 @@ export function PosterCard({ card, rank }: { card: CardData; rank?: number }) {
         <span className="fs-poster-info">
           <span className="fs-poster-title">{card.title}</span>
           <span className="fs-poster-meta">{meta}</span>
-          <span className="fs-poster-tags">
+          {!plain && <span className="fs-poster-tags">
             <span className={`fs-match${strong ? ' is-strong' : ''}${card.tier === 'excellent' ? ' is-best' : ''}`}>{TIER_LABEL[card.tier]}</span>
             {card.source !== 'discovery' && <span className="fs-poster-src">{SOURCE_LABEL[card.source]}</span>}
-          </span>
+          </span>}
         </span>
       </YtLink>
     </m.article>
