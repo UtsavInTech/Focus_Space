@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
+import { domAnimation, LazyMotion } from 'motion/react';
 import { activeModeOf, effectiveFilters, needsFirstSpace } from '@/modes/service';
 import { localSidekick } from '@/ai/sidekick';
 import { OverlayRootContext, Modal } from '@/ui/components/Modal';
@@ -53,6 +54,9 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
   const showAiEntry = shouldShowAiEntry(active, s.page.type);
 
   return (
+    // Motion's small DOM feature set, loaded once for every FocusSpace surface on youtube.com: the
+    // components use `m.*`, so the full animation engine never ships in this content script.
+    <LazyMotion features={domAnimation}>
     <NavigatorContext.Provider value={navigator}>
       <YouTubeDataContext.Provider value={pageYouTubeData}>
         <OverlayRootContext.Provider value={slots.overlay.container}>
@@ -104,5 +108,6 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
         </OverlayRootContext.Provider>
       </YouTubeDataContext.Provider>
     </NavigatorContext.Provider>
+    </LazyMotion>
   );
 }

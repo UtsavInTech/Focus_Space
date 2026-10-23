@@ -62,6 +62,24 @@ Other mechanics:
 
 The UI shows tier labels, never percentages. Numeric scores only appear in the developer view.
 
+## Off-domain guard (`domains.ts`)
+
+Some videos belong to another world entirely, whatever words they share with a Space. Competitive-exam
+prep is the loudest case: "SSC CGL Computer Awareness: Operating System" is not System Design, and an
+account that once watched SSC videos gets them in every YouTube search and recommendation.
+
+- Exam families (UPSC, SSC, banking, railways, state PSC, defence/police, teaching, JEE, NEET, school
+  boards, plus the shared government-exam vocabulary) are recognised in the **title**, the **channel
+  name** (including exam-only brands such as Adda247), and a **description** that names two or more.
+- A family the Space itself names in its configuration is its own and is never penalised.
+- Penalty, outside the 0.45 noise cap: 0.6 for government-exam prep in any other Space, 0.35 for school
+  and entrance prep (a Maths Space may want a JEE lecture), 0.25 for a sibling exam (SSC in a UPSC Space).
+- GATE is deliberately absent: it is the CS learner's own exam.
+
+Discovery adds one rule on top (`hasOwnEvidence` in `discovery.ts`): a YouTube recommendation must name
+the subject in its **title**, and a result of the Space's own search must, in a learning Space, have title
+or description evidence. The search alone is context, not evidence. Nothing off-domain is ever discovered.
+
 ## Space kinds and search context (V3)
 
 A space's `kind` changes what counts as a positive cue:

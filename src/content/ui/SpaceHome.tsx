@@ -207,7 +207,7 @@ export function LockMeter({ lock, examName, compact = false }: { lock: LockState
     <div className={`fs-lock-meter${compact ? ' is-compact' : ''}`} role="status">
       <span className="fs-lock-meter-head">
         <Lock size={14} aria-hidden />
-        {compact ? unlockHint(lock, examName) : `More Spaces unlock as you study. ${unlockHint(lock, examName)}.`}
+        {compact ? unlockHint(lock, examName) : `More Spaces open as you study: ${lock.remaining} more min of ${examName} to go.`}
       </span>
       <span className="fs-lock-meter-bar" aria-hidden>
         <span style={{ width: `${Math.max(4, lock.progress * 100)}%` }} />
@@ -565,7 +565,7 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
       {mode.kind !== 'learning' && <BecauseYouPlayed mode={mode} />}
 
       {top10.length >= MIN_ROW && (
-        <Row title={`Top ${Math.min(10, top10.length)} in ${mode.name} today`} icon={<Trophy size={20} aria-hidden />} className="fs-row-top10">
+        <Row title={`Top ${Math.min(10, top10.length)} in ${mode.name} today`} icon={<Trophy size={20} aria-hidden />} className="fs-shelf-top10">
           {top10.map((p, i) => (
             <PosterCard key={p.card.id} card={p.card} rank={i + 1} />
           ))}
@@ -590,7 +590,7 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
           key={t.id}
           title={t.name}
           action={
-            <button type="button" className="fs-row-more" onClick={() => onTopic(t.id)}>
+            <button type="button" className="fs-shelf-more" onClick={() => onTopic(t.id)}>
               See all <ChevronRight size={14} aria-hidden />
             </button>
           }

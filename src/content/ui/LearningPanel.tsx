@@ -1,3 +1,4 @@
+import { OnDeviceBadge } from './home/OnDeviceAi';
 import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowRight, BookOpen, Check, ChevronDown, ChevronUp, Circle, CircleDot, CircleHelp, Lightbulb, ListChecks, MessageCircle, NotebookPen, Play, SkipForward, Sparkles, X } from 'lucide-react';
 import type { AiSettings, LearningMode } from '@/types/domain';
@@ -555,7 +556,13 @@ function AnswerView({
         )}
       </div>
 
-      {provider && <div className="fs-answer-foot">From {providerLabel === HOSTED_AI_LABEL ? HOSTED_AI_LABEL : PROVIDER_NAME[provider] ?? providerLabel ?? 'AI'} · AI can make mistakes</div>}
+      {provider === 'chrome' ? (
+        <div className="fs-answer-foot">
+          <OnDeviceBadge /> No credits used · AI can make mistakes
+        </div>
+      ) : (
+        provider && <div className="fs-answer-foot">From {providerLabel === HOSTED_AI_LABEL ? HOSTED_AI_LABEL : PROVIDER_NAME[provider] ?? providerLabel ?? 'AI'} · AI can make mistakes</div>
+      )}
     </div>
   );
 }

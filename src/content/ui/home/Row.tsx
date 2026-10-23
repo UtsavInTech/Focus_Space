@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
@@ -38,37 +38,37 @@ export function Row({ title, subtitle, icon, action, children, className }: { ti
   };
 
   return (
-    <motion.section
-      className={`fs-row${className ? ` ${className}` : ''}`}
+    <m.section
+      className={`fs-shelf${className ? ` ${className}` : ''}`}
       aria-label={title}
       initial={reduce ? false : { opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '0px 0px -60px 0px' }}
       transition={{ duration: 0.5, ease: [0.2, 0, 0, 1] }}
     >
-      <header className="fs-row-head">
+      <header className="fs-shelf-head">
         <h2>
           {icon}
           {title}
         </h2>
-        {subtitle && <span className="fs-row-sub">{subtitle}</span>}
-        {action && <span className="fs-row-action">{action}</span>}
+        {subtitle && <span className="fs-shelf-sub">{subtitle}</span>}
+        {action && <span className="fs-shelf-action">{action}</span>}
       </header>
-      <div className="fs-row-frame">
+      <div className="fs-shelf-frame">
         {!edges.start && (
-          <button type="button" className="fs-row-arrow is-prev" aria-label={`Scroll ${title} back`} onClick={() => page(-1)}>
+          <button type="button" className="fs-shelf-arrow is-prev" aria-label={`Scroll ${title} back`} onClick={() => page(-1)}>
             <ChevronLeft size={26} aria-hidden />
           </button>
         )}
-        <div className="fs-row-track" ref={track}>
+        <div className="fs-shelf-track" ref={track}>
           {children}
         </div>
         {!edges.end && (
-          <button type="button" className="fs-row-arrow is-next" aria-label={`Scroll ${title} forward`} onClick={() => page(1)}>
+          <button type="button" className="fs-shelf-arrow is-next" aria-label={`Scroll ${title} forward`} onClick={() => page(1)}>
             <ChevronRight size={26} aria-hidden />
           </button>
         )}
       </div>
-    </motion.section>
+    </m.section>
   );
 }

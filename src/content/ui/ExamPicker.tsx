@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 import { EXAMS, type ExamId } from '@/modes/exams';
 import { chooseExam, skipExam, SpaceLimitError } from '@/modes/service';
@@ -37,14 +37,14 @@ export function ExamPicker({ onPick, onChosen, onSkip, compact = false }: { onPi
 
   return (
     <div className={`fs-exams${compact ? ' is-compact' : ''}`}>
-      <motion.div
+      <m.div
         className="fs-exam-grid"
         initial="hidden"
         animate="shown"
         variants={{ hidden: {}, shown: { transition: { staggerChildren: reduce ? 0 : 0.045 } } }}
       >
         {EXAMS.map((exam) => (
-          <motion.button
+          <m.button
             key={exam.id}
             type="button"
             className="fs-exam-card"
@@ -64,9 +64,9 @@ export function ExamPicker({ onPick, onChosen, onSkip, compact = false }: { onPi
               {!compact && <small>{exam.covers}</small>}
             </span>
             <ArrowRight className="fs-exam-go" size={16} aria-hidden />
-          </motion.button>
+          </m.button>
         ))}
-      </motion.div>
+      </m.div>
       {error && (
         <p className="fs-error" role="alert">
           {error}

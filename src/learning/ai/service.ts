@@ -86,6 +86,35 @@ export async function pickProvider(providers: AiProvider[]): Promise<{ provider:
   return fallback;
 }
 
+/**
+ * Every provider ready to answer, in preference order. When the first one fails — the FocusSpace server
+ * is out of credits for this learner, or unreachable — the next one answers instead. In practice that
+ * is Chrome's on-device model, which costs no credits at all, so running out of credits no longer means
+ * running out of AI.
+ */
+export async function readyProviders(providers: AiProvider[]): Promise<AiProvider[]> {
+  const out: AiProvider[] = [];
+  for (const provider of providers) {
+    const availability = await provider.availability().catch((): AiAvailability => 'unavailable');
+    if (availability === 'available') out.push(provider);
+  }
+  return out;
+}
+
+/** Runs `call` on each ready provider in turn until one answers; the last error is kept if none does. */
+async function withFallback<T>(providers: AiProvider[], call: (provider: AiProvider) => Promise<T>, signal?: AbortSignal): Promise<{ value: T; provider: AiProvider }> {
+  let lastError: unknown = new Error('No AI provider is set up.');
+  for (const provider of providers) {
+    try {
+      return { value: await call(provider), provider };
+    } catch (err) {
+      lastError = err;
+      if (signal?.aborted) break;
+    }
+  }
+  throw lastError;
+}
+
 export const capabilitiesOf = (provider: AiProvider): ProviderCapabilities => provider.capabilities ?? DEFAULT_CAPABILITIES;
 
 /**
@@ -138,24 +167,33 @@ export function createAiService(options: { providers: () => Promise<AiProvider[]
       if (pending) return pending;
 
       const task = (async (): Promise<AiResult> => {
-        const found = await pick();
-        if (!found || found.availability !== 'available') {
+        const all = await options.providers();
+        const ready = await readyProviders(all);
+        if (!ready.length) {
+          const found = await pickProvider(all);
           return { ok: false, code: 'unavailable', error: found?.availability === 'downloadable' || found?.availability === 'downloading' ? 'The on-device model is not downloaded yet.' : 'No AI provider is set up.' };
         }
         try {
           const prompt = request.action === 'quiz' && request.quiz ? buildQuizMorePrompt(request.context, request.quiz) : buildPrompt(request.action, request.context);
-          let answer = (await found.provider.complete(prompt, request, signal)).trim();
-          if (!answer) return { ok: false, code: 'failed', error: 'The AI returned an empty answer.' };
-          // One revision when the draft breaks the action's rules (e.g. quiz questions about the course instead of the subject).
-          const revision = reviewAnswer(request.action, answer, request.context);
-          if (revision) {
-            const revised = (await found.provider.complete({ system: prompt.system, user: `${prompt.user}\n\nDraft:\n"""\n${answer}\n"""\n\n${revision}` }, request, signal)).trim();
-            if (revised) answer = revised;
-          }
-          cache.set(key, { at: now(), answer, provider: found.provider.id });
+          const { value, provider } = await withFallback(
+            ready,
+            async (p) => {
+              let answer = (await p.complete(prompt, request, signal)).trim();
+              if (!answer) throw new Error('The AI returned an empty answer.');
+              // One revision when the draft breaks the action's rules (e.g. quiz questions about the course instead of the subject).
+              const revision = reviewAnswer(request.action, answer, request.context);
+              if (revision) {
+                const revised = (await p.complete({ system: prompt.system, user: `${prompt.user}\n\nDraft:\n"""\n${answer}\n"""\n\n${revision}` }, request, signal)).trim();
+                if (revised) answer = revised;
+              }
+              return answer;
+            },
+            signal,
+          );
+          cache.set(key, { at: now(), answer: value, provider: provider.id });
           while (cache.size > max) cache.delete(cache.keys().next().value as string);
-          recordUsage(found.provider.id, request.action, false, answer);
-          return { ok: true, answer, provider: found.provider.id, cached: false };
+          recordUsage(provider.id, request.action, false, value);
+          return { ok: true, answer: value, provider: provider.id, cached: false };
         } catch (err) {
           return { ok: false, code: errorCode(err), error: err instanceof Error ? err.message : 'The AI request failed.' };
         }
@@ -171,16 +209,25 @@ export function createAiService(options: { providers: () => Promise<AiProvider[]
      */
     async chat(request: ChatRequest, signal?: AbortSignal): Promise<ChatResult> {
       if (!request.question.trim()) return { ok: false, code: 'failed', error: 'Type a question first.' };
-      const found = await pick();
-      if (!found || found.availability !== 'available') {
+      const all = await options.providers();
+      const ready = await readyProviders(all);
+      if (!ready.length) {
+        const found = await pickProvider(all);
         return { ok: false, code: 'unavailable', error: found?.availability === 'downloadable' || found?.availability === 'downloading' ? 'The on-device model is not downloaded yet.' : 'No AI provider is set up.' };
       }
       try {
         const prompt = buildChatPrompt(request.context, request.history, request.question);
-        const answer = (await found.provider.complete(prompt, { action: 'chat', context: request.context, question: request.question }, signal)).trim();
-        if (!answer) return { ok: false, code: 'failed', error: 'The AI returned an empty answer.' };
-        recordUsage(found.provider.id, request.voice ? 'voice' : 'chat', false, answer);
-        return { ok: true, answer, provider: found.provider.id };
+        const { value: answer, provider } = await withFallback(
+          ready,
+          async (p) => {
+            const text = (await p.complete(prompt, { action: 'chat', context: request.context, question: request.question }, signal)).trim();
+            if (!text) throw new Error('The AI returned an empty answer.');
+            return text;
+          },
+          signal,
+        );
+        recordUsage(provider.id, request.voice ? 'voice' : 'chat', false, answer);
+        return { ok: true, answer, provider: provider.id };
       } catch (err) {
         return { ok: false, code: errorCode(err), error: err instanceof Error ? err.message : 'The AI request failed.' };
       }

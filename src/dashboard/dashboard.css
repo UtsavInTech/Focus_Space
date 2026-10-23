@@ -25,15 +25,20 @@
   font-weight: 540;
   white-space: nowrap;
   transition: background 140ms ease, color 140ms ease;
+  position: relative;
+  isolation: isolate;
 }
 .fs-nav-item svg { width: 17px; height: 17px; flex: none; }
 .fs-nav-item:hover { background: var(--fs-surface-2); color: var(--fs-text); }
-.fs-nav-item[aria-current='page'] { background: var(--fs-accent-soft); color: var(--fs-accent-text); }
+.fs-nav-item[aria-current='page'] { color: var(--fs-accent-text); }
+.fs-nav-item[aria-current='page']:hover { background: transparent; }
+/* The current page's highlight, one element that Motion glides between items (DashboardApp.tsx). */
+.fs-nav-active { position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--fs-accent-soft); box-shadow: inset 2px 0 0 var(--fs-accent); }
 .fs-sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
 .fs-focus-mini { padding: 12px; display: flex; align-items: center; gap: 10px; }
 
 .fs-main { min-width: 0; }
-.fs-page { max-width: 1180px; margin: 0 auto; padding: 36px 40px 96px; display: flex; flex-direction: column; gap: 24px; animation: fs-fade-up 240ms var(--fs-ease) both; }
+.fs-page { max-width: 1180px; margin: 0 auto; padding: 36px 40px 96px; display: flex; flex-direction: column; gap: 24px; }
 .fs-page-narrow { max-width: 860px; }
 .fs-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .fs-page-head p { color: var(--fs-text-2); margin-top: 6px; max-width: 640px; }
@@ -308,40 +313,15 @@ html .fs-pick-on {
 html[data-theme='dark'] .fs-plan-premium { color: #ff7b7b; }
 html[data-theme='light'] .fs-plan-premium { color: #b91c1c; }
 
-/* ─── Bubbles (Bubbles.tsx) ── behind everything, taking no clicks; the sidebar lets a little through. */
-.fs-bubbles {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-}
-.fs-cursor-sparkle {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-}
-.fs-app > :not(.fs-bubbles):not(.fs-sidebar):not(.fs-cursor-sparkle) {
-  position: relative;
-  z-index: 1;
-}
-.fs-app > .fs-sidebar {
-  z-index: 1;
-  background: color-mix(in srgb, var(--fs-surface) 86%, transparent);
-}
-
 /* ─── The sidebar's logo, alive ── as in the website's nav (web/src/site.css, .fsw-logo.is-animated). */
 .fs-mark.is-animated .fs-mark-ring,
 .fs-mark.is-animated .fs-mark-inner {
   transform-box: view-box;
   transform-origin: 16px 16px;
 }
-.fs-mark.is-animated .fs-mark-ring { animation: fs-mark-turn 24s linear infinite; }
-.fs-mark.is-animated .fs-mark-inner {
+/* The rings turn only while the logo is hovered: a resting page stays still. */
+.fs-sidebar-logo:hover .fs-mark.is-animated .fs-mark-ring { animation: fs-mark-turn 24s linear infinite; }
+.fs-sidebar-logo:hover .fs-mark.is-animated .fs-mark-inner {
   stroke-dasharray: 22.4 4;
   animation: fs-mark-turn 14s linear infinite reverse;
 }
@@ -358,26 +338,54 @@ html[data-theme='light'] .fs-plan-premium { color: #b91c1c; }
   100% { transform: rotate(0deg) scale(1); opacity: 1; }
 }
 
-/* The name's sparks (NameSparkle.tsx), and "Space" breathing a faint red glow. */
 .fs-brand-word { position: relative; display: inline-flex; }
-.fs-name-sparkle {
-  position: absolute;
-  inset: -14px;
-  width: calc(100% + 28px);
-  height: calc(100% + 28px);
-  pointer-events: none;
-}
-.fs-sidebar-logo .fs-wordmark-accent { animation: fs-space-glow 3.6s ease-in-out infinite; }
-@keyframes fs-space-glow {
-  0%, 100% { text-shadow: 0 0 0 rgba(239, 68, 68, 0); }
-  50% { text-shadow: 0 0 10px rgba(239, 68, 68, 0.38); }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .fs-mark.is-animated .fs-mark-ring,
   .fs-mark.is-animated .fs-mark-inner,
-  .fs-mark.is-animated .fs-mark-play,
-  .fs-sidebar-logo .fs-wordmark-accent { animation: none; }
+  .fs-mark.is-animated .fs-mark-play { animation: none; }
   /* At rest the mark is the logo exactly — a solid inner ring. */
   .fs-mark.is-animated .fs-mark-inner { stroke-dasharray: none; }
 }
+
+/* ─── Settings: on-device AI ───────────────────────────────────────────────── */
+
+.fs-ondevice-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px;
+  margin-bottom: 8px;
+  border-radius: 16px;
+  background: linear-gradient(120deg, color-mix(in srgb, #8b5cf6 12%, var(--fs-surface)) 0%, var(--fs-surface) 60%, color-mix(in srgb, #ef4444 8%, var(--fs-surface)) 100%);
+  border: 1px solid color-mix(in srgb, #8b5cf6 28%, var(--fs-border));
+}
+.fs-ondevice-card-icon { flex: none; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 14px; color: #fff; background: linear-gradient(145deg, #8b5cf6, #ef4444); box-shadow: 0 10px 24px -8px rgba(139, 92, 246, 0.6); }
+.fs-ondevice-card-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; }
+.fs-ondevice-free { padding: 2px 8px; border-radius: 999px; background: #46d369; color: #052e12; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.fs-ondevice-card-perks { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0; font-size: 12.5px; color: var(--fs-text-2); }
+.fs-ondevice-card-perks li { display: inline-flex; align-items: center; gap: 5px; }
+.fs-ondevice-card-perks svg { color: #1f9d55; }
+.fs-ondevice-card-action { flex: none; align-self: center; }
+.fs-ondevice-on { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(31, 157, 85, 0.12); color: #1f9d55; font-size: 13px; font-weight: 700; white-space: nowrap; }
+@media (max-width: 720px) { .fs-ondevice-card { flex-wrap: wrap; } }
+
+/* ─── Library & History: modern rows ───────────────────────────────────────── */
+
+.fs-home-section > header { position: sticky; top: 0; z-index: 2; padding: 10px 0 6px; margin-bottom: -6px; background: color-mix(in srgb, var(--fs-bg) 82%, transparent); backdrop-filter: blur(12px); }
+.fs-home-section > header h2 { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fs-text-2); }
+.fs-list { gap: 2px; padding: 6px; }
+.fs-lib-row.fs-list-item { gap: 14px; padding: 10px 12px; border-radius: 12px; transition: background 160ms ease, box-shadow 200ms var(--fs-ease), transform 200ms var(--fs-ease); }
+.fs-lib-row.fs-list-item:hover { background: var(--fs-surface-2); box-shadow: 0 6px 20px -12px rgba(0, 0, 0, 0.35); transform: translateY(-1px); }
+.fs-lib-row:focus-visible { outline: none; box-shadow: var(--fs-ring); }
+.fs-lib-row .fs-list-thumb { width: 120px; border-radius: 10px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+.fs-lib-row .fs-list-thumb img { transition: transform 400ms var(--fs-ease); }
+.fs-lib-row:hover .fs-list-thumb img { transform: scale(1.06); }
+.fs-lib-title { font-weight: 600; }
+.fs-lib-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--fs-accent-soft); }
+.fs-mini-bar { width: 96px; height: 5px; }
+.fs-mini-bar span { background: linear-gradient(90deg, var(--fs-accent), #f59e0b); }
+.fs-space-chip { transition: border-color 140ms ease, background 140ms ease, transform 160ms var(--fs-ease); }
+.fs-space-chip:active { transform: scale(0.97); }

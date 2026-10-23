@@ -1,3 +1,4 @@
+import { OnDeviceBadge } from './home/OnDeviceAi';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AudioLines, Check, Mic, NotebookPen, Square, Volume2, X } from 'lucide-react';
 import type { LearningMode } from '@/types/domain';
@@ -110,6 +111,8 @@ export interface ChatPanelProps {
 }
 
 export function ChatPanel({ video, mode, topicId, path, map, transcript, transcriptSource, outline, loadTranscript, currentTime, onSeek, durationSec, homepage, language, onClose }: ChatPanelProps) {
+  /** The last answer came from Chrome's on-device model: free, private — said in the header. */
+  const [onDevice, setOnDevice] = useState(false);
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
@@ -231,6 +234,7 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
     const context = homepage ?? buildLearningContext({ video: video ?? { id: '', title: '', channelTitle: '' }, mode: mode!, topicId: topicId ?? null, path: path ?? null, map: map ?? null, transcript: segments ?? null, transcriptSource: transcriptSource ?? null, outline: outline ?? null, currentTime: at, language, question: q });
     const result = await sendMessage('chat/send', { context, history, question: spoken ? q + SPOKEN_STYLE : q, voice: fromVoice }).catch(() => null);
     setLoading(false);
+    if (result?.ok) setOnDevice(result.provider === 'chrome');
     if (!result || !result.ok) {
       setError(!result ? { text: 'FocusSpace couldn’t reach its AI service. Reload the page and try again.' } : { text: result.error, code: result.code });
       if (spoken) convo.current?.idle();
@@ -318,6 +322,7 @@ export function ChatPanel({ video, mode, topicId, path, map, transcript, transcr
         <span className="fs-ai-panel-title">
           <FocusMark size={16} active />
           FocusSpace AI
+          {onDevice && <OnDeviceBadge compact />}
         </span>
         <button type="button" className="fs-icon-plain" aria-label="Close" onClick={onClose}>
           <X size={16} aria-hidden />

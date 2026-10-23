@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 import { Check, Cpu, Infinity as InfinityIcon, Lock, WifiOff, X, Zap } from 'lucide-react';
 import { sendMessage } from '@/messaging/runtime';
 import { updateItem } from '@/storage/storage';
@@ -56,7 +56,7 @@ export function OnDeviceAiBanner() {
   const dismiss = () => void updateItem('ui', (u) => ({ ...u, dismissedOnDeviceAi: true }));
 
   return (
-    <motion.aside
+    <m.aside
       className="fs-ondevice"
       aria-label="On-device AI"
       initial={reduce ? false : { opacity: 0, y: 20 }}
@@ -102,6 +102,6 @@ export function OnDeviceAiBanner() {
       <button type="button" className="fs-icon-plain fs-ondevice-close" aria-label="Got it, hide this" onClick={dismiss}>
         <X size={16} aria-hidden />
       </button>
-    </motion.aside>
+    </m.aside>
   );
 }

@@ -6,7 +6,7 @@ import { FILTER_PRESETS } from '@/storage/schema';
 import { uniqueId } from '@/learning/text';
 import { blankMode, DEFAULT_MODES } from './templates';
 import { examInfo, type ExamId } from './exams';
-import { isSpaceLocked, lockState, unlockHint } from './unlock';
+import { isSpaceLocked, lockState } from './unlock';
 
 /** All mode + focus state mutations live here so every surface behaves the same. */
 
@@ -41,7 +41,7 @@ async function authorizeSpace(id: string, name: string): Promise<void> {
   const lock = lockState(settings, watchHistory);
   if (isSpaceLocked(id, lock, modes)) {
     const exam = examInfo(lock.examId)?.label ?? 'your exam';
-    throw new SpaceLockedError(`${name} is locked for now. ${unlockHint(lock, exam)}, and every Space opens.`);
+    throw new SpaceLockedError(`${name} is locked for now. Study ${lock.remaining} more min of ${exam} and every Space opens.`);
   }
   // If the background cannot answer, the allowance was not checked — so the Space is not created.
   const result = await sendMessage('spaces/authorize', { spaceId: id, name }).catch(
@@ -203,8 +203,17 @@ export function channelRuleOf(mode: LearningMode | null, channel: ChannelRef): '
  * recorded first, so the Space being created is the one Space the lock lets through.
  */
 export async function chooseExam(examId: ExamId): Promise<LearningMode | null> {
-  await updateItem('settings', (s) => ({ ...s, exam: examId }));
-  const mode = await addTemplate(examId);
+  const before = await getItems(['settings', 'modes']);
+  // Locking is for a fresh start only: someone who already has Spaces keeps every door open.
+  const hadSpaces = before.modes.some((m) => m.id !== examId);
+  await updateItem('settings', (s) => ({ ...s, exam: examId, spacesUnlocked: s.spacesUnlocked || hadSpaces }));
+  let mode: LearningMode | null;
+  try {
+    mode = await addTemplate(examId);
+  } catch (err) {
+    await updateItem('settings', (s) => ({ ...s, exam: before.settings.exam, spacesUnlocked: before.settings.spacesUnlocked }));
+    throw err;
+  }
   if (!mode) return null;
   await updateItem('settings', (s) => ({ ...s, activeModeId: examId, focusEnabled: true, onboarded: true, defaultModeId: s.defaultModeId ?? examId }));
   return mode;

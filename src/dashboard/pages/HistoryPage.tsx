@@ -1,3 +1,4 @@
+import { StaggerItem, StaggerList } from '../motion';
 import { useState } from 'react';
 import { History, Trash2 } from 'lucide-react';
 import type { WatchEntry } from '@/types/domain';
@@ -41,9 +42,9 @@ export function HistoryPage({ data }: { data: DashboardData }) {
             <header>
               <h2>{day}</h2>
             </header>
-            <div className="fs-card fs-list">
+            <StaggerList className="fs-card fs-list">
               {list.map((e) => (
-                <button key={e.videoId} type="button" className="fs-list-item fs-lib-row" onClick={() => openYouTube(watchUrl(e.videoId))}>
+                <StaggerItem key={e.videoId} type="button" className="fs-list-item fs-lib-row" onClick={() => openYouTube(watchUrl(e.videoId))}>
                   <span className="fs-list-thumb">
                     <img src={thumbnailUrl(e.videoId)} alt="" loading="lazy" />
                   </span>
@@ -57,9 +58,9 @@ export function HistoryPage({ data }: { data: DashboardData }) {
                     </span>
                     <span className="fs-caption">{e.progress >= 0.9 ? 'Finished' : `${Math.round(e.progress * 100)}%`}</span>
                   </span>
-                </button>
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerList>
           </section>
         ))
       )}

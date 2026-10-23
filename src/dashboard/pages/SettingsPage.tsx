@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Download, ExternalLink, Keyboard, Monitor, Moon, RotateCcw, Sun } from 'lucide-react';
+import { Check, Cpu, Download, ExternalLink, Keyboard, Monitor, Moon, RotateCcw, Sun } from 'lucide-react';
 import type { AiSettings, Settings } from '@/types/domain';
 import type { NoteLanguage } from '@/types/notes';
 import type { AiStatus } from '@/learning/ai/service';
@@ -14,7 +14,10 @@ import type { DashboardData } from '../DashboardApp';
 import { navigate } from '../router';
 import { Section, patch, isHttpUrl } from './section';
 import { setItem } from '@/storage/storage';
-import { setFocusEnabled } from '@/modes/service';
+import { chooseExam, setFocusEnabled, unlockAllSpaces } from '@/modes/service';
+import { EXAMS, examInfo, isExamId } from '@/modes/exams';
+import { unlockHint } from '@/modes/unlock';
+import { useLockState } from '@/ui/use-lock';
 import { Button, Segmented, SettingRow, Switch, TextInput } from '@/ui/components/primitives';
 import { FilterEditor } from '@/ui/components/FilterEditor';
 import { Modal } from '@/ui/components/Modal';
@@ -80,11 +83,12 @@ function AiSection({ settings }: { settings: Settings }) {
 
   return (
     <Section id="ai" title="FocusSpace AI" description="Ask anything about the video or page you're on. It can also explain, give an example, quiz you or take notes, and it runs only when you ask.">
+      <OnDeviceCard settings={settings} onChange={refresh} />
       <SettingRow
         title="Provider"
         description={
           hosted
-            ? `${HOSTED_AI_LABEL} answers from your plan's monthly credits. On-device uses Chrome's built-in model instead: free and private, but only on computers that support it.`
+            ? `${HOSTED_AI_LABEL} answers from your plan's monthly credits, and switches to on-device AI by itself if they run out. On-device uses Chrome's built-in model only: free and private.`
             : "Automatic uses your endpoint when set, otherwise Chrome's on-device model."
         }
       >
@@ -139,6 +143,120 @@ function AiSection({ settings }: { settings: Settings }) {
       </SettingRow>
       )}
     </Section>
+  );
+}
+
+/* ─── Exam & locked Spaces ─────────────────────────────────────────────────── */
+
+function ExamRow({ settings }: { settings: Settings }) {
+  const lock = useLockState();
+  const exam = examInfo(settings.exam);
+  return (
+    <>
+      <SettingRow title="Preparing for" description={exam ? `${exam.label} (${exam.covers}). FocusSpace keeps lessons for other exams out of your other Spaces.` : 'Not preparing for an exam. Pick one to get its Space with your syllabus as topics.'}>
+        <select
+          className="fs-select"
+          style={{ width: 200 }}
+          value={exam?.id ?? 'none'}
+          aria-label="Exam you are preparing for"
+          onChange={(e) => {
+            const id = e.target.value;
+            if (isExamId(id)) void chooseExam(id).catch(() => undefined);
+            else patch({ exam: 'none' });
+          }}
+        >
+          <option value="none">No exam</option>
+          {EXAMS.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.label}
+            </option>
+          ))}
+        </select>
+      </SettingRow>
+      {lock?.locked && exam && (
+        <SettingRow title="More Spaces unlock as you study" description={`${unlockHint(lock, exam.label)}. Starting with one Space is how FocusSpace helps you actually finish it. You can open everything now if you prefer.`}>
+          <Button size="sm" variant="secondary" onClick={() => void unlockAllSpaces()}>
+            Open every Space now
+          </Button>
+        </SettingRow>
+      )}
+    </>
+  );
+}
+
+/* ─── On-device AI ─────────────────────────────────────────────────────────── */
+
+const ON_DEVICE_PERKS = ['No credits, ever', 'Private: nothing leaves this computer', 'Works offline', 'Backup when your credits run out'];
+
+/**
+ * Chrome's built-in model, given the room it deserves: most learners don't know their browser can run
+ * an AI tutor for free. The download has to start from a click on an extension page — this is that page.
+ */
+function OnDeviceCard({ settings, onChange }: { settings: Settings; onChange: () => void }) {
+  const [state, setState] = useState<{ availability: AiStatus['availability']; inUse: boolean } | null>(null);
+  const [download, setDownload] = useState<{ progress: number; error?: string } | null>(null);
+  const refresh = useCallback(() => {
+    sendMessage('ai/on-device', {})
+      .then(setState)
+      .catch(() => setState({ availability: 'unavailable', inUse: false }));
+  }, []);
+  useEffect(refresh, [refresh, settings.ai.provider]);
+
+  if (!state) return null;
+  const ready = state.availability === 'available';
+  const start = async () => {
+    setDownload({ progress: 0 });
+    try {
+      await downloadOnDeviceModel((progress) => setDownload({ progress }));
+      setDownload(null);
+      refresh();
+      onChange();
+    } catch (err) {
+      setDownload({ progress: 0, error: err instanceof Error ? err.message : 'The download failed.' });
+    }
+  };
+
+  return (
+    <div className="fs-ondevice-card">
+      <div className="fs-ondevice-card-icon" aria-hidden>
+        <Cpu size={26} />
+      </div>
+      <div className="fs-grow">
+        <div className="fs-ondevice-card-title">
+          On-device AI <span className="fs-ondevice-free">Free</span>
+        </div>
+        <p className="fs-body-sm fs-muted" style={{ margin: '4px 0 10px' }}>
+          {state.availability === 'unavailable'
+            ? 'This browser can’t run Chrome’s built-in AI model. It needs desktop Chrome 138 or newer on a computer that supports it.'
+            : 'Chrome has a small AI model built in. FocusSpace can use it to explain, quiz you and chat, right on this computer, with no credits at all.'}
+        </p>
+        <ul className="fs-ondevice-card-perks">
+          {ON_DEVICE_PERKS.map((p) => (
+            <li key={p}>
+              <Check size={13} aria-hidden /> {p}
+            </li>
+          ))}
+        </ul>
+        {download?.error && <p className="fs-body-sm" style={{ color: 'var(--fs-danger)' }}>{download.error}</p>}
+      </div>
+      <div className="fs-ondevice-card-action">
+        {ready ? (
+          settings.ai.provider === 'chrome' ? (
+            <span className="fs-ondevice-on">
+              <Check size={14} aria-hidden /> In use for every answer
+            </span>
+          ) : (
+            <Button size="sm" onClick={() => patch({ ai: { ...settings.ai, provider: 'chrome' } })}>
+              Use for every answer
+            </Button>
+          )
+        ) : state.availability === 'downloadable' || state.availability === 'downloading' ? (
+          <Button size="sm" icon={<Download />} disabled={!!download && !download.error} onClick={() => void start()}>
+            {download && !download.error ? `Downloading ${Math.round(download.progress * 100)}%` : state.availability === 'downloading' ? 'Continue download' : 'Turn on (one-time download)'}
+          </Button>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -220,6 +338,7 @@ export function SettingsPage({ data }: { data: DashboardData }) {
             Manage spaces
           </Button>
         </SettingRow>
+        <ExamRow settings={settings} />
       </Section>
 
       <Section id="subscriptions" title="Subscribed channels" description="The channels FocusSpace ranks for each Space.">

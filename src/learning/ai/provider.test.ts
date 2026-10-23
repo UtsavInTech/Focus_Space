@@ -83,3 +83,28 @@ describe('usage accounting (docs/V5_CONTRACT.md §F/§I)', () => {
     expect(entries()).toHaveLength(2); // unchanged
   });
 });
+
+describe('falling back to on-device AI', () => {
+  const outOfCredits = (): AiProvider => ({
+    id: 'endpoint',
+    label: 'FocusSpace AI',
+    availability: async () => 'available',
+    complete: async () => {
+      throw Object.assign(new Error('You have used today’s AI credits.'), { code: 'quota_exceeded' });
+    },
+  });
+
+  it('answers on-device when the server is out of credits', async () => {
+    const chrome = fakeProvider('chrome', 'available', 'free answer');
+    const ai = createAiService({ providers: () => [outOfCredits(), chrome.provider] });
+    const result = await ai.run({ action: 'explain', context: ctx });
+    expect(result).toMatchObject({ ok: true, provider: 'chrome', answer: 'free answer' });
+    const chat = await ai.chat({ context: ctx, history: [], question: 'Why?' });
+    expect(chat).toMatchObject({ ok: true, provider: 'chrome' });
+  });
+
+  it('still reports the credit limit when there is nothing to fall back to', async () => {
+    const ai = createAiService({ providers: () => [outOfCredits(), fakeProvider('chrome', 'downloadable').provider] });
+    expect(await ai.run({ action: 'explain', context: ctx })).toMatchObject({ ok: false, code: 'quota_exceeded' });
+  });
+});

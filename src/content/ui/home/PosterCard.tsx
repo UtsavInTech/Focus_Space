@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 import { Play, Sparkles } from 'lucide-react';
 import { TIER_LABEL } from '@/learning/classifier';
 import { compactNumber } from '@/learning/library';
@@ -29,7 +29,7 @@ export function PosterCard({ card, rank }: { card: CardData; rank?: number }) {
   const strong = card.tier === 'excellent' || card.tier === 'strong';
 
   return (
-    <motion.article
+    <m.article
       className={`fs-poster${rank ? ' fs-poster-ranked' : ''}`}
       title={card.why}
       whileHover={reduce ? undefined : { y: -6, scale: 1.045 }}
@@ -69,7 +69,7 @@ export function PosterCard({ card, rank }: { card: CardData; rank?: number }) {
           </span>
         </span>
       </YtLink>
-    </motion.article>
+    </m.article>
   );
 }
 

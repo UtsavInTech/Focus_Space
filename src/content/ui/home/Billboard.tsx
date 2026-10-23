@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { Info, Play } from 'lucide-react';
 import { watchUrl } from '@/integrations/youtube/urls';
 import { YtLink } from '@/ui/nav';
@@ -54,7 +54,7 @@ export function Billboard({ items, onTopic }: { items: Featured[]; onTopic: (top
   return (
     <section className="fs-billboard" aria-label="Featured" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <AnimatePresence initial={false}>
-        <motion.div
+        <m.div
           key={item.id}
           className="fs-billboard-art"
           initial={reduce ? false : { opacity: 0, scale: 1.06 }}
@@ -63,12 +63,12 @@ export function Billboard({ items, onTopic }: { items: Featured[]; onTopic: (top
           transition={{ duration: 0.9, ease: EASE }}
         >
           <BillboardImage id={item.id} />
-        </motion.div>
+        </m.div>
       </AnimatePresence>
       <div className="fs-billboard-shade" aria-hidden />
 
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div
+        <m.div
           key={item.id}
           className="fs-billboard-body"
           initial={reduce ? false : { opacity: 0, y: 18 }}
@@ -101,14 +101,14 @@ export function Billboard({ items, onTopic }: { items: Featured[]; onTopic: (top
               </button>
             )}
           </div>
-        </motion.div>
+        </m.div>
       </AnimatePresence>
 
       {count > 1 && (
         <div className="fs-billboard-dots" role="tablist" aria-label="Featured videos">
           {items.map((it, i) => (
             <button key={it.id} type="button" role="tab" aria-selected={i === index} aria-label={it.title} className="fs-billboard-dot" onClick={() => setIndex(i)}>
-              {i === index && !reduce && !paused && <motion.span className="fs-billboard-dot-fill" initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: ROTATE_MS / 1000, ease: 'linear' }} />}
+              {i === index && !reduce && !paused && <m.span className="fs-billboard-dot-fill" initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: ROTATE_MS / 1000, ease: 'linear' }} />}
             </button>
           ))}
         </div>

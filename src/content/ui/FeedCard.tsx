@@ -23,7 +23,7 @@ export interface CardData {
   url?: string;
 }
 
-const SOURCE_LABEL: Record<CardSource, string> = { subscription: 'Subscribed', added: 'Your channel', discovery: 'Discovery' };
+const SOURCE_LABEL: Record<CardSource, string> = { subscription: 'Subscribed', added: 'Your channel', discovery: 'Fresh pick' };
 
 export function formatDuration(sec: number | null): string | null {
   if (sec === null || !Number.isFinite(sec) || sec <= 0) return null;

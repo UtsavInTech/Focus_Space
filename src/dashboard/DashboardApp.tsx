@@ -13,9 +13,7 @@ import { HomePage } from './pages/HomePage';
 import { LibraryPage } from './pages/LibraryPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { AccountPage } from './pages/AccountPage';
-import { Bubbles } from './Bubbles';
-import { NameSparkle } from './NameSparkle';
-import { CursorSparkle } from './CursorSparkle';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 
 /**
  * The learning product's own home: what you made (Library), what you
@@ -42,6 +40,7 @@ export const openYouTube = (url = 'https://www.youtube.com/') => void sendMessag
 /** Space management and settings. Watching happens on YouTube itself. */
 export function DashboardApp() {
   const data = useDashboardData();
+  const reduce = useReducedMotion();
   const route = useRoute();
   useDocumentTheme(data?.settings.theme, data?.settings.density);
 
@@ -87,26 +86,28 @@ export function DashboardApp() {
 
   return (
     <div className="fs-app">
-      <Bubbles />
-      <CursorSparkle />
       <aside className="fs-sidebar">
         <a href="#/" className="fs-sidebar-logo" aria-label="FocusSpace home">
-          {/* As on the website's nav: the mark's rings turn, and the name sparkles — the ring gets no sparks. */}
+          {/* Calm on purpose: no cursor sparks, no breathing glow — a study tool should not twinkle at you. */}
           <span className="fs-logo">
             <FocusMark size={26} animated />
             <span className="fs-brand-word">
               <Wordmark />
-              <NameSparkle />
             </span>
           </span>
         </a>
         <nav className="fs-nav" aria-label="Main">
-          {NAV.map(({ to, label, icon: Icon, match }) => (
-            <a key={to} href={`#${to}`} className="fs-nav-item" aria-current={match(route.segments) ? 'page' : undefined}>
-              <Icon aria-hidden />
-              <span>{label}</span>
-            </a>
-          ))}
+          {NAV.map(({ to, label, icon: Icon, match }) => {
+            const current = match(route.segments);
+            return (
+              <a key={to} href={`#${to}`} className="fs-nav-item" aria-current={current ? 'page' : undefined}>
+                {/* One highlight that glides between items instead of jumping. */}
+                {current && <motion.span layoutId="fs-nav-active" className="fs-nav-active" transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 34 }} />}
+                <Icon aria-hidden />
+                <span>{label}</span>
+              </a>
+            );
+          })}
         </nav>
         <div className="fs-sidebar-foot">
           <div className="fs-card fs-focus-mini">
@@ -134,9 +135,18 @@ export function DashboardApp() {
         </div>
       </aside>
       <main className="fs-main">
-        <div className="fs-page" key={route.path}>
-          {page}
-        </div>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            className="fs-page"
+            key={route.path}
+            initial={reduce ? false : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
+          >
+            {page}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );

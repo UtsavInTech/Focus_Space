@@ -1,3 +1,4 @@
+import { StaggerItem, StaggerList } from '../motion';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowLeft, Copy, Download, LogIn, MessageCircle, Network, NotebookPen, Play, Search, Trash2 } from 'lucide-react';
 import type { SavedNote } from '@/types/notes';
@@ -129,19 +130,19 @@ function LibraryList({ tab, notes, chats, modes }: { tab: Tab; notes: SavedNote[
                 {s.name} <span className="fs-caption">({items.length})</span>
               </h2>
             </header>
-            <div className="fs-card fs-list">
+            <StaggerList className="fs-card fs-list">
               {items.map((item) =>
                 'provenance' in item ? (
-                  <button key={item.id} type="button" className="fs-list-item fs-lib-row" onClick={() => navigate(`/library/note/${encodeURIComponent(item.id)}`)}>
+                  <StaggerItem key={item.id} type="button" className="fs-list-item fs-lib-row" onClick={() => navigate(`/library/note/${encodeURIComponent(item.id)}`)}>
                     <span className="fs-lib-icon">{item.format === 'mindmap' ? <Network size={16} /> : <NotebookPen size={16} />}</span>
                     <span className="fs-grow fs-lib-text">
                       <span className="fs-lib-title">{item.provenance.videoTitle}</span>
                       <span className="fs-caption">{[item.provenance.channel, item.provenance.topic, noteLabel(item)].filter(Boolean).join(' · ')}</span>
                     </span>
                     <span className="fs-caption">{relativeTime(item.createdAt)}</span>
-                  </button>
+                  </StaggerItem>
                 ) : (
-                  <button key={item.id} type="button" className="fs-list-item fs-lib-row" onClick={() => navigate(`/library/chat/${encodeURIComponent(item.id)}`)}>
+                  <StaggerItem key={item.id} type="button" className="fs-list-item fs-lib-row" onClick={() => navigate(`/library/chat/${encodeURIComponent(item.id)}`)}>
                     <span className="fs-lib-icon">
                       <MessageCircle size={16} />
                     </span>
@@ -152,10 +153,10 @@ function LibraryList({ tab, notes, chats, modes }: { tab: Tab; notes: SavedNote[
                       </span>
                     </span>
                     <span className="fs-caption">{relativeTime(item.updatedAt)}</span>
-                  </button>
+                  </StaggerItem>
                 ),
               )}
-            </div>
+            </StaggerList>
           </section>
         ))
       )}
