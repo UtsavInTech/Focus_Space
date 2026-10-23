@@ -437,3 +437,9 @@
 .fs-creator-chip:disabled { opacity: 0.5; cursor: default; text-decoration: line-through; }
 .fs-creator-chip .fs-spinner { width: 12px; height: 12px; }
 .fs-chip-group { flex: none; align-self: center; padding: 0 2px 0 10px; border-left: 1px solid var(--fs-border-strong); font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fs-accent-text); white-space: nowrap; }
+
+/* Quiz length (QuizCards.tsx) */
+.fs-quiz-count { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+.fs-quiz-count-label { font-size: 13px; font-weight: 700; color: var(--fs-text); }
+.fs-quiz-count-note { font-size: 12px; color: var(--fs-text-2); }
+.fs-quiz-level-btn:disabled { opacity: 0.4; cursor: not-allowed; }

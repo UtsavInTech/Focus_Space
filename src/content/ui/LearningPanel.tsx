@@ -339,7 +339,16 @@ export function NowLearning({
               answer={answer}
               providerLabel={status?.label ?? null}
               onSeek={seek}
-              quiz={{ durationSec: duration, needsAccount: status?.label === HOSTED_AI_LABEL, signedIn, extras: !!usage?.quiz?.extras, onRound: quizRound }}
+              quiz={{
+                durationSec: duration,
+                needsAccount: status?.label === HOSTED_AI_LABEL,
+                signedIn,
+                extras: !!usage?.quiz?.extras,
+                onRound: quizRound,
+                // On-device answers cost nothing, so no ceiling; FocusSpace's AI follows the plan's monthly questions.
+                onDevice: status?.provider === 'chrome',
+                remaining: status?.provider === 'chrome' || status?.label !== HOSTED_AI_LABEL ? null : usage?.quiz ? Math.max(0, usage.quiz.limit - usage.quiz.used) : null,
+              }}
               onClose={() => {
                 runId.current++;
                 setAnswer(null);

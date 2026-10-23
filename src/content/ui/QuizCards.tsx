@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Loader2, Plus, X } from 'lucide-react';
 import type { QuizDifficulty } from '@/learning/ai/actions';
 import { nearDuplicate, parseQuiz, type QuizQuestion } from '@/learning/ai/quiz-format';
@@ -70,11 +70,15 @@ const DIFFICULTIES: { id: QuizDifficulty; label: string }[] = [
   { id: 'hard', label: 'Hard' },
 ];
 
+/** The quiz lengths offered; batches of `QUIZ_ROUND_QUESTIONS` add up to each. */
+export const QUIZ_COUNTS = [5, 10, 15, 20] as const;
+
 const span = (b: QuizBlock) => `${formatTimestamp(b.startSec)}–${formatTimestamp(b.endSec)}`;
 
 /**
- * "Quiz me": first the part to be quizzed on (what has been watched so far, or the full video), then five
- * questions per 15 minutes of it, one round at a time. "Next 5 questions" walks forward through the
+ * "Quiz me": first how many questions (5–20; on-device as many as you like, FocusSpace's AI within the
+ * plan's monthly allowance) and the part to be quizzed on, then that many per 15 minutes of it, one
+ * round at a time. "Next questions" walks forward through the
  * video, so nothing is written (or paid for) before it is asked for. Choosing a difficulty and keeping
  * score come with a paid plan (`extras`).
  */
@@ -85,6 +89,8 @@ export function QuizSession({
   signedIn,
   extras,
   onRound,
+  onDevice = false,
+  remaining = null,
 }: {
   watchedSec: number;
   durationSec: number | null;
@@ -93,8 +99,22 @@ export function QuizSession({
   signedIn: boolean | undefined;
   extras: boolean;
   onRound: (block: QuizBlock, difficulty: QuizDifficulty | undefined, previous: string[]) => Promise<QuizMoreResult>;
+  /** Answered by Chrome's on-device model: as many questions as the learner likes, free. */
+  onDevice?: boolean;
+  /** Questions left this month on FocusSpace's AI (the plan's rule); `null` when there is no ceiling. */
+  remaining?: number | null;
 }) {
   const [blocks, setBlocks] = useState<QuizBlock[] | null>(null);
+  // How many questions a round asks. Batches of five are written one after another (each told what was
+  // already asked), so the server meters exactly as before and a free plan's limit still holds.
+  const allowed = (n: number) => remaining === null || remaining === undefined || n <= Math.max(QUIZ_ROUND_QUESTIONS, remaining);
+  const [count, setCount] = useState(() => [15, 10, 5].find(allowed) ?? QUIZ_ROUND_QUESTIONS);
+  const [progress, setProgress] = useState<{ got: number; want: number } | null>(null);
+  // The allowance arrives after the panel opens: never leave a length chosen that the plan can't cover.
+  useEffect(() => {
+    if (!allowed(count)) setCount([...QUIZ_COUNTS].reverse().find(allowed) ?? QUIZ_ROUND_QUESTIONS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remaining]);
   const [difficulty, setDifficulty] = useState<QuizDifficulty>('medium');
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [rounds, setRounds] = useState(0);
@@ -117,14 +137,36 @@ export function QuizSession({
   async function round(all: QuizBlock[], index: number, asked: QuizQuestion[]) {
     setLoading(true);
     setError(null);
-    const result = await onRound(all[index], extras ? difficulty : undefined, asked.map((q) => q.text.split('\n')[0]));
-    setLoading(false);
-    if (!result.ok) return setError({ text: result.error, code: result.code });
-    const fresh = (parseQuiz(result.text) ?? []).filter((q, i, list) => !asked.some((old) => nearDuplicate(old.text, q.text)) && !list.slice(0, i).some((p) => nearDuplicate(p.text, q.text)));
-    setRounds(index + 1);
-    if (!fresh.length) return setError({ text: 'No new questions came out of this part. Try the next one.' });
     const start = asked.length;
-    setQuestions([...asked, ...fresh.map((q, i) => ({ ...q, n: start + i + 1 }))]);
+    let list = asked;
+    let empty = 0;
+    setProgress({ got: 0, want: count });
+    // One round = `count` questions on this part of the video, written five at a time.
+    while (list.length - start < count && empty < 2) {
+      const result = await onRound(all[index], extras ? difficulty : undefined, list.map((q) => q.text.split('\n')[0]));
+      if (!result.ok) {
+        setError({ text: result.error, code: result.code });
+        break;
+      }
+      const fresh = (parseQuiz(result.text) ?? [])
+        .filter((q, i, batch) => !list.some((old) => nearDuplicate(old.text, q.text)) && !batch.slice(0, i).some((p) => nearDuplicate(p.text, q.text)))
+        .slice(0, count - (list.length - start));
+      if (!fresh.length) {
+        empty++;
+        continue;
+      }
+      empty = 0;
+      list = [...list, ...fresh.map((q, i) => ({ ...q, n: list.length + i + 1 }))];
+      setQuestions(list);
+      setProgress({ got: list.length - start, want: count });
+    }
+    setLoading(false);
+    setProgress(null);
+    setRounds(index + 1);
+    if (list.length === start) {
+      setError((e) => e ?? { text: 'No new questions came out of this part. Try the next one.' });
+      return;
+    }
     // Bring the first new question into view inside the answer's own scroll area, never the page.
     if (start) {
       requestAnimationFrame(() => {
@@ -149,11 +191,42 @@ export function QuizSession({
         }}
       >
         <strong>{label}</strong>
-        <span>{list.length ? `${detail} · up to ${list.length * QUIZ_ROUND_QUESTIONS} questions` : disabledNote}</span>
+        <span>{list.length ? `${detail} · ${list.length > 1 ? `${list.length} parts of ${count} questions` : `${count} questions`}` : disabledNote}</span>
       </button>
     );
     return (
       <div className="fs-quiz">
+        <div className="fs-quiz-count">
+          <span className="fs-quiz-count-label">How many questions?</span>
+          <div className="fs-quiz-level" role="radiogroup" aria-label="How many questions">
+            {QUIZ_COUNTS.map((n) => (
+              <button
+                key={n}
+                type="button"
+                role="radio"
+                aria-checked={count === n}
+                disabled={!allowed(n)}
+                title={allowed(n) ? undefined : `Your plan has ${remaining} quiz questions left this month`}
+                className={`fs-quiz-level-btn${count === n ? ' is-active' : ''}`}
+                onClick={() => setCount(n)}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          {onDevice ? (
+            <span className="fs-quiz-count-note">On-device AI: as many as you like, free.</span>
+          ) : remaining !== null && remaining !== undefined ? (
+            <span className="fs-quiz-count-note">
+              {remaining} left this month on your plan.{' '}
+              {remaining < 20 && (
+                <button type="button" className="fs-link" onClick={() => void sendMessage('site/open', { path: '/pricing' })}>
+                  Get more
+                </button>
+              )}
+            </span>
+          ) : null}
+        </div>
         <div className="fs-quiz-choices">
           {choice('Watched so far', `0:00–${formatTimestamp(watchedSec)}`, watched, 'Watch at least a minute first')}
           {choice('Full video', durationSec ? formatTimestamp(durationSec) : '', full, 'Video length not known yet')}
@@ -189,7 +262,9 @@ export function QuizSession({
     <div ref={rootRef} className="fs-quiz">
       {!questions.length && loading && (
         <div aria-busy="true">
-          <p className="fs-answer-note">Writing and checking questions on {span(blocks[0])}…</p>
+          <p className="fs-answer-note">
+            Writing and checking {count} questions on {span(blocks[0])}… {progress && progress.got > 0 ? `${progress.got} ready` : ''}
+          </p>
           <div className="fs-skeleton" style={{ height: 12, width: '90%', marginTop: 10 }} />
           <div className="fs-skeleton" style={{ height: 12, width: '70%', marginTop: 8 }} />
         </div>
@@ -206,7 +281,7 @@ export function QuizSession({
           {next ? (
             <button type="button" className="fs-quiz-more" onClick={() => void round(blocks, rounds, questions)} disabled={loading}>
               {loading ? <Loader2 size={14} className="fs-spin" aria-hidden /> : <Plus size={14} aria-hidden />}
-              {loading ? 'Writing and checking…' : `Next ${QUIZ_ROUND_QUESTIONS} questions · ${span(next)}`}
+              {loading ? `Writing and checking… ${progress ? `${progress.got}/${progress.want}` : ''}` : `Next ${count} questions · ${span(next)}`}
             </button>
           ) : (
             !loading && questions.length > 0 && <span className="fs-quiz-score">That covers the part you chose.</span>

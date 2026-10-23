@@ -102,15 +102,27 @@ describe('quiz rounds', () => {
     expect(renderToStaticMarkup(createElement(QuizSession, { ...base, signedIn: false, extras: false }))).toContain('Sign in to use Quiz me');
     const free = renderToStaticMarkup(createElement(QuizSession, { ...base, signedIn: true, extras: false }));
     expect(free).toContain('Watched so far');
-    expect(free).toContain('up to 10 questions');
+    expect(free).toContain('2 parts of 15 questions');
     expect(free).toContain('Full video');
-    expect(free).toContain('up to 20 questions');
-    expect(free).not.toContain('role="radiogroup"');
+    expect(free).toContain('4 parts of 15 questions');
+    // The length chooser is for everyone; the difficulty chooser is not.
+    expect(free).toContain('How many questions?');
+    expect(free).not.toContain('aria-label="Difficulty"');
     expect(free).toContain('come with Plus');
     const paid = renderToStaticMarkup(createElement(QuizSession, { ...base, signedIn: true, extras: true }));
     expect(paid).toContain('Hard');
     expect(paid).not.toContain('come with Plus');
     // Someone's own AI endpoint or the on-device model: no account involved.
     expect(renderToStaticMarkup(createElement(QuizSession, { ...base, needsAccount: false, signedIn: false, extras: false }))).toContain('Watched so far');
+  });
+
+  it('lets the learner choose 5–20 questions, within the plan on FocusSpace AI and freely on-device', () => {
+    const base = { watchedSec: 1500, durationSec: 3600, needsAccount: true, signedIn: true, extras: false, onRound: async () => ({ ok: true as const, text: '' }) };
+    const free = renderToStaticMarkup(createElement(QuizSession, { ...base, remaining: 5 }));
+    expect(free.match(/role="radio"[^>]*disabled=""/g)).toHaveLength(3); // 10, 15 and 20 are past this month's allowance
+    expect(free).toContain('5 left this month');
+    const onDevice = renderToStaticMarkup(createElement(QuizSession, { ...base, needsAccount: false, onDevice: true, remaining: null }));
+    expect(onDevice).not.toContain('disabled=""');
+    expect(onDevice).toContain('as many as you like, free');
   });
 });
