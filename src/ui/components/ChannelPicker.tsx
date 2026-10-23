@@ -33,6 +33,7 @@ export function ChannelPicker({
   suggestQuery,
   mode,
   knownIds,
+  creators,
 }: {
   selected: PickedChannel[];
   onChange: (next: PickedChannel[]) => void;
@@ -40,6 +41,11 @@ export function ChannelPicker({
   /** The Space being built, when there is one — its keywords rank results far better than the query alone. */
   mode?: Pick<LearningMode, 'name' | 'keywords' | 'topics' | 'searchHint'> | null;
   knownIds?: ReadonlySet<string>;
+  /**
+   * Well-known creators for this subject, by name (modes/exams.ts). Tapping one looks the name up on
+   * YouTube and adds the channel that actually matches — names are a shortcut, never invented channels.
+   */
+  creators?: { names: string[]; label: string };
 }) {
   const data = useYouTubeData();
   const [query, setQuery] = useState('');
@@ -98,6 +104,30 @@ export function ChannelPicker({
   }, [searching, results, suggested, query, suggestQuery, mode, knownIds]);
 
   const isSelected = (id: string) => selected.some((c) => c.id === id);
+  const [looking, setLooking] = useState<string | null>(null);
+  const [byName, setByName] = useState<Record<string, PickedChannel | 'missing'>>({});
+  const squash = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const pickByName = async (name: string) => {
+    const known = byName[name];
+    if (known && known !== 'missing') {
+      onChange(isSelected(known.id) ? selected.filter((c) => c.id !== known.id) : [...selected, known]);
+      return;
+    }
+    setLooking(name);
+    try {
+      const found = await data.searchChannels(name);
+      const want = squash(name);
+      const best = found.find((c) => squash(c.title) === want) ?? found.find((c) => squash(c.title).includes(want) || want.includes(squash(c.title))) ?? null;
+      if (!best) return setByName((m) => ({ ...m, [name]: 'missing' }));
+      const picked = toPicked(best);
+      setByName((m) => ({ ...m, [name]: picked }));
+      if (!isSelected(picked.id)) onChange([...selected, picked]);
+    } catch {
+      setByName((m) => ({ ...m, [name]: 'missing' }));
+    } finally {
+      setLooking(null);
+    }
+  };
   const toggle = (c: YtChannel) => onChange(isSelected(c.id) ? selected.filter((s) => s.id !== c.id) : [...selected, toPicked(c)]);
 
   return (
@@ -111,6 +141,24 @@ export function ChannelPicker({
               <Check size={13} aria-hidden />
             </button>
           ))}
+        </div>
+      )}
+      {creators && creators.names.length > 0 && (
+        <div className="fs-creator-picks">
+          <span className="fs-eyebrow">{creators.label}</span>
+          <div className="fs-creator-chips">
+            {creators.names.map((name) => {
+              const hit = byName[name];
+              const on = !!hit && hit !== 'missing' && isSelected(hit.id);
+              return (
+                <button key={name} type="button" className="fs-creator-chip" aria-pressed={on} disabled={hit === 'missing' || looking === name} onClick={() => void pickByName(name)} title={hit === 'missing' ? 'Not found on YouTube right now' : undefined}>
+                  {looking === name ? <Spinner label="Finding" /> : on ? <Check size={13} aria-hidden /> : <Plus size={13} aria-hidden />}
+                  {name}
+                </button>
+              );
+            })}
+          </div>
+          <span className="fs-caption">Popular with learners, not official picks. No exam body endorses a YouTube channel.</span>
         </div>
       )}
       <div className="fs-search">

@@ -16,6 +16,11 @@ export interface Topic {
   name: string;
   /** Extra phrases that signal this topic. The topic name itself always counts. */
   keywords: string[];
+  /**
+   * Where the topic sits in the Space's hierarchy — "Prelims", "Mains · GS II", "Optional", "Year 2".
+   * Display only: topics stay one flat list for relevance; the group just orders and labels them.
+   */
+  group?: string;
 }
 
 export interface ChannelRef {

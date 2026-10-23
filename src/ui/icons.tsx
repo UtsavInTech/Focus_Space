@@ -5,6 +5,7 @@ import {
   FileText,
   Landmark,
   Map as MapIcon,
+  Scale,
   Stethoscope,
   TrainFront,
   ChartColumn,
@@ -80,6 +81,7 @@ const ICONS: Record<SpaceIconName, LucideIcon> = {
   map: MapIcon,
   stethoscope: Stethoscope,
   briefcase: Briefcase,
+  scale: Scale,
 };
 
 export function SpaceIcon({ name, size = 18, className }: { name: string; size?: number; className?: string }) {

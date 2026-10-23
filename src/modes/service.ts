@@ -5,7 +5,7 @@ import { getItems, updateItem, setItems } from '@/storage/storage';
 import { FILTER_PRESETS } from '@/storage/schema';
 import { uniqueId } from '@/learning/text';
 import { blankMode, DEFAULT_MODES } from './templates';
-import { examInfo, type ExamId } from './exams';
+import { buildExamMode, examInfo, type ExamAnswers, type ExamId } from './exams';
 import { isSpaceLocked, lockState } from './unlock';
 
 /** All mode + focus state mutations live here so every surface behaves the same. */
@@ -202,19 +202,28 @@ export function channelRuleOf(mode: LearningMode | null, channel: ChannelRef): '
  * records the exam — which is what locks the other Spaces for now (modes/unlock.ts). The exam is
  * recorded first, so the Space being created is the one Space the lock lets through.
  */
-export async function chooseExam(examId: ExamId): Promise<LearningMode | null> {
+export async function chooseExam(examId: ExamId, answers: ExamAnswers = {}, channels: ChannelRef[] = []): Promise<LearningMode | null> {
   const before = await getItems(['settings', 'modes']);
   // Locking is for a fresh start only: someone who already has Spaces keeps every door open.
   const hadSpaces = before.modes.some((m) => m.id !== examId);
   await updateItem('settings', (s) => ({ ...s, exam: examId, spacesUnlocked: s.spacesUnlocked || hadSpaces }));
-  let mode: LearningMode | null;
+  const now = Date.now();
+  const existing = before.modes.find((m) => m.id === examId);
+  // Choosing again (a different optional, another year) reshapes the Space but keeps its creators and rules.
+  const built = buildExamMode(examId, answers, now);
+  const mode: LearningMode = existing
+    ? { ...built, createdAt: existing.createdAt || now, allowedChannels: existing.allowedChannels, blockedChannels: existing.blockedChannels, blockedKeywords: existing.blockedKeywords }
+    : built;
   try {
-    mode = await addTemplate(examId);
+    await addMode(mode);
   } catch (err) {
     await updateItem('settings', (s) => ({ ...s, exam: before.settings.exam, spacesUnlocked: before.settings.spacesUnlocked }));
     throw err;
   }
-  if (!mode) return null;
+  for (const channel of channels) {
+    await setChannelRule(examId, channel, 'allowed');
+    void sendMessage('channel/add', { input: channel.id }).catch(() => undefined);
+  }
   await updateItem('settings', (s) => ({ ...s, activeModeId: examId, focusEnabled: true, onboarded: true, defaultModeId: s.defaultModeId ?? examId }));
   return mode;
 }

@@ -4,8 +4,8 @@ import { Keyboard, Mic, Square, Undo2, X } from 'lucide-react';
 import type { ChannelRef, LearningMode } from '@/types/domain';
 import type { SetupAction, SetupPickAnswer, SetupTurnAnswer, SetupTurnState } from '@/types/setup';
 import { WELCOME_CHAT_MAX_LINES, type WelcomeChat, type WelcomeLine } from '@/storage/schema';
-import { addMode, chooseExam, deleteMode, setChannelRule, SpaceLimitError } from '@/modes/service';
-import { examInfo } from '@/modes/exams';
+import { addMode, deleteMode, setChannelRule, SpaceLimitError } from '@/modes/service';
+import { examInfo, type ExamId } from '@/modes/exams';
 import { examFromText } from '@/modes/exam-intent';
 import { ExamPicker } from './ExamPicker';
 import { DEFAULT_MODES } from '@/modes/templates';
@@ -114,6 +114,8 @@ export function SetupChat({
   /** Spaces the conversation already knows about — anything new that appears was picked on the page. */
   const known = useRef<Set<string>>(new Set([...modes.map((m) => m.id), ...(saved?.made ?? []).map((m) => m.id)]));
 
+  /** A goal the learner typed or said: the picker below opens straight at its questions. */
+  const [examWizard, setExamWizard] = useState<ExamId | null>(null);
   /** The exam question is still open: nothing made yet, and the learner hasn't answered it. */
   const askingExam = exam === null && modes.length === 0 && made.current.length === 0;
 
@@ -277,11 +279,9 @@ export function SetupChat({
     // new-Space effect above then acknowledges it and carries on to creators.
     const examId = askingExam ? examFromText(said) : null;
     if (examId) {
-      try {
-        await chooseExam(examId);
-      } catch (err) {
-        say(err instanceof SpaceLimitError ? err.message : 'I couldn’t set that up just now. Try again?');
-      }
+      const exam = examInfo(examId)!;
+      setExamWizard(examId);
+      say(exam.questions.length ? `${exam.label}, great. ${exam.questions[0].prompt} Pick below.` : `${exam.label}, great. Here’s your Space, add teachers you like below.`);
       return;
     }
     const asking = openQuestion();
@@ -522,8 +522,10 @@ export function SetupChat({
 
       {askingExam && !busy && (
         <ExamPicker
+          key={examWizard ?? 'all'}
           compact
-          onPick={(id) => add('you', `I’m preparing for ${examInfo(id)?.label ?? id}`)}
+          initialExam={examWizard}
+          onPick={(_id, label) => add('you', `Set up ${label} for me`)}
           onSkip={() => add('bot', oneByOne ? FIRST_SPACE : 'No problem! Tell me your Spaces and the creators you like for each, like: DSA with Love Babbar, and Spanish.')}
         />
       )}

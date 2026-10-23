@@ -27,8 +27,14 @@ export const SPACE_CATEGORIES: readonly SpaceCategory[] = [
   {
     id: 'exams',
     name: 'Exam Prep',
-    description: 'Government jobs, entrance exams and GATE, one exam at a time.',
-    modeIds: ['upsc', 'ssc', 'banking', 'railways', 'state-psc', 'jee', 'neet', 'gate', 'cat'],
+    description: 'Government jobs and entrance exams, one exam at a time.',
+    modeIds: ['upsc', 'ssc', 'banking', 'railways', 'state-psc', 'defence', 'teaching', 'judiciary', 'jee', 'neet', 'gate', 'cat'],
+  },
+  {
+    id: 'engineering',
+    name: 'B.Tech & Engineering',
+    description: 'Your branch, year by year.',
+    modeIds: ['btech'],
   },
   {
     id: 'technical',

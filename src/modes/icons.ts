@@ -38,6 +38,7 @@ export const SPACE_ICON_NAMES = [
   'map',
   'stethoscope',
   'briefcase',
+  'scale',
 ] as const;
 
 export type SpaceIconName = (typeof SPACE_ICON_NAMES)[number];

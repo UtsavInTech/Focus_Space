@@ -73,6 +73,10 @@ const CATALOG: CatalogEntry[] = [
   template('neet', ['neet', 'neet ug', 'medical entrance']),
   template('gate', ['gate', 'gate cse', 'gate cs', 'gate exam']),
   template('cat', ['cat exam', 'cat preparation', 'mba entrance', 'iim', 'cat mba']),
+  template('defence', ['defence', 'defence exam', 'nda', 'nda exam', 'cds', 'cds exam', 'afcat', 'capf', 'agniveer', 'police exam', 'police constable', 'ssb']),
+  template('teaching', ['ctet', 'tet', 'reet', 'uptet', 'kvs', 'dsssb', 'ugc net', 'teaching exam', 'teacher exam']),
+  template('judiciary', ['judiciary', 'judiciary exam', 'civil judge', 'judicial services', 'pcs j']),
+  template('btech', ['btech', 'b.tech', 'b tech', 'engineering degree', 'engineering college', 'btech cse', 'btech subjects', 'aktu', 'semester exams']),
   {
     id: 'system-design',
     name: 'System Design',

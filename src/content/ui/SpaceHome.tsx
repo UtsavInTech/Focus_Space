@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Check, ChevronDown, ChevronRight, History, Lock, Pencil, Plus, Power, RefreshCw, Sparkles, Trophy, Users, X } from 'lucide-react';
 import type { LearningMode, Settings, Topic } from '@/types/domain';
 import { activeModeOf, addTemplateWithChannels, missingTemplates, selectMode, setChannelRule, setFocusEnabled, SpaceLimitError } from '@/modes/service';
@@ -21,7 +21,7 @@ import type { PickedChannel } from '@/ui/components/ChannelPicker';
 import { useBecauseYouPlayed, useContinueWatching, useDiscovery, useFeedView } from '../data/hooks';
 import { TIER_LABEL } from '@/learning/classifier';
 import type { NextLearningItem } from '@/learning/next';
-import { examInfo } from '@/modes/exams';
+import { examInfo, isExamId, type ExamId } from '@/modes/exams';
 import { isSpaceLocked, unlockHint, type LockState } from '@/modes/unlock';
 import { useLockState } from '@/ui/use-lock';
 import { ExamPicker } from './ExamPicker';
@@ -62,6 +62,7 @@ export function SpaceHome({ settings, modes, onCreateSpace }: { settings: Settin
 function FirstRun({ settings, modes, onCreate }: { settings: Settings; modes: LearningMode[]; onCreate: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [pendingTemplate, setPendingTemplate] = useState<LearningMode | null>(null);
+  const [pendingExam, setPendingExam] = useState<ExamId | null>(null);
   const [busy, setBusy] = useState(false);
   const lock = useLockState();
   const suggestions = missingTemplates(modes);
@@ -95,6 +96,8 @@ function FirstRun({ settings, modes, onCreate }: { settings: Settings; modes: Le
 
   /** An already-created Space is just switched to; a template opens the (skippable) creator step first. */
   const choose = async (mode: LearningMode, isSuggestion: boolean) => {
+    // Exams and B.Tech have their own questions (optional subject, branch & year) before creators.
+    if (isSuggestion && isExamId(mode.id)) return setPendingExam(mode.id);
     if (isSuggestion) return setPendingTemplate(mode);
     setError(null);
     try {
@@ -181,6 +184,10 @@ function FirstRun({ settings, modes, onCreate }: { settings: Settings; modes: Le
         </button>
         <span className="fs-caption">FocusSpace turns off. Nothing is hidden, nothing is reordered. Turn it back on whenever you want.</span>
       </div>
+
+      <Modal open={!!pendingExam} onClose={() => setPendingExam(null)} title={pendingExam ? `Set up ${examInfo(pendingExam)?.label}` : 'Set up'} subtitle="A couple of quick choices, then your Space is ready." width={720}>
+        {pendingExam && <ExamPicker initialExam={pendingExam} onChosen={() => setPendingExam(null)} />}
+      </Modal>
 
       <Modal
         open={!!pendingTemplate}
@@ -314,10 +321,18 @@ function SpaceBar({ mode, modes, topicId, onTopic, onCreate }: { mode: LearningM
           <button type="button" role="tab" className="fs-chip" aria-selected={!topicId} onClick={() => onTopic(null)}>
             All
           </button>
-          {mode.topics.map((t) => (
-            <button key={t.id} type="button" role="tab" className="fs-chip" aria-selected={t.id === topicId} onClick={() => onTopic(t.id === topicId ? null : t.id)}>
-              {t.name}
-            </button>
+          {mode.topics.map((t, i) => (
+            <Fragment key={t.id}>
+              {/* The hierarchy, inline: "Prelims · GS", "Mains", "Optional", "Year 2" before their topics. */}
+              {t.group && t.group !== mode.topics[i - 1]?.group && (
+                <span className="fs-chip-group" aria-hidden>
+                  {t.group}
+                </span>
+              )}
+              <button type="button" role="tab" className="fs-chip" aria-selected={t.id === topicId} onClick={() => onTopic(t.id === topicId ? null : t.id)} title={t.group ? `${t.group} → ${t.name}` : t.name}>
+                {t.name}
+              </button>
+            </Fragment>
           ))}
         </div>
       )}
