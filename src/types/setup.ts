@@ -61,7 +61,9 @@ export type CommandAction =
   /** Find this on YouTube and play the best match. */
   | { type: 'play'; query: string }
   /** Show YouTube's results for this. */
-  | { type: 'search'; query: string };
+  | { type: 'search'; query: string }
+  /** "Add subtopics to Japanese": new subtopics for a Space they have (or one created in the same answer). */
+  | { type: 'add_topics'; space: string; topics: { name: string; keywords: string[] }[] };
 
 export interface SetupCommandAnswer {
   reply: string;

@@ -126,11 +126,16 @@ export function setupPrompt(request: SetupRequest): AiPrompt {
         ...SPACE_RULES.map((r) => '  ' + r),
         '- play: they want a particular video or song played, query is what to type into YouTube search, specific and clean ("Karan Aujla Winning Speech", "Harkirat building an app"). Fix obvious speech-recognition slips in names.',
         '- search: they want to browse videos about something, not one video.',
+        '- add_topics: they want subtopics added ("add subtopics", "add grammar and kanji to Japanese"). space is the exact name of a Space they have, or the one you create in this answer. Named subtopics are used as said; "add subtopics" with none named means 6–8 good ones for that subject that it does not have yet. Each with 2–4 YouTube search keywords.',
+        '- Speech recognition slips: "creative mode", "crate a space", "great a mode", "make a mod" all mean create a Space. "for learning X", "to learn X", "of X" names its subject.',
+        '- "Create a mode for learning Japanese and add subtopics" is one create_space (Learn Japanese, with its subtopics) and a switch_space to it; the subtopics belong in the create_space, no separate add_topics.',
         '- Frustrated or bored ("I’m tired of DSA, change the mood") without saying to what: switch to their most relaxing or entertaining Space if they have one; otherwise no actions and reply asks what they’d like instead.',
         '- A question (what, why, how, explain, summarise, "what does this video say…") is never a command, even if it mentions videos: no actions, reply empty. Only an instruction to change, create, play, open or show something is.',
         'Example: spaces ["DSA", "System Design"], said "change mode to system design and play video of harkirat building the new app" → switch_space System Design; play "Harkirat Singh building new app".',
         'Example: spaces ["DSA"], said "create one mood music and play karan aujla winning speech" → create_space Music (kind media, icon music); switch_space Music; play "Karan Aujla Winning Speech".',
-        'Answer with one JSON object: {"reply": string, "actions": [{"type": "switch_space", "space": string} | {"type": "create_space", "space": {"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint", "avoid": []}} | {"type": "play" | "search", "query": string}]}',
+        'Example: spaces ["DSA"], said "creative mode for learning japanese add subtopics" → create_space Learn Japanese (kind learning, icon languages, 8 subtopics: Hiragana & Katakana, Kanji, Grammar, Vocabulary, Listening, Speaking, JLPT N5, JLPT N4); switch_space Learn Japanese.',
+        'Example: spaces ["DSA", "Learn Japanese"], said "add business japanese and anime japanese to japanese" → add_topics Learn Japanese [Business Japanese, Anime Japanese].',
+        'Answer with one JSON object: {"reply": string, "actions": [{"type": "switch_space", "space": string} | {"type": "create_space", "space": {"name", "templateId", "icon", "kind", "description", "topics": [{"name", "keywords": []}], "keywords": [], "searchHint", "avoid": []}} | {"type": "play" | "search", "query": string} | {"type": "add_topics", "space": string, "topics": [{"name", "keywords": []}]}]}',
       ].join('\n'),
       user: JSON.stringify({ said: request.text, spaces: request.spaces, activeSpace: request.active, templates: request.catalog }),
     };
@@ -191,6 +196,13 @@ export function parseSetupAnswer(request: SetupRequest, data: unknown): SetupAns
       } else if (a.type === 'play' || a.type === 'search') {
         const query = clip(a.query, 120);
         if (query) actions.push({ type: a.type, query });
+      } else if (a.type === 'add_topics') {
+        const space = clip(a.space, 40);
+        const topics = (Array.isArray(a.topics) ? a.topics.filter(isObject) : [])
+          .map((t) => ({ name: clip(t.name, 50), keywords: strings(t.keywords, 4) }))
+          .filter((t) => t.name)
+          .slice(0, MAX_TOPICS);
+        if (space && topics.length) actions.push({ type: 'add_topics', space, topics });
       }
     }
     const answer: SetupCommandAnswer = { reply, actions: actions.slice(0, 6) };

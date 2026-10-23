@@ -143,3 +143,22 @@ describe('creators said together with a new subject', () => {
   });
 });
 
+
+describe('voice command: adding subtopics', () => {
+  const request: SetupRequest = { task: 'command', text: 'add business japanese to japanese', spaces: ['Learn Japanese'], active: 'Learn Japanese', catalog: [] };
+  it('keeps add_topics with its topics, and drops an empty one', () => {
+    const answer = parseSetupAnswer(request, {
+      reply: 'Adding them.',
+      actions: [
+        { type: 'add_topics', space: 'Learn Japanese', topics: [{ name: 'Business Japanese', keywords: ['business japanese'] }, { name: '' }] },
+        { type: 'add_topics', space: 'Learn Japanese', topics: [] },
+      ],
+    });
+    expect(answer).toMatchObject({ actions: [{ type: 'add_topics', space: 'Learn Japanese', topics: [{ name: 'Business Japanese', keywords: ['business japanese'] }] }] });
+  });
+  it('tells the model about misheard "create" and about add_topics', () => {
+    const prompt = setupPrompt(request);
+    expect(prompt.system).toMatch(/creative mode/);
+    expect(prompt.system).toMatch(/add_topics/);
+  });
+});
