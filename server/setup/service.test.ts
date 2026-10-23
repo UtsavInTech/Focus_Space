@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseSetupAnswer, setupPrompt, validateSetupRequest, validateSpeechText } from './service';
 import type { SetupRequest, SetupTurnAnswer } from '@/types/setup';
+import { parseLayoutIssues } from '../usage/activity';
 
 const spacesRequest: SetupRequest = { task: 'spaces', text: 'system design, spanish', existing: ['DSA'], catalog: [{ id: 'spanish', name: 'Learn Spanish' }] };
 
@@ -160,5 +161,13 @@ describe('voice command: adding subtopics', () => {
     const prompt = setupPrompt(request);
     expect(prompt.system).toMatch(/creative mode/);
     expect(prompt.system).toMatch(/add_topics/);
+  });
+});
+
+describe('layout drift in the daily ping', () => {
+  it('keeps known feature names only, and treats no body as nothing', () => {
+    expect(parseLayoutIssues('')).toEqual([]);
+    expect(parseLayoutIssues('not json')).toEqual([]);
+    expect(parseLayoutIssues(JSON.stringify({ layoutIssues: ['home', 'home', 'evil<script>', 3, 'player'] }))).toEqual(['home', 'player']);
   });
 });

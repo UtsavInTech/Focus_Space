@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Bot, Check, CircleUser, Cpu, Database, Download, ExternalLink, Filter, GraduationCap, History, Info, Keyboard, Layers, Monitor, Moon, Palette, Power, RotateCcw, Sun, Users } from 'lucide-react';
+import { Activity, Bot, Check, CircleUser, Cpu, Database, Download, ExternalLink, Filter, GraduationCap, History, Info, Keyboard, Layers, Monitor, Moon, Palette, Power, RotateCcw, Sun, Users } from 'lucide-react';
 import { ActionCard, CardGrid, jumpTo } from './cards';
 import { useStorage } from '@/ui/hooks';
+import { LAYOUT_FEATURES } from '@/content/youtube/health';
 import type { AiSettings, Settings } from '@/types/domain';
 import type { NoteLanguage } from '@/types/notes';
 import type { AiStatus } from '@/learning/ai/service';
@@ -314,6 +315,41 @@ function SettingsCards({ settings, spaceCount }: { settings: Settings; spaceCoun
   );
 }
 
+/* ─── YouTube compatibility ────────────────────────────────────────────────── */
+
+/**
+ * Whether YouTube changed something FocusSpace relies on (content/youtube/health.ts). Almost always
+ * "Working normally"; when not, it names what is paused and what the learner sees instead.
+ */
+function CompatibilityCard() {
+  const store = useStorage(['health'] as const);
+  const recent = (store?.health.issues ?? []).filter((r) => Date.now() - r.lastSeen < 3 * 86_400_000);
+  return (
+    <Section id="compatibility" icon={<Activity />} title="YouTube compatibility" description="YouTube changes its pages without notice. FocusSpace checks every page it works on and steps aside wherever something changed, so YouTube always keeps working.">
+      {recent.length === 0 ? (
+        <SettingRow title="Working normally" description="Everything FocusSpace adds to YouTube found its place on the pages you visited.">
+          <span className="fs-ondevice-on">
+            <Check size={14} aria-hidden /> All good
+          </span>
+        </SettingRow>
+      ) : (
+        <>
+          {recent.map((r) => (
+            <SettingRow key={r.feature} title={`Paused: ${LAYOUT_FEATURES[r.feature]?.label ?? r.feature}`} description={`${LAYOUT_FEATURES[r.feature]?.effect ?? ''} Last seen ${new Date(r.lastSeen).toLocaleString()}.`} />
+          ))}
+          <SettingRow title="What happens next" description={settingsShareNote}>
+            <Button size="sm" variant="ghost" onClick={() => void setItem('health', { issues: [] })}>
+              Check again
+            </Button>
+          </SettingRow>
+        </>
+      )}
+    </Section>
+  );
+}
+
+const settingsShareNote = 'If “Count me as an active user” is on, the names of these features (nothing else) reach the FocusSpace team today. An update usually follows within days. Reloading YouTube checks again.';
+
 /* ─── Page ─────────────────────────────────────────────────────────────────── */
 
 export function SettingsPage({ data }: { data: DashboardData }) {
@@ -443,7 +479,7 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         "different from the detailed explanation".
       */}
       <Section id="privacy" icon={<Database />} title="Your data" description="Nothing is sold, and there is no advertising or tracking.">
-        <SettingRow title="Count me as an active user" description="Once a day, FocusSpace tells its server that this install was used, so it knows how many people use it and whether they come back. Nothing else is sent: no videos, no history, not your account.">
+        <SettingRow title="Count me as an active user" description="Once a day, FocusSpace tells its server that this install was used, so it knows how many people use it and whether they come back. If a YouTube change broke a FocusSpace feature that day, its name goes too (like “home”), so it gets fixed. Nothing else is sent: no videos, no history, not your account.">
           <Switch label="Count me as an active user" checked={settings.shareUsageCounts} onChange={(v) => patch({ shareUsageCounts: v })} />
         </SettingRow>
         <SettingRow title="Your Spaces, notes and history stay in this browser" description={LOCAL_DATA_SUMMARY} />
@@ -456,6 +492,8 @@ export function SettingsPage({ data }: { data: DashboardData }) {
           </Button>
         </SettingRow>
       </Section>
+
+      <CompatibilityCard />
 
       <Section id="about" icon={<Info />} title="About">
         <SettingRow title="Keyboard shortcut" description="Change the Focus Mode shortcut in Chrome's extension shortcuts page.">

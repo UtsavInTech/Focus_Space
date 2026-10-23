@@ -21,7 +21,7 @@ afterEach(() => {
 
 describe('which keys belong to a person', () => {
   it('every key except the device/session ones is owned — a key added later is owned by default', () => {
-    expect([...ownedKeys()].sort()).toEqual(storageKeys().filter((k) => !['schemaVersion', 'auth', 'ownership', 'pendingClaim', 'installId', 'welcome'].includes(k)).sort());
+    expect([...ownedKeys()].sort()).toEqual(storageKeys().filter((k) => !['schemaVersion', 'auth', 'ownership', 'pendingClaim', 'installId', 'welcome', 'health'].includes(k)).sort());
     for (const key of ['settings', 'modes', 'notes', 'watchHistory', 'channels', 'videos', 'topicPlaylists', 'preferenceProfiles', 'feedViews', 'knowledgeMaps', 'discoveryCache'] as const) {
       expect(ownedKeys()).toContain(key);
     }

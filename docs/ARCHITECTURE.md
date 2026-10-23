@@ -115,3 +115,13 @@ See [KNOWLEDGE.md](KNOWLEDGE.md) and [AI_ARCHITECTURE.md](AI_ARCHITECTURE.md).
 - **AI intent/classification:** implement `IntentEngine` (`modes/intent.ts`) or `VideoClassifier` (`learning/classifier.ts`) and register it — see AI_ARCHITECTURE.md.
 - **An AI action:** add it to `AI_ACTIONS` and `TASK` in `learning/ai/actions.ts` and a chip in `content/ui/LearningPanel.tsx`.
 - **A knowledge source:** produce `OutlineCandidate`s (with a `KnowledgeSource` and base confidence in `knowledge/types.ts`), add it to the ranked list in `knowledge/fuse.ts`, bump `KNOWLEDGE_VERSION`.
+
+## When YouTube changes its page
+
+YouTube ships layout changes without notice. FocusSpace is built so that a change degrades one feature, never YouTube itself:
+
+- **One place knows YouTube's DOM** (`content/youtube/selectors.ts`), each selector with fallbacks; a new layout means adding a selector there and keeping the old one.
+- **Fail open.** `content/youtube/health.ts` checks, a few seconds after each page settles, that every anchor FocusSpace depends on exists and that its own surfaces actually mounted. A missing one switches that feature's hiding CSS off for the session (the home feed, related videos, search filtering), so YouTube's own version shows.
+- **Crash boundaries.** Every surface on youtube.com sits in its own `SurfaceBoundary`; a crash shows YouTube's version back and leaves the other surfaces running.
+- **Knowing about it.** Issues are kept in `chrome.storage` (`health`) and shown in *Settings → YouTube compatibility*. With usage counts on, the daily ping carries the broken feature names only; the API logs them as `layout_drift features=…`.
+- **Before learners notice.** `.github/workflows/youtube-canary.yml` runs `scripts/youtube-canary.ts` daily against live youtube.com with the same anchor list (`CRITICAL_ANCHORS`); a failed run emails the repository owners. Run it locally with `CANARY_CHANNEL=chrome npm run canary`.

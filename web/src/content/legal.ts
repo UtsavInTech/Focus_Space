@@ -57,7 +57,7 @@ export const PRIVACY: LegalDoc = {
         'Never sent: your watch history, your subscriptions, your other videos, or the contents of any page you are not asking about. An AI action or chat message never carries the full transcript.',
         'Only when you use voice (Talk, the microphone button, or reading an answer aloud): the recording of what you say is sent to us and on to OpenAI to turn it into text, and the text of a reply is sent to OpenAI to turn it into speech. Your microphone is used only after you tap Talk or the microphone, and Chrome asks you for it first.',
         'When you set up with the guide, what you type or say to it, and the names of your spaces and their creators, are sent so it can work out which spaces and channels to create.',
-        'Once a day at most, on a day you use FocusSpace on YouTube, the extension tells us that this install was used, with its random install identifier and whether you are signed in. Nothing about what you watched. It is how we count how many people use FocusSpace and whether they come back, and you can turn it off in Settings, under Your data.',
+        'Once a day at most, on a day you use FocusSpace on YouTube, the extension tells us that this install was used, with its random install identifier, whether you are signed in, and the names of any FocusSpace features a change on YouTube broke that day. Nothing about what you watched. It is how we count how many people use FocusSpace and whether they come back, and you can turn it off in Settings, under Your data.',
         'Watching a video sends nothing. Nothing in the playback path contacts our servers.',
       ],
     },

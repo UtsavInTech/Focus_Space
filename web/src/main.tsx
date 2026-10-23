@@ -5,6 +5,7 @@ import '@/ui/styles.css';
 import './site.css';
 import './light.css';
 import './page-motion.css';
+import './responsive.css';
 import { startReveal } from './reveal';
 
 const root = document.getElementById('root');

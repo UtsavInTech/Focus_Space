@@ -16,6 +16,7 @@ import type {
 import { DEFAULT_MODES } from '@/modes/templates';
 import { iconForEmoji, isSpaceIcon } from '@/modes/icons';
 import { isExamId } from '@/modes/exams';
+import type { LayoutHealth } from '@/content/youtube/health';
 import type { ModeCacheSnapshot } from '@/learning/classifier';
 import type { FeedViewStore } from '@/learning/feed-view';
 import type { YtVideo } from '@/integrations/youtube/innertube-parse';
@@ -93,6 +94,8 @@ export interface StorageSchema {
   pendingClaim: PendingClaim | null;
   /** The first-run guide on YouTube (content/ui/WelcomeGuide.tsx). Device data: it must survive the sign-in it asks for. */
   welcome: WelcomeState;
+  /** YouTube layout features found broken lately (content/youtube/health.ts). Device data: it is about this browser's YouTube. */
+  health: LayoutHealth;
 }
 
 /**
@@ -281,6 +284,7 @@ function allDefaults(): StorageSchema {
     ownership: { owner: 'guest', epoch: 0 },
     pendingClaim: null,
     welcome: { active: false, signInSkipped: false, chat: null, talked: false, oneByOne: false, spacesSkipped: false },
+    health: { issues: [] },
   };
 }
 
@@ -399,6 +403,10 @@ export function normalize<K extends StorageKey>(key: K, raw: unknown): StorageSc
     case 'welcome': {
       const w = raw as Partial<WelcomeState>;
       return { active: w.active === true, signInSkipped: w.signInSkipped === true, chat: normalizeWelcomeChat(w.chat), talked: w.talked === true, oneByOne: w.oneByOne === true, spacesSkipped: w.spacesSkipped === true } as StorageSchema[K];
+    }
+    case 'health': {
+      const h = raw as Partial<LayoutHealth>;
+      return { issues: Array.isArray(h.issues) ? h.issues.filter((r) => r && typeof r.feature === 'string') : [] } as StorageSchema[K];
     }
     default:
       return raw as StorageSchema[K];

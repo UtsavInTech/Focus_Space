@@ -1,0 +1,23 @@
+# Checks once a day that youtube.com still has every element FocusSpace hangs on
+# (scripts/youtube-canary.ts). A failed run means YouTube changed its page: GitHub emails the
+# repository's owners, and the log names the feature and the selectors that stopped matching.
+name: YouTube canary
+
+on:
+  schedule:
+    - cron: '30 3 * * *' # 09:00 IST
+  workflow_dispatch:
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx vite-node scripts/youtube-canary.ts

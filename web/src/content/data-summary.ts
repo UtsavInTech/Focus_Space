@@ -88,7 +88,7 @@ export const DATA_GROUPS: DataGroup[] = [
       'Not your watch history, not your other videos. A request never carries the whole transcript.',
       'OpenAI processes it for us. We do not keep your prompts or the answers.',
       'Quiz me questions are checked by a second model, reached through OpenRouter, before you see them. It receives each question and the stretch of transcript it came from. We keep only how many questions you were shown.',
-      'Once a day at most, that this install was used (a random id, kept only as a hash), so we can count active users. Nothing about what you watched, and it can be turned off in Settings.',
+      'Once a day at most, that this install was used (a random id, kept only as a hash), so we can count active users, plus the names of any FocusSpace features a YouTube change broke that day. Nothing about what you watched, and it can be turned off in Settings.',
       'Voice, only when you talk to FocusSpace: your recording is turned into text, and replies into speech, by OpenAI. We keep only how many seconds you used, never the recording or what was said.',
       'If your computer supports Chrome’s built-in on-device AI, you can use that instead. Then nothing leaves your browser at all.',
       'Signed out, a request also sends a random id the extension made up when you installed it, so your small daily free allowance is yours rather than your whole network’s. It is not linked to you, and the server keeps only a hashed counter against it.',

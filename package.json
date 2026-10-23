@@ -19,6 +19,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "node scripts/e2e/run.mjs",
+    "canary": "vite-node scripts/youtube-canary.ts",
     "ai-endpoint": "node scripts/ai-endpoint/server.mjs",
     "build:server": "vite build --config vite.server.config.ts",
     "ai-api": "npm run build:server && node --env-file-if-exists=.env dist-server/index.mjs",

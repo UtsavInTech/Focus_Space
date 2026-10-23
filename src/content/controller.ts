@@ -7,7 +7,8 @@ import { extensionAlive } from '@/messaging/runtime';
 import type { WatchEntry } from '@/types/domain';
 import type { ContentState, Store } from './store';
 import type { Slot } from './ui/slots';
-import { setFlags } from './youtube/filters/css-rules';
+import { setFlags, type FilterFlag } from './youtube/filters/css-rules';
+import { checkLayout, FAIL_OPEN, FAIL_OPEN_EVENT, recordIssues } from './youtube/health';
 import { clearMarks, markSearchResults, markShortsChips, type MarkStats } from './youtube/filters/relevance-marker';
 import { currentVideoElement, readVideoMetadata } from './youtube/metadata';
 import { GUIDE, HOME_MOUNT_PARENT, MUTATION_NOISE, SEARCH, SHORTS_PAGE_VIDEO, WATCH } from './youtube/selectors';
@@ -24,6 +25,8 @@ export interface Slots {
 }
 
 const PROGRESS_INTERVAL_MS = 5000;
+/** Long enough for YouTube to finish building a page, short enough that a blank feed never lingers. */
+const HEALTH_DELAY_MS = 6000;
 const HISTORY_LIMIT = 300;
 
 const sameStats = (a: MarkStats | null, b: MarkStats | null) => a === b || (!!a && !!b && a.total === b.total && a.off === b.off);
@@ -52,6 +55,17 @@ export function createController(store: Store<ContentState>, slots: Slots) {
   let lastSaved = { id: '', progress: 0, at: 0 };
   let homeScroll = 0;
   let navigatingAt = 0;
+  /** Features whose YouTube anchor went missing this session: their hiding CSS stays off (youtube/health.ts). */
+  const failedOpen = new Set<FilterFlag>();
+  let healthTimer = 0;
+  let healthFor = '';
+  // A FocusSpace surface that crashed asks for YouTube's own version back (ui/SurfaceBoundary.tsx).
+  window.addEventListener(FAIL_OPEN_EVENT, (event) => {
+    const flag = (event as CustomEvent<unknown>).detail;
+    if (typeof flag !== 'string' || failedOpen.has(flag as FilterFlag)) return;
+    failedOpen.add(flag as FilterFlag);
+    apply();
+  });
   let restoreTimer = 0;
   const observers: MutationObserver[] = [];
 
@@ -70,7 +84,7 @@ export function createController(store: Store<ContentState>, slots: Slots) {
     const { s, active, showHome, filters: f } = focus();
     if (!s.ready) return;
 
-    setFlags({
+    const flags: Partial<Record<FilterFlag, boolean>> = {
       shorts: active && f.hideShorts,
       home: showHome,
       'related-hide': active && f.relatedVideos !== 'show' && !s.showNativeRelated,
@@ -80,7 +94,11 @@ export function createController(store: Store<ContentState>, slots: Slots) {
       notifications: active && f.hideNotifications,
       'search-dim': active && f.searchResults === 'dim' && !s.searchReveal,
       'search-focus': active && f.searchResults === 'focus' && !s.searchReveal,
-    });
+    };
+    // Fail open: never hide YouTube's own version of something FocusSpace could not put back.
+    for (const flag of failedOpen) flags[flag] = false;
+    setFlags(flags);
+    scheduleHealthCheck();
 
     // Shorts open as a normal video. replace() keeps "back" from bouncing into the Shorts feed.
     if (active && f.hideShorts && s.page.type === 'shorts' && s.page.videoId && redirectedShort !== s.page.videoId) {
@@ -114,6 +132,46 @@ export function createController(store: Store<ContentState>, slots: Slots) {
       watchAbort = null;
     }
     apply();
+  }
+
+  /**
+   * A few seconds after a page settles, check that YouTube still has what FocusSpace hangs on. A missing
+   * anchor switches that feature's hiding off (so YouTube works as normal), is remembered for Settings,
+   * and goes into the next anonymous daily ping (background/activity.ts) when usage counts are on.
+   */
+  function scheduleHealthCheck() {
+    // Once per page: apply() runs often (progress saves, settings), and must not keep pushing it back.
+    const url = store.get().page.url;
+    if (url === healthFor) return;
+    healthFor = url;
+    window.clearTimeout(healthTimer);
+    healthTimer = window.setTimeout(() => {
+      try {
+        const { s, active, showHome, filters: f } = focus();
+        if (!s.ready || document.visibilityState !== 'visible') return;
+        const page = s.page.type === 'home' || s.page.type === 'watch' || s.page.type === 'search' ? s.page.type : 'other';
+        const visible = (slot: Slot) => slot.attached && slot.host.getClientRects().length > 0;
+        const broken = checkLayout(document, {
+          page,
+          homeReplaced: showHome,
+          active,
+          mounted: { home: visible(slots.home), watch: slots.watch.attached, search: slots.search.attached },
+          searchFiltered: active && f.searchResults !== 'show',
+        });
+        if (!broken.length) return;
+        let changed = false;
+        for (const flag of broken.flatMap((feature) => FAIL_OPEN[feature] ?? [])) {
+          if (failedOpen.has(flag)) continue;
+          failedOpen.add(flag);
+          changed = true;
+        }
+        console.warn('[FocusSpace] YouTube layout changed; paused:', broken.join(', '));
+        void updateItem('health', (h) => recordIssues(h, broken)).catch(() => undefined);
+        if (changed) apply();
+      } catch {
+        /* a health check must never be the thing that breaks the page */
+      }
+    }, HEALTH_DELAY_MS);
   }
 
   /** One request for everything FocusSpace needs on a watch page; the player never waits for it. */

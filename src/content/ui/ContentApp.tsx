@@ -20,6 +20,7 @@ import { AiEntry } from './AiEntry';
 import { FocusPill } from './FocusPill';
 import { WelcomeGuide } from './WelcomeGuide';
 import { shouldShowAiEntry } from './ai-entry-visibility';
+import { SurfaceBoundary } from './SurfaceBoundary';
 
 const navigator = { go: spaNavigate };
 
@@ -60,14 +61,16 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
     <NavigatorContext.Provider value={navigator}>
       <YouTubeDataContext.Provider value={pageYouTubeData}>
         <OverlayRootContext.Provider value={slots.overlay.container}>
-          {((active && config.filters.replaceHomeFeed) || (s.ready && needsFirstSpace(s.settings, s.modes))) && s.homeVisited && createPortal(<SpaceHome settings={s.settings} modes={s.modes} onCreateSpace={openCreate} />, slots.home.container)}
+          {((active && config.filters.replaceHomeFeed) || (s.ready && needsFirstSpace(s.settings, s.modes))) && s.homeVisited && createPortal(<SurfaceBoundary feature="home" failOpen="home"><SpaceHome settings={s.settings} modes={s.modes} onCreateSpace={openCreate} /></SurfaceBoundary>, slots.home.container)}
 
           {active &&
             mode &&
             s.page.type === 'watch' &&
             s.video &&
             createPortal(
-              <WatchRail mode={mode} settings={s.settings} video={s.video} watch={s.watch} assessment={assessment} policy={config.filters.relatedVideos} showingNative={s.showNativeRelated} onToggleNative={controller.toggleNativeRelated} />,
+              <SurfaceBoundary feature="watch-rail" failOpen="related-hide">
+                <WatchRail mode={mode} settings={s.settings} video={s.video} watch={s.watch} assessment={assessment} policy={config.filters.relatedVideos} showingNative={s.showNativeRelated} onToggleNative={controller.toggleNativeRelated} />
+              </SurfaceBoundary>,
               slots.watch.container,
             )}
 
@@ -75,11 +78,11 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
             mode &&
             s.page.type === 'search' &&
             config.filters.searchResults !== 'show' &&
-            createPortal(<SearchStrip mode={mode} query={s.page.query ?? ''} stats={s.searchStats} revealed={s.searchReveal} onToggleReveal={controller.toggleSearchReveal} />, slots.search.container)}
+            createPortal(<SurfaceBoundary feature="search" failOpen="search-focus" quiet><SearchStrip mode={mode} query={s.page.query ?? ''} stats={s.searchStats} revealed={s.searchReveal} onToggleReveal={controller.toggleSearchReveal} /></SurfaceBoundary>, slots.search.container)}
 
-          {active && createPortal(<GuideSpaces settings={s.settings} modes={s.modes} onCreate={openCreate} />, slots.guide.container)}
+          {active && createPortal(<SurfaceBoundary feature="sidebar" quiet><GuideSpaces settings={s.settings} modes={s.modes} onCreate={openCreate} /></SurfaceBoundary>, slots.guide.container)}
 
-          {showAiEntry && mode && createPortal(<AiEntry settings={s.settings} mode={mode} pageType={s.page.type} />, slots.aiEntry.container)}
+          {showAiEntry && mode && createPortal(<SurfaceBoundary feature="masthead" quiet><AiEntry settings={s.settings} mode={mode} pageType={s.page.type} /></SurfaceBoundary>, slots.aiEntry.container)}
 
           {nudge && mode && assessment && s.video && (
             <OffTrackNudge key={s.video.id} mode={mode} assessment={assessment} strict={config.intensity === 'strict'} channel={s.video.meta} onStay={controller.stayFocused} onWatch={() => controller.watchAnyway(s.video!.id)} />

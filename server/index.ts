@@ -57,7 +57,7 @@ import { planLabel } from '@/billing/plans';
 import { getUsageDb } from './usage/db';
 import { anonymousKeys, assertAnonymousAllowed, commitUsage, parseInstallId, recordAnonymous, releaseUsage, reserveUsage, usageStatus } from './usage/service';
 import { registerSpace, spaceAllowance, unregisterSpace } from './usage/spaces';
-import { activitySubject, isAdmin, metrics, recordActive } from './usage/activity';
+import { activitySubject, isAdmin, metrics, parseLayoutIssues, recordActive } from './usage/activity';
 import { assertVoiceAllowed, parsePurpose, recordVoice, secondsHeard, secondsToSay, voiceStatus, type VoiceCaller } from './usage/voice';
 import { resolvePlan } from './usage/entitlements';
 import { loadRazorpayConfig, verifyWebhookSignature } from './billing/razorpay';
@@ -375,6 +375,10 @@ const server = createServer(async (req, res) => {
       if (!activityLimiter.attempt(clientIp(req, TRUST_PROXY))) throw new ApiError(429, 'rate_limited', 'Too many requests.');
       const identity = authConfig ? tryAuthenticate(getDb(), authConfig, req.headers.authorization) : null;
       recordActive(getUsageDb(), activitySubject(installId, authConfig?.tokenSecret ?? config.model), !!identity);
+      // YouTube changed something FocusSpace relies on: one log line per install per day, feature names only.
+      // Search the logs for "layout_drift" (Railway → API service → Logs) to see which feature and how widely.
+      const layoutIssues = parseLayoutIssues(await readTextBody(req, 2048).catch(() => ''));
+      if (layoutIssues.length) console.warn(`layout_drift features=${layoutIssues.join(',')}`);
       sendJson(res, 200, { ok: true });
       return;
     }

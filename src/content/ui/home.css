@@ -443,3 +443,4 @@
 .fs-quiz-count-label { font-size: 13px; font-weight: 700; color: var(--fs-text); }
 .fs-quiz-count-note { font-size: 12px; color: var(--fs-text-2); }
 .fs-quiz-level-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.fs-surface-failed { display: flex; flex-direction: column; gap: 4px; margin: 12px 0; padding: 12px 16px; border-radius: 12px; background: var(--fs-warning-soft); color: var(--fs-text); font-size: 13px; } .fs-surface-failed span { color: var(--fs-text-2); }

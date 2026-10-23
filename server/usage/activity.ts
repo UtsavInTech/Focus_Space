@@ -99,3 +99,20 @@ export function metrics(db: UsageDb, now = Date.now()): Metrics {
     paying: { total: Object.values(byPlan).reduce((a, b) => a + (b ?? 0), 0), byPlan, mrrInr },
   };
 }
+
+/** The FocusSpace features an install found broken on YouTube today (src/content/youtube/health.ts). */
+export const LAYOUT_FEATURE_NAMES = ['masthead', 'home', 'watch-rail', 'player', 'search', 'search-marks', 'sidebar'] as const;
+
+/**
+ * Reads the optional `layoutIssues` from an activity ping body: only known feature names, at most one
+ * of each. Anything else, or no body at all (older extensions send none), is simply nothing.
+ */
+export function parseLayoutIssues(body: string): string[] {
+  if (!body.trim()) return [];
+  try {
+    const raw = (JSON.parse(body) as { layoutIssues?: unknown }).layoutIssues;
+    return Array.isArray(raw) ? [...new Set(raw.filter((f): f is string => typeof f === 'string' && (LAYOUT_FEATURE_NAMES as readonly string[]).includes(f)))] : [];
+  } catch {
+    return [];
+  }
+}
