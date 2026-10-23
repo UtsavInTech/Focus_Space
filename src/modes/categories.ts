@@ -25,6 +25,12 @@ export interface SpaceCategory {
 
 export const SPACE_CATEGORIES: readonly SpaceCategory[] = [
   {
+    id: 'exams',
+    name: 'Exam Prep',
+    description: 'Government jobs, entrance exams and GATE, one exam at a time.',
+    modeIds: ['upsc', 'ssc', 'banking', 'railways', 'state-psc', 'jee', 'neet', 'gate', 'cat'],
+  },
+  {
     id: 'technical',
     name: 'Tech & Engineering',
     description: 'Build things, and get through interviews.',

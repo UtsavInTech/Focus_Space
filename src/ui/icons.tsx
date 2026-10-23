@@ -1,5 +1,12 @@
 import {
   Atom,
+  Banknote,
+  Briefcase,
+  FileText,
+  Landmark,
+  Map as MapIcon,
+  Stethoscope,
+  TrainFront,
   ChartColumn,
   BookOpen,
   Bot,
@@ -66,6 +73,13 @@ const ICONS: Record<SpaceIconName, LucideIcon> = {
   palette: Palette,
   globe: Globe,
   sparkles: Sparkles,
+  landmark: Landmark,
+  'file-text': FileText,
+  banknote: Banknote,
+  train: TrainFront,
+  map: MapIcon,
+  stethoscope: Stethoscope,
+  briefcase: Briefcase,
 };
 
 export function SpaceIcon({ name, size = 18, className }: { name: string; size?: number; className?: string }) {

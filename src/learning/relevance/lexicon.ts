@@ -9,7 +9,7 @@
  * cached classifications are invalidated.
  */
 
-export const CLASSIFIER_VERSION = 5;
+export const CLASSIFIER_VERSION = 6;
 
 /**
  * Terms too broad to indicate a topic by themselves ("AI Changed My Life").
@@ -103,6 +103,10 @@ export const LEARNING_SIGNALS: Record<LearningStrength, string[]> = {
     'introduction to',
     'spelled-out',
     'coding interview',
+    // How exam-prep lessons name themselves on Indian YouTube.
+    'one shot',
+    'complete chapter',
+    'full chapter',
   ],
   medium: [
     'guide',
@@ -141,6 +145,16 @@ export const LEARNING_SIGNALS: Record<LearningStrength, string[]> = {
     'reproduce',
     'how i use',
     'code along',
+    'marathon',
+    'mcq',
+    'mcqs',
+    'pyq',
+    'pyqs',
+    'previous year questions',
+    'short tricks',
+    'concept',
+    'strategy',
+    'answer writing',
   ],
   weak: ['problem', 'solution', 'solve', 'solving', 'notes', 'revision', 'career', 'how i became', 'how to become', 'skills', 'paper', 'research', 'chapter'],
 };
@@ -215,7 +229,7 @@ export const NOISE_SIGNALS: Record<NoiseCategory, { penalty: number; terms: stri
   },
   news: {
     penalty: 0.15,
-    terms: ['news', 'breaking', 'announces', 'announced', 'announcement', 'launches', 'launched', 'released', 'leaked', 'leak', 'first look', 'rumor', 'rumors', 'this week in', 'weekly recap', 'just dropped', 'banned', 'lawsuit', 'acquires', 'acquisition', 'arrives', 'drops', 'dropped', 'unveils', 'goes rogue', 'incident'],
+    terms: ['admit card', 'answer key', 'result out', 'notification out', 'vacancy', 'exam date', 'cut off', 'news', 'breaking', 'announces', 'announced', 'announcement', 'launches', 'launched', 'released', 'leaked', 'leak', 'first look', 'rumor', 'rumors', 'this week in', 'weekly recap', 'just dropped', 'banned', 'lawsuit', 'acquires', 'acquisition', 'arrives', 'drops', 'dropped', 'unveils', 'goes rogue', 'incident'],
   },
   story: {
     penalty: 0.2,
@@ -277,6 +291,25 @@ export const AMBIGUITY_GUARDS = [
   'threads app',
   'twitter thread',
   'coding challenge',
+  // General-knowledge syllabus phrases that borrow tech words ("architecture", "computer", "system").
+  'temple architecture',
+  'indian architecture',
+  'mughal architecture',
+  'buddhist architecture',
+  'architecture of india',
+  'art and culture',
+  'computer awareness',
+  'computer knowledge',
+  'solar system',
+  'nervous system',
+  'digestive system',
+  'respiratory system',
+  'circulatory system',
+  'political system',
+  'electoral system',
+  'judicial system',
+  'federal system',
+  'party system',
 ];
 
 /** Penalties that a clearly educational, on-topic title can soften (a podcast that is a deep dive). */

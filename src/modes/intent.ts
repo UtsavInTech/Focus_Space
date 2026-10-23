@@ -63,6 +63,16 @@ const CATALOG: CatalogEntry[] = [
   template('sql', ['sql', 'dbms', 'mysql', 'postgres', 'postgresql', 'database', 'databases']),
   template('java', ['java', 'core java', 'spring boot', 'spring']),
   template('relax', ['relax', 'relaxation', 'calm', 'meditation', 'sleep', 'ambient']),
+  // Exam Spaces (modes/exams.ts).
+  template('upsc', ['upsc', 'upsc cse', 'ias', 'ias preparation', 'civil services', 'civil service', 'upsc prelims', 'upsc mains', 'ips']),
+  template('ssc', ['ssc', 'ssc cgl', 'cgl', 'ssc chsl', 'chsl', 'ssc mts', 'ssc gd', 'ssc cpo']),
+  template('banking', ['banking', 'bank exam', 'bank exams', 'banking exam', 'banking exams', 'ibps', 'ibps po', 'sbi po', 'sbi clerk', 'bank po', 'rbi grade b']),
+  template('railways', ['railway', 'railways', 'railway exam', 'rrb', 'rrb ntpc', 'ntpc', 'group d']),
+  template('state-psc', ['state psc', 'pcs', 'uppsc', 'bpsc', 'mppsc', 'rpsc', 'ras', 'tnpsc', 'kpsc', 'mpsc', 'wbcs']),
+  template('jee', ['jee', 'jee main', 'jee mains', 'jee advanced', 'iit jee']),
+  template('neet', ['neet', 'neet ug', 'medical entrance']),
+  template('gate', ['gate', 'gate cse', 'gate cs', 'gate exam']),
+  template('cat', ['cat exam', 'cat preparation', 'mba entrance', 'iim', 'cat mba']),
   {
     id: 'system-design',
     name: 'System Design',

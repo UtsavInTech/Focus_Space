@@ -38,6 +38,8 @@ export interface RelevanceResult {
   learning: number;
   description: number;
   penalty: number;
+  /** The exam/school family that put this video outside the Space (relevance/domains.ts), if any. */
+  offDomain?: string | null;
   topicId: string | null;
   topicScores: Record<string, number>;
   categories: NoiseCategory[];

@@ -47,6 +47,23 @@ export function discoveryQueriesFor(mode: LearningMode, topic?: Topic | null): s
 }
 
 /**
+ * Discovery never trusts YouTube's reasons for showing a video, only the video's own words.
+ *
+ * - A recommendation (YouTube's home feed for this account) must name the subject in its title. Those
+ *   follow the account's whole history, so someone who once watched SSC prep gets it everywhere.
+ * - A result of the Space's own search must, in a learning Space, still say something about the
+ *   subject in its title or description: the search alone is context, not evidence. Media Spaces keep
+ *   trusting their search, since song titles rarely name the genre (docs/RELEVANCE.md, "Search context").
+ * - Nothing off-domain (relevance/domains.ts) is ever discovered, even with a little evidence.
+ */
+export function hasOwnEvidence(cls: Classification, mode: LearningMode, fromSpaceQuery: boolean): boolean {
+  if (cls.offDomain) return false;
+  if (!fromSpaceQuery) return cls.exact > 0;
+  if ((mode.kind ?? 'learning') !== 'learning') return true;
+  return cls.exact > 0 || cls.description > 0;
+}
+
+/**
  * `affinity`: behavioral creator preference (docs/V5_CONTRACT.md §D), keyed
  * by channel id. This is the actual mechanism for unsubscribed-creator
  * preference: a channel found only here (not in the subscribed library) has
@@ -79,6 +96,7 @@ export function rankDiscovery(
       { sourceQuery: fromSpaceQuery && query ? query : undefined, channelScore: video.channelId ? affinity?.[video.channelId]?.score : undefined },
     );
     if (cls.strength === 'blocked' || cls.relevance < FEED_MIN_SCORE) continue;
+    if (!hasOwnEvidence(cls, mode, fromSpaceQuery)) continue;
 
     // A topic view keeps videos with evidence for that topic, or found by that topic's own search.
     const assigned = cls.topicId ?? queryTopic;

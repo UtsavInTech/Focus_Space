@@ -17,6 +17,7 @@ import {
   type LearningStrength,
   type NoiseCategory,
 } from './lexicon';
+import { offDomain, ownFamilies } from './domains';
 import { PhraseIndex, hashString, removeGuarded, selectNonOverlapping, stemToken, tokenStems, withoutOverlap, type Match } from './matcher';
 import type { Classification, ClassifyContext, Difficulty, RelevanceResult, SignalLine, Tier, VideoMetadata } from './types';
 
@@ -124,6 +125,8 @@ interface CompiledMode {
   blocked: PhraseIndex<string>;
   /** Normalised mode configuration text: noise phrases the mode itself asks for are not penalised. */
   configText: string;
+  /** Exam/school families this Space is itself about (domains.ts) — never penalised as off-domain. */
+  own: Set<string>;
 }
 
 const compiledModes = new Map<string, CompiledMode>();
@@ -155,11 +158,13 @@ export function compileMode(mode: LearningMode): CompiledMode {
     add(topic.name, topic.id, true);
     topic.keywords.forEach((k) => add(k, topic.id, false));
   }
+  const configText = normalizeText([mode.name, mode.searchHint ?? '', ...mode.keywords, ...mode.topics.flatMap((t) => [t.name, ...t.keywords])].join(' | ').replace(/~/g, ' '));
   const compiled: CompiledMode = {
     fingerprint,
     terms: new PhraseIndex(entries),
     blocked: new PhraseIndex(mode.blockedKeywords.map((term) => ({ term, data: term }))),
-    configText: normalizeText([mode.name, ...mode.keywords, ...mode.topics.flatMap((t) => [t.name, ...t.keywords])].join(' | ').replace(/~/g, ' ')),
+    configText,
+    own: ownFamilies(configText),
   };
   compiledModes.set(mode.id, compiled);
   return compiled;
@@ -283,7 +288,11 @@ export function scoreVideo(video: VideoMetadata, mode: LearningMode, options: Sc
   const penaltyOf = (c: NoiseCategory) => NOISE_SIGNALS[c].penalty * (softened && SOFTENABLE_NOISE.has(c) ? 0.4 : 1);
   const P = Math.min(0.45, [...categoryHits.keys()].reduce((sum, c) => sum + penaltyOf(c), 0));
 
-  const base = clamp01(WEIGHTS.topical * TE + WEIGHTS.exact * E + WEIGHTS.learning * L * gate - P);
+  // Another world entirely (SSC prep in a System Design Space): outside the noise cap on purpose.
+  const foreign = offDomain(video, compiled.own);
+  const O = foreign?.penalty ?? 0;
+
+  const base = clamp01(WEIGHTS.topical * TE + WEIGHTS.exact * E + WEIGHTS.learning * L * gate - P - O);
 
   const blockedTerms = compiled.blocked.find(title, titleStems).map((m) => m.phrase.data);
   const difficulty = DIFFICULTY_PATTERNS.find(({ patterns }) => patterns.some((p) => p.test(title)))?.level ?? null;
@@ -300,6 +309,7 @@ export function scoreVideo(video: VideoMetadata, mode: LearningMode, options: Sc
     if (E) signals.push({ kind: 'exact', label: E === 1 ? 'exact topic phrase in title' : 'specific topic word in title', value: round(WEIGHTS.exact * E) });
     if (learningLabels.length) signals.push({ kind: 'learning', label: `${kind === 'media' ? 'media cue' : 'learning'}: ${learningLabels.join(', ')}${gate < 1 ? ` (weakened: little topic evidence)` : ''}`, value: round(WEIGHTS.learning * L * gate) });
     else signals.push({ kind: 'note', label: 'no educational signal in title', value: 0 });
+    if (foreign) signals.push({ kind: 'penalty', label: `off-domain (${foreign.family}): “${foreign.marker}” in ${foreign.where}`, value: -round(O) });
     for (const [category, hit] of categoryHits) signals.push({ kind: 'penalty', label: `${category}: “${hit}”${penaltyOf(category) < NOISE_SIGNALS[category].penalty ? ' (softened: clearly educational)' : ''}`, value: -round(penaltyOf(category)) });
   }
 
@@ -310,7 +320,8 @@ export function scoreVideo(video: VideoMetadata, mode: LearningMode, options: Sc
       exact: E,
       learning: round(L),
       description: round(D),
-      penalty: round(P),
+      penalty: round(P + O),
+      offDomain: foreign?.family ?? null,
       topicId,
       topicScores,
       categories: [...categoryHits.keys()],

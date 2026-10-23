@@ -31,6 +31,13 @@ export const SPACE_ICON_NAMES = [
   'palette',
   'globe',
   'sparkles',
+  'landmark',
+  'file-text',
+  'banknote',
+  'train',
+  'map',
+  'stethoscope',
+  'briefcase',
 ] as const;
 
 export type SpaceIconName = (typeof SPACE_ICON_NAMES)[number];
@@ -54,6 +61,12 @@ const FROM_EMOJI: Record<string, SpaceIconName> = {
   '🌍': 'globe',
   '🎸': 'guitar',
   '📝': 'book-open',
+  '🏛️': 'landmark',
+  '🏦': 'banknote',
+  '🚆': 'train',
+  '🗺️': 'map',
+  '🩺': 'stethoscope',
+  '💼': 'briefcase',
 };
 
 export const iconForEmoji = (emoji: string | undefined): SpaceIconName => FROM_EMOJI[emoji ?? ''] ?? 'sparkles';

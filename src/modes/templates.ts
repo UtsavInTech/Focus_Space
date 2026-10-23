@@ -1,4 +1,5 @@
 import type { LearningMode, Topic } from '@/types/domain';
+import { EXAM_MODES } from './exams';
 
 /**
  * Built-in learning modes. Topics act as navigation + filters; they do not
@@ -31,7 +32,7 @@ const base = (m: Pick<Template, 'id' | 'name' | 'emoji' | 'icon' | 'description'
   ...m,
 });
 
-export const DEFAULT_MODES: LearningMode[] = [
+const CORE_MODES: LearningMode[] = [
   base({
     id: 'dsa',
     name: 'DSA',
@@ -350,6 +351,9 @@ export const DEFAULT_MODES: LearningMode[] = [
     },
   }),
 ];
+
+/** Every built-in Space: the general catalogue, then the exam Spaces (modes/exams.ts). */
+export const DEFAULT_MODES: LearningMode[] = [...CORE_MODES, ...EXAM_MODES];
 
 /** A blank mode for "Create mode". */
 export function blankMode(id: string, now: number): LearningMode {

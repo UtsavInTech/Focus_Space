@@ -3,6 +3,7 @@ import { Bookmark, Check, ExternalLink, ShieldCheck } from 'lucide-react';
 import type { LearningMode, RelatedVideosPolicy, Settings } from '@/types/domain';
 import type { VideoMetadata } from '@/learning/classifier';
 import { FEED_MIN_SCORE, TIER_LABEL } from '@/learning/classifier';
+import { hasOwnEvidence } from '@/learning/discovery';
 import { getClassifier } from '@/ai/registry';
 import type { Assessment } from '@/ai/sidekick';
 import { seriesNumber } from '@/learning/next';
@@ -109,6 +110,8 @@ export function WatchRail({
       // Lessons from the same teacher count even when their titles are terse ("L18. Implement LRU Cache").
       const sameTeacher = onTrack && sameChannel && (cls.topical >= 0.3 || cls.learning >= 0.6 || !!seriesNumber(v.title));
       if (cls.relevance < FEED_MIN_SCORE && !sameTeacher) continue;
+      // From outside the learner's channels, a related video must say what it teaches (learning/discovery.ts).
+      if (!sameChannel && !known.has(v.channelId ?? '') && !hasOwnEvidence(cls, mode, false)) continue;
       out.push(toRail(v, known.has(v.channelId ?? '') ? 'subscription' : 'discovery', sameChannel, sameChannel && cls.relevance < FEED_MIN_SCORE ? 'Same channel' : TIER_LABEL[cls.tier], Math.max(cls.relevance, sameTeacher ? 0.6 : 0)));
     }
     const creator = out.filter((r) => r.sameChannel).sort(byRelevance).slice(0, 4);
