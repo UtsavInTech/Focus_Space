@@ -13,6 +13,7 @@ import { FeatureJourney } from './components/FeatureJourney';
 import { PricingSection } from './components/PricingSection';
 import { Faq } from './components/Faq';
 import { Footer } from './components/Footer';
+import { BrandFinale } from './components/BrandFinale';
 import { ChatLauncher } from './components/ChatLauncher';
 import { CursorSparkle } from './components/CursorSparkle';
 import { AuthPage } from './components/AuthPage';
@@ -109,6 +110,7 @@ export function App() {
         )}
       </main>
       {!isAuth && !isConnect && <Footer />}
+      {path === '/' && <BrandFinale />}
       {appearance === 'deep' && <CursorSparkle />}
       <ChatLauncher />
     </AuthProvider>

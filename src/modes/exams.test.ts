@@ -27,7 +27,25 @@ describe('goals build a Space as a hierarchy', () => {
     expect(cse.name).toBe('B.Tech CSE');
     expect(cse.topics.map((t) => t.name)).toEqual(expect.arrayContaining(['Operating System', 'DBMS', 'Computer Networks']));
     const both = buildExamMode('btech', { branch: ['me'], year: ['y2', 'y3'] });
-    expect(new Set(both.topics.map((t) => t.group))).toEqual(new Set(['2nd year', '3rd year']));
+    expect(new Set(both.topics.map((t) => t.group))).toEqual(new Set(['2nd year', '3rd year', 'Skills & placements']));
+  });
+
+  it('B.Tech CSE comes with DSA, Development and AI/ML, and System Design is one tap away', () => {
+    const cse = buildExamMode('btech', { branch: ['cse'], year: ['y3'] });
+    const skills = cse.topics.filter((t) => t.group === 'Skills & placements').map((t) => t.name);
+    expect(skills).toEqual(['DSA', 'Web Development', 'AI / ML']);
+    const withSd = buildExamMode('btech', { branch: ['cse'], year: ['y3'], skills: ['dsa', 'sysdesign'] });
+    expect(withSd.topics.map((t) => t.name)).toContain('System Design');
+    // Mechanical students are not handed CSE skills.
+    expect(buildExamMode('btech', { branch: ['me'], year: ['y2'] }).topics.map((t) => t.name)).not.toContain('DSA');
+  });
+
+  it('every B.Tech subject has its subtopics, and a subject can be left out', () => {
+    const cse = buildExamMode('btech', { branch: ['cse'], year: ['y3'] });
+    const dbms = cse.topics.find((t) => t.name === 'DBMS')!;
+    expect(dbms.keywords).toEqual(expect.arrayContaining(['normalization', 'transactions']));
+    const without = buildExamMode('btech', { branch: ['cse'], year: ['y3'], exclude: [dbms.id] });
+    expect(without.topics.map((t) => t.name)).not.toContain('DBMS');
   });
 
   it('a B.Tech CSE Space keeps real lessons for its subjects', () => {

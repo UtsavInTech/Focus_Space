@@ -34,7 +34,8 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
   const theme = s.ytDark ? 'dark' : 'light';
 
   useEffect(() => {
-    Object.values(slots).forEach((slot) => slot.setTheme(theme, s.settings.density));
+    // The FocusSpace home is a cinema: always dark, whatever YouTube's theme (home.css sets the backdrop).
+    Object.values(slots).forEach((slot) => slot.setTheme(slot === slots.home ? 'dark' : theme, s.settings.density));
   }, [slots, theme, s.settings.density]);
 
   const assessment = useMemo(() => (active && mode && s.video?.meta ? localSidekick.assess({ mode, session: null, video: s.video.meta }) : null), [active, mode, s.video]);

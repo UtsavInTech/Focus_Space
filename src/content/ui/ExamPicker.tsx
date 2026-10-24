@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import { buildExamMode, defaultAnswers, EXAM_GROUPS, EXAMS, examCreators, examInfo, type ExamAnswers, type ExamId, type ExamInfo } from '@/modes/exams';
+import { asked, buildExamMode, defaultAnswers, EXAM_GROUPS, EXAMS, EXCLUDE, examCreators, examInfo, type ExamAnswers, type ExamId, type ExamInfo } from '@/modes/exams';
 import { chooseExam, skipExam, SpaceLimitError } from '@/modes/service';
 import { SpaceIcon } from '@/ui/icons';
 import { ChannelPicker, type PickedChannel } from '@/ui/components/ChannelPicker';
@@ -123,7 +123,7 @@ export function ExamPicker({
         {step.kind === 'ask' && (
           <m.div key={`ask-${step.exam.id}`} className="fs-exam-step" {...motionStep}>
             <StepHead exam={step.exam} onBack={() => setStep({ kind: 'pick' })} />
-            {step.exam.questions.map((q) => (
+            {step.exam.questions.filter((q) => asked(q, step.exam, answers)).map((q) => (
               <fieldset key={q.id} className="fs-exam-question">
                 <legend>{q.prompt}</legend>
                 {q.help && <p className="fs-exam-help">{q.help}</p>}
@@ -142,7 +142,8 @@ export function ExamPicker({
                             const cur = a[q.id] ?? [];
                             if (!q.multi) return { ...a, [q.id]: [o.id] };
                             const next = cur.includes(o.id) ? cur.filter((x) => x !== o.id) : [...cur, o.id];
-                            return { ...a, [q.id]: next.length ? next : cur };
+                            // Years need at least one; skills may be none at all.
+                            return { ...a, [q.id]: next.length || q.id.startsWith('skills') ? next : cur };
                           })
                         }
                       >
@@ -166,7 +167,7 @@ export function ExamPicker({
         {step.kind === 'review' && (
           <m.div key={`review-${step.exam.id}`} className="fs-exam-step" {...motionStep}>
             <StepHead exam={step.exam} onBack={() => setStep(step.exam.questions.length ? { kind: 'ask', exam: step.exam } : { kind: 'pick' })} />
-            <SpacePreview exam={step.exam} answers={answers} compact={compact} />
+            <SpacePreview exam={step.exam} answers={answers} compact={compact} onToggle={(id) => setAnswers((a) => ({ ...a, [EXCLUDE]: (a[EXCLUDE] ?? []).includes(id) ? (a[EXCLUDE] ?? []).filter((x) => x !== id) : [...(a[EXCLUDE] ?? []), id] }))} />
             <div className="fs-exam-creators">
               <div className="fs-exam-question-title">Add teachers you like</div>
               <p className="fs-exam-help">Optional. They come first in your Space. You can skip this and FocusSpace finds good ones on its own.</p>
@@ -212,21 +213,28 @@ function StepHead({ exam, onBack }: { exam: ExamInfo; onBack: () => void }) {
   );
 }
 
-/** The Space about to be built, as its hierarchy: each stage or year, then its subjects. */
-function SpacePreview({ exam, answers, compact }: { exam: ExamInfo; answers: ExamAnswers; compact: boolean }) {
-  const mode = useMemo(() => buildExamMode(exam.id, answers), [exam.id, answers]);
+/**
+ * The Space about to be built, as its hierarchy: each stage or year, then its subjects, each with its
+ * subtopics. Tapping a subject leaves it out ("I don't study this one") or brings it back.
+ */
+function SpacePreview({ exam, answers, compact, onToggle }: { exam: ExamInfo; answers: ExamAnswers; compact: boolean; onToggle: (topicId: string) => void }) {
+  // Everything that could be in the Space, so a subject switched off stays on screen to switch back on.
+  const all = useMemo(() => buildExamMode(exam.id, { ...answers, [EXCLUDE]: [] }), [exam.id, answers]);
+  const off = new Set(answers[EXCLUDE] ?? []);
   const groups = useMemo(() => {
-    const out = new Map<string, string[]>();
-    for (const t of mode.topics) out.set(t.group ?? 'Topics', [...(out.get(t.group ?? 'Topics') ?? []), t.name]);
+    const out = new Map<string, typeof all.topics>();
+    for (const t of all.topics) out.set(t.group ?? 'Topics', [...(out.get(t.group ?? 'Topics') ?? []), t]);
     return [...out];
-  }, [mode]);
+  }, [all]);
+  const kept = all.topics.filter((t) => !off.has(t.id)).length;
+  const subtopics = (t: (typeof all.topics)[number]) => t.keywords.filter((k) => !k.startsWith('~') && k !== t.name.toLowerCase());
   return (
     <div className="fs-exam-preview">
       <div className="fs-exam-preview-head">
-        <SpaceIcon name={mode.icon} size={16} />
-        <b>Your {mode.name} Space</b>
+        <SpaceIcon name={all.icon} size={16} />
+        <b>Your {all.name} Space</b>
         <small>
-          {mode.topics.length} topics{groups.length > 1 ? ` in ${groups.length} parts` : ''}
+          {kept} of {all.topics.length} topics · tap one to leave it out
         </small>
       </div>
       <ol className="fs-exam-tree">
@@ -234,12 +242,18 @@ function SpacePreview({ exam, answers, compact }: { exam: ExamInfo; answers: Exa
           <li key={group}>
             <span className="fs-exam-tree-group">{group}</span>
             <span className="fs-exam-tree-topics">
-              {(compact ? topics.slice(0, 6) : topics).map((name) => (
-                <span key={name} className="fs-exam-tree-topic">
-                  {name}
-                </span>
-              ))}
-              {compact && topics.length > 6 && <span className="fs-exam-tree-topic is-more">+{topics.length - 6}</span>}
+              {topics.map((t) => {
+                const subs = subtopics(t);
+                return (
+                  <button key={t.id} type="button" className="fs-exam-tree-topic" aria-pressed={!off.has(t.id)} onClick={() => onToggle(t.id)} title={subs.length ? `Subtopics: ${subs.join(', ')}` : t.name}>
+                    {!off.has(t.id) && <Check size={12} aria-hidden />}
+                    <span>
+                      {t.name}
+                      {!compact && subs.length > 0 && <small>{subs.slice(0, 4).join(' · ')}{subs.length > 4 ? ` +${subs.length - 4}` : ''}</small>}
+                    </span>
+                  </button>
+                );
+              })}
             </span>
           </li>
         ))}

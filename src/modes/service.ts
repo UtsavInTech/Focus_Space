@@ -5,8 +5,7 @@ import { getItems, updateItem, setItems } from '@/storage/storage';
 import { FILTER_PRESETS } from '@/storage/schema';
 import { uniqueId } from '@/learning/text';
 import { blankMode, DEFAULT_MODES } from './templates';
-import { buildExamMode, examInfo, type ExamAnswers, type ExamId } from './exams';
-import { isSpaceLocked, lockState } from './unlock';
+import { buildExamMode, type ExamAnswers, type ExamId } from './exams';
 
 /** All mode + focus state mutations live here so every surface behaves the same. */
 
@@ -24,25 +23,9 @@ export class SpaceLimitError extends Error {
   }
 }
 
-/**
- * A new learner's other Spaces are locked until they have studied in their exam Space (modes/unlock.ts).
- * A SpaceLimitError, so every surface that already explains a full allowance explains this too.
- */
-export class SpaceLockedError extends SpaceLimitError {
-  constructor(message: string) {
-    super(message, null);
-    this.name = 'SpaceLockedError';
-  }
-}
-
 async function authorizeSpace(id: string, name: string): Promise<void> {
-  const { modes, settings, watchHistory } = await getItems(['modes', 'settings', 'watchHistory']);
+  const modes = await getItems(['modes']).then((s) => s.modes);
   if (modes.some((m) => m.id === id)) return; // already exists locally: an update, not a new Space
-  const lock = lockState(settings, watchHistory);
-  if (isSpaceLocked(id, lock, modes)) {
-    const exam = examInfo(lock.examId)?.label ?? 'your exam';
-    throw new SpaceLockedError(`${name} is locked for now. Study ${lock.remaining} more min of ${exam} and every Space opens.`);
-  }
   // If the background cannot answer, the allowance was not checked — so the Space is not created.
   const result = await sendMessage('spaces/authorize', { spaceId: id, name }).catch(
     (): SpaceAuthorization => ({ ok: false, code: 'error', error: 'FocusSpace couldn’t check your Space allowance. Reload the page and try again.', allowance: null }),
@@ -198,15 +181,12 @@ export function channelRuleOf(mode: LearningMode | null, channel: ChannelRef): '
 /* ─── Exams (modes/exams.ts) ──────────────────────────────────────────────── */
 
 /**
- * "I'm preparing for UPSC": creates the exam's Space (or reuses it), makes it the one YouTube shows, and
- * records the exam — which is what locks the other Spaces for now (modes/unlock.ts). The exam is
- * recorded first, so the Space being created is the one Space the lock lets through.
+ * "I'm preparing for UPSC": creates the exam's Space (or reshapes it), makes it the one YouTube shows, and
+ * records the exam.
  */
 export async function chooseExam(examId: ExamId, answers: ExamAnswers = {}, channels: ChannelRef[] = []): Promise<LearningMode | null> {
   const before = await getItems(['settings', 'modes']);
-  // Locking is for a fresh start only: someone who already has Spaces keeps every door open.
-  const hadSpaces = before.modes.some((m) => m.id !== examId);
-  await updateItem('settings', (s) => ({ ...s, exam: examId, spacesUnlocked: s.spacesUnlocked || hadSpaces }));
+  await updateItem('settings', (s) => ({ ...s, exam: examId }));
   const now = Date.now();
   const existing = before.modes.find((m) => m.id === examId);
   // Choosing again (a different optional, another year) reshapes the Space but keeps its creators and rules.
@@ -217,7 +197,7 @@ export async function chooseExam(examId: ExamId, answers: ExamAnswers = {}, chan
   try {
     await addMode(mode);
   } catch (err) {
-    await updateItem('settings', (s) => ({ ...s, exam: before.settings.exam, spacesUnlocked: before.settings.spacesUnlocked }));
+    await updateItem('settings', (s) => ({ ...s, exam: before.settings.exam }));
     throw err;
   }
   for (const channel of channels) {
@@ -231,9 +211,4 @@ export async function chooseExam(examId: ExamId, answers: ExamAnswers = {}, chan
 /** "Not preparing for an exam": nothing is locked, and setup carries on as before. */
 export async function skipExam(): Promise<void> {
   await updateItem('settings', (s) => ({ ...s, exam: s.exam && s.exam !== 'none' ? s.exam : 'none' }));
-}
-
-/** Settings → "Open every Space now". */
-export async function unlockAllSpaces(): Promise<void> {
-  await updateItem('settings', (s) => ({ ...s, spacesUnlocked: true }));
 }

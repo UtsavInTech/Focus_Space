@@ -237,7 +237,6 @@ export const DEFAULT_SETTINGS: Settings = {
   displayName: '',
   onboarded: false,
   exam: null,
-  spacesUnlocked: false,
   debugRelevance: false,
   shareUsageCounts: true,
   ai: { provider: 'auto', endpointUrl: '', language: 'en' },
@@ -317,7 +316,6 @@ export function normalize<K extends StorageKey>(key: K, raw: unknown): StorageSc
       if (!['en', 'hi', 'hinglish'].includes(merged.ai.language)) merged.ai.language = 'en';
       merged.api = { ...DEFAULT_SETTINGS.api, ...(s.api ?? {}) };
       if (merged.exam !== null && merged.exam !== 'none' && !isExamId(merged.exam)) merged.exam = null;
-      merged.spacesUnlocked = merged.spacesUnlocked === true;
       return merged as StorageSchema[K];
     }
     case 'modes': {

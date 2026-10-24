@@ -38,6 +38,8 @@ export function buildStylesheet(): string {
     `html[${attrName('search-focus')}] ytd-search [data-fs-rel="weak"]:hover { opacity: 1; }`,
     // While FocusSpace has the player load captions on request, don't flash them on screen.
     `html[data-fs-captions-loading] #movie_player .ytp-caption-window-container { visibility: hidden !important; }`,
+    // Behind the FocusSpace home, YouTube's page goes the same deep charcoal, so it reads as one screen.
+    `html[${attrName('home')}] ytd-browse[page-subtype="home"] { background: #141414 !important; }`,
     `focusspace-slot { display: block; }`,
   ].join('\n');
 }

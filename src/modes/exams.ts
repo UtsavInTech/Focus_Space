@@ -1,6 +1,7 @@
 import type { LearningMode, Topic } from '@/types/domain';
 import { slugify } from '@/learning/text';
 import type { SpaceIconName } from './icons';
+import { SKILLS, SUBTOPICS } from './btech-subjects';
 
 /**
  * Goals: "Which exam are you preparing for?" (or which B.Tech branch) — the first thing FocusSpace asks.
@@ -50,6 +51,8 @@ export interface ExamQuestion {
   options: ExamOption[];
   /** Pre-selected answers. */
   defaults: string[];
+  /** Only asked when another answer is one of these (B.Tech CSE's skills). */
+  showIf?: { question: string; anyOf: string[] };
 }
 
 export interface ExamInfo {
@@ -591,6 +594,24 @@ const BTECH: ExamInfo = {
       options: Object.entries(BTECH_SUBJECTS).map(([id, b]) => opt(id, b.label, { name: b.name, searchHint: `${b.name.toLowerCase()} lectures`, creators: b.creators })),
     },
     {
+      id: 'skills',
+      prompt: 'What else are you learning alongside?',
+      help: 'Each one becomes a topic in your Space, next to your subjects. Pick as many as you like.',
+      multi: true,
+      showIf: { question: 'branch', anyOf: ['cse'] },
+      defaults: ['dsa', 'webdev', 'aiml'],
+      options: SKILLS.filter((k) => !k.branches).map((k) => opt(k.id, k.name, { topics: [t(k.name, k.keywords, 'Skills & placements')] })),
+    },
+    {
+      id: 'skills-core',
+      prompt: 'Anything else alongside your degree?',
+      help: 'Optional. Each one becomes a topic in your Space.',
+      multi: true,
+      showIf: { question: 'branch', anyOf: ['ece', 'ee', 'me', 'ce'] },
+      defaults: ['placements'],
+      options: SKILLS.map((k) => opt(k.id, k.name, { topics: [t(k.name, k.keywords, 'Skills & placements')] })),
+    },
+    {
       id: 'year',
       prompt: 'Which year are you in?',
       help: 'Pick more than one if you are revising earlier subjects too.',
@@ -613,8 +634,19 @@ export type ExamAnswers = Record<string, string[]>;
 export const defaultAnswers = (exam: ExamInfo): ExamAnswers => Object.fromEntries(exam.questions.map((q) => [q.id, [...q.defaults]]));
 
 /** The chosen options, question by question, in question order. */
+/** Whether a question applies to these answers (`showIf`). */
+export function asked(q: ExamQuestion, exam: ExamInfo, answers: ExamAnswers): boolean {
+  if (!q.showIf) return true;
+  const other = exam.questions.find((x) => x.id === q.showIf!.question);
+  const picked = answers[q.showIf.question]?.length ? answers[q.showIf.question] : other?.defaults ?? [];
+  return picked.some((v) => q.showIf!.anyOf.includes(v));
+}
+
+/** Answer key holding topic ids the learner switched off on the last step ("I don't study this one"). */
+export const EXCLUDE = 'exclude';
+
 function chosen(exam: ExamInfo, answers: ExamAnswers): ExamOption[] {
-  return exam.questions.flatMap((q) => {
+  return exam.questions.filter((q) => asked(q, exam, answers)).flatMap((q) => {
     const picked = answers[q.id]?.length ? answers[q.id] : q.defaults;
     return q.options.filter((o) => picked.includes(o.id));
   });
@@ -628,7 +660,7 @@ function btechTopics(answers: ExamAnswers): Topic[] {
     const label = YEARS.find((x) => x.id === y)?.label ?? y;
     const group = label.replace(/^./, (c) => c.toUpperCase());
     const names = y === 'y1' ? FIRST_YEAR : branch.years[y as 'y2' | 'y3' | 'y4'] ?? [];
-    return names.map((n) => s(group)(n));
+    return names.map((n) => t(n, [n.toLowerCase(), ...(SUBTOPICS[n] ?? [])], group));
   });
 }
 
@@ -645,8 +677,11 @@ export function buildExamMode(id: ExamId, answers: ExamAnswers = {}, now = 0): L
   const exam = examInfo(id)!;
   const picks = chosen(exam, answers);
   const named = picks.find((o) => o.name);
-  const topics = [...exam.topics, ...picks.flatMap((o) => o.topics ?? []), ...(id === 'btech' ? btechTopics(answers) : [])];
-  const seen = new Set<string>();
+  // Degree subjects first, then skills: the order the topic bar shows them in.
+  const skills = picks.flatMap((o) => o.topics ?? []).filter((tp) => tp.group === 'Skills & placements');
+  const others = picks.flatMap((o) => o.topics ?? []).filter((tp) => tp.group !== 'Skills & placements');
+  const topics = [...exam.topics, ...others, ...(id === 'btech' ? btechTopics(answers) : []), ...skills];
+  const seen = new Set<string>(answers[EXCLUDE] ?? []);
   return {
     id,
     name: named?.name ?? exam.name,

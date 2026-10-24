@@ -49,7 +49,7 @@ export interface DiscoveryState {
 export function useDiscovery(mode: LearningMode, topic: Topic | null, excludeVideoIds: string[], excludeChannelIds: string[]): DiscoveryState {
   const fingerprint = useMemo(() => fingerprintOf(mode), [mode]);
   const queries = useMemo(() => (mode.discovery ? discoveryQueriesFor(mode, topic) : []), [mode, topic]);
-  const key = `${mode.id}|${topic?.id ?? ''}|${fingerprint}|${mode.discovery}`;
+  const key = `${mode.id}|${topic?.id ?? ''}|${topic?.name ?? ''}|${fingerprint}|${mode.discovery}`;
   const exclude = useMemo(() => ({ videoIds: new Set(excludeVideoIds), channelIds: new Set(excludeChannelIds) }), [excludeVideoIds, excludeChannelIds]);
   const [state, setState] = useState({ items: [] as DiscoveredVideo[], loading: false, error: null as string | null, exhausted: queries.length === 0 });
   const cursor = useRef({ key: '', index: 0, continuation: null as string | null, candidates: [] as DiscoveryCandidate[], busy: false, recsLoaded: false });

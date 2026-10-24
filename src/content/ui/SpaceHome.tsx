@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Check, ChevronDown, ChevronRight, History, Lock, Pencil, Plus, Power, RefreshCw, Sparkles, Trophy, Users, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, History, Pencil, Plus, Power, RefreshCw, Sparkles, Trophy, Users, X } from 'lucide-react';
 import type { LearningMode, Settings, Topic } from '@/types/domain';
 import { activeModeOf, addTemplateWithChannels, missingTemplates, selectMode, setChannelRule, setFocusEnabled, SpaceLimitError } from '@/modes/service';
 import { groupByCategory } from '@/modes/categories';
@@ -10,6 +10,7 @@ import { composeFeed } from '@/learning/feed';
 import { topicItems, type FeedVideo, type FeedView } from '@/learning/feed-view';
 import type { DiscoveredVideo } from '@/learning/discovery';
 import { relativeTime } from '@/learning/library';
+import { normalizeText } from '@/learning/text';
 import { channelUrl, searchUrl, watchUrl } from '@/integrations/youtube/urls';
 import { useStorage } from '@/ui/hooks';
 import { SpaceIcon } from '@/ui/icons';
@@ -22,8 +23,6 @@ import { useBecauseYouPlayed, useContinueWatching, useDiscovery, useFeedView } f
 import { TIER_LABEL } from '@/learning/classifier';
 import type { NextLearningItem } from '@/learning/next';
 import { examInfo, isExamId, type ExamId } from '@/modes/exams';
-import { isSpaceLocked, unlockHint, type LockState } from '@/modes/unlock';
-import { useLockState } from '@/ui/use-lock';
 import { ExamPicker } from './ExamPicker';
 import { Billboard, type Featured } from './home/Billboard';
 import { Row } from './home/Row';
@@ -56,15 +55,13 @@ export function SpaceHome({ settings, modes, onCreateSpace }: { settings: Settin
  * First, the exam ("Which exam are you preparing for?") — unless they already answered it or already
  * have Spaces. Then the Spaces the learner already has, then suggestions. A suggestion is only a
  * template until it is picked: choosing one creates the Space (and so counts it against the
- * allowance) — nothing is handed out up front. While new Spaces are locked (modes/unlock.ts) the
- * suggestions stay visible, each with its lock.
+ * allowance) — nothing is handed out up front.
  */
 function FirstRun({ settings, modes, onCreate }: { settings: Settings; modes: LearningMode[]; onCreate: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [pendingTemplate, setPendingTemplate] = useState<LearningMode | null>(null);
   const [pendingExam, setPendingExam] = useState<ExamId | null>(null);
   const [busy, setBusy] = useState(false);
-  const lock = useLockState();
   const suggestions = missingTemplates(modes);
 
   if (settings.exam === null && modes.length === 0) {
@@ -113,15 +110,12 @@ function FirstRun({ settings, modes, onCreate }: { settings: Settings; modes: Le
    * grouping does real work: it answers "what else is FocusSpace for?" without turning into a catalogue.
    */
   const groups = groupByCategory(suggestions);
-  const examName = examInfo(lock?.examId)?.label ?? 'your exam';
-  const locked = (id: string) => !!lock && isSpaceLocked(id, lock, modes);
 
   return (
     <div className="fs-first-run fs-animate-in">
       <h1>What do you want to focus on?</h1>
       <p>FocusSpace organises YouTube around it: your subscriptions first, then the best matches from the rest of YouTube. You can switch anytime.</p>
 
-      {lock?.locked && <LockMeter lock={lock} examName={examName} />}
 
       {modes.length > 0 && (
         <div className="fs-first-run-group">
@@ -144,31 +138,22 @@ function FirstRun({ settings, modes, onCreate }: { settings: Settings; modes: Le
             <small>{category.description}</small>
           </span>
           <div className="fs-chips fs-chips-wrap">
-            {templates.map((m) =>
-              locked(m.id) ? (
-                <button key={m.id} type="button" className="fs-chip fs-chip-lg is-locked" aria-disabled="true" title={unlockHint(lock!, examName)} onClick={() => setError(`${m.name} is locked for now. ${unlockHint(lock!, examName)}.`)}>
-                  <Lock size={15} aria-hidden />
-                  {m.name}
-                </button>
-              ) : (
-                <button key={m.id} type="button" className="fs-chip fs-chip-lg" onClick={() => void choose(m, true)}>
-                  <SpaceIcon name={m.icon} size={18} />
-                  {m.name}
-                </button>
-              ),
-            )}
+            {templates.map((m) => (
+              <button key={m.id} type="button" className="fs-chip fs-chip-lg" onClick={() => void choose(m, true)}>
+                <SpaceIcon name={m.icon} size={18} />
+                {m.name}
+              </button>
+            ))}
           </div>
         </div>
       ))}
 
-      {!lock?.locked && (
-        <div className="fs-chips fs-chips-wrap">
-          <button type="button" className="fs-chip fs-chip-lg fs-chip-outline" onClick={onCreate}>
-            <Plus size={18} aria-hidden />
-            Something else
-          </button>
-        </div>
-      )}
+      <div className="fs-chips fs-chips-wrap">
+        <button type="button" className="fs-chip fs-chip-lg fs-chip-outline" onClick={onCreate}>
+          <Plus size={18} aria-hidden />
+          Something else
+        </button>
+      </div>
       {error && <p className="fs-error" role="alert">{error}</p>}
 
       {/*
@@ -209,21 +194,6 @@ function FirstRun({ settings, modes, onCreate }: { settings: Settings; modes: Le
   );
 }
 
-/** "Study 38 more min of UPSC to unlock every Space", with how far along they are. */
-export function LockMeter({ lock, examName, compact = false }: { lock: LockState; examName: string; compact?: boolean }) {
-  return (
-    <div className={`fs-lock-meter${compact ? ' is-compact' : ''}`} role="status">
-      <span className="fs-lock-meter-head">
-        <Lock size={14} aria-hidden />
-        {compact ? unlockHint(lock, examName) : `More Spaces open as you study: ${lock.remaining} more min of ${examName} to go.`}
-      </span>
-      <span className="fs-lock-meter-bar" aria-hidden>
-        <span style={{ width: `${Math.max(4, lock.progress * 100)}%` }} />
-      </span>
-    </div>
-  );
-}
-
 /**
  * Leaves YouTube untouched, but marks onboarding done: the picker has been
  * seen and answered ("not now" is an answer), so it must not reappear every
@@ -238,9 +208,6 @@ async function browseNormally() {
 function SpaceBar({ mode, modes, topicId, onTopic, onCreate }: { mode: LearningMode; modes: LearningMode[]; topicId: string | null; onTopic: (id: string | null) => void; onCreate: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const lock = useLockState();
-  const examName = examInfo(lock?.examId)?.label ?? 'your exam';
-  const lockedSpaces = lock?.locked ? missingTemplates(modes).filter((m) => isSpaceLocked(m.id, lock, modes)) : [];
 
   useEffect(() => {
     if (!open) return;
@@ -284,26 +251,10 @@ function SpaceBar({ mode, modes, topicId, onTopic, onCreate }: { mode: LearningM
               </button>
             ))}
             <div className="fs-menu-sep" />
-            {lock?.locked ? (
-              <>
-                <div className="fs-menu-lock">
-                  <LockMeter lock={lock} examName={examName} compact />
-                </div>
-                <div className="fs-menu-locked">
-                  {lockedSpaces.map((m) => (
-                    <span key={m.id} className="fs-menu-locked-item" title={unlockHint(lock, examName)}>
-                      <Lock size={12} aria-hidden />
-                      {m.name}
-                    </span>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <button type="button" role="menuitem" className="fs-menu-item" onClick={run(onCreate)}>
-                <Plus size={18} aria-hidden />
-                <span>New space</span>
-              </button>
-            )}
+            <button type="button" role="menuitem" className="fs-menu-item" onClick={run(onCreate)}>
+              <Plus size={18} aria-hidden />
+              <span>New space</span>
+            </button>
             <div className="fs-menu-sep" />
             <button type="button" role="menuitem" className="fs-menu-item" onClick={run(() => void sendMessage('dashboard/open', { route: `/modes/${mode.id}` }))}>
               <Pencil size={18} aria-hidden />
@@ -372,11 +323,22 @@ const MAX_TOPIC_ROWS = 6;
 
 function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: string | null; onTopic: (id: string | null) => void }) {
   const topic = mode.topics.find((t) => t.id === topicId) ?? null;
+  // A subject's subtopics (DBMS → normalization, SQL, transactions): a second row of chips that narrows it.
+  const subtopics = useMemo(() => (topic ? topic.keywords.filter((k) => !k.startsWith('~') && normalizeText(k) !== normalizeText(topic.name)).slice(0, 12) : []), [topic]);
+  const [subtopic, setSubtopic] = useState<string | null>(null);
+  useEffect(() => setSubtopic(null), [topicId]);
   const { view, loading, channelIds } = useFeedView(mode);
   const store = useStorage(['watchHistory', 'sync'] as const);
-  const subs = useMemo(() => (!view ? [] : topic ? topicItems(view, topic.id) : view.items), [view, topic]);
+  const subs = useMemo(() => {
+    const list = !view ? [] : topic ? topicItems(view, topic.id) : view.items;
+    if (!subtopic) return list;
+    const want = normalizeText(subtopic);
+    return list.filter((v) => normalizeText(v.title).includes(want) || v.matched.some((m) => normalizeText(m) === want));
+  }, [view, topic, subtopic]);
   const libraryIds = useMemo(() => (view ? view.items.map((v) => v.id) : []), [view]);
-  const discovery = useDiscovery(mode, topic, libraryIds, channelIds);
+  // Searching YouTube for the subtopic itself, still filed under its subject.
+  const searchTopic = useMemo(() => (topic && subtopic ? { ...topic, name: subtopic } : topic), [topic, subtopic]);
+  const discovery = useDiscovery(mode, searchTopic, libraryIds, channelIds);
   const continuing = useContinueWatching(mode, view);
   const progress = useMemo(() => new Map((store?.watchHistory ?? []).map((e) => [e.videoId, e.progress])), [store?.watchHistory]);
   const [visible, setVisible] = useState(PAGE);
@@ -551,17 +513,30 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
   if (topic) {
     return (
       <>
-        <TopicPlaylist mode={mode} topic={topic} />
         <section className="fs-section" aria-label={`${topic.name} videos`}>
           <div className="fs-section-head">
-            <h2>{topic.name} videos</h2>
+            <h2>{subtopic ? `${topic.name} · ${subtopic}` : `${topic.name} videos`}</h2>
             {summary && <span>{summary}</span>}
           </div>
+          {subtopics.length > 0 && (
+            <div className="fs-subtopics" role="tablist" aria-label={`${topic.name} subtopics`}>
+              <span className="fs-subtopics-label">Subtopics</span>
+              <button type="button" role="tab" className="fs-chip" aria-selected={!subtopic} onClick={() => setSubtopic(null)}>
+                All of {topic.name}
+              </button>
+              {subtopics.map((k) => (
+                <button key={k} type="button" role="tab" className="fs-chip" aria-selected={subtopic === k} onClick={() => setSubtopic(subtopic === k ? null : k)}>
+                  {k.replace(/\b\w/g, (c) => c.toUpperCase())}
+                </button>
+              ))}
+            </div>
+          )}
           {notes}
           {grid}
           {emptyState}
           {discovery.error && entries.length > 0 && <div className="fs-note">{discovery.error}</div>}
         </section>
+        <TopicPlaylist mode={mode} topic={topic} />
       </>
     );
   }

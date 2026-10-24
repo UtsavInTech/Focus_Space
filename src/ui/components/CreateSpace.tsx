@@ -9,6 +9,7 @@ import { sendMessage } from '@/messaging/runtime';
 import { SpaceIcon } from '../icons';
 import { Button, Segmented, Switch, TextInput } from './primitives';
 import { ChannelPicker, type PickedChannel } from './ChannelPicker';
+import { openSignIn } from '../account/use-can-save';
 
 const KIND_OPTIONS: { value: SpaceKind; label: string }[] = [
   { value: 'learning', label: 'Learning' },
@@ -38,12 +39,12 @@ export function CreateSpace({ modes, onCreated, onCancel }: { modes: LearningMod
     }
   };
 
-  const create = async () => {
-    if (!draft) return;
+  const create = async (from: IntentSuggestion | null = draft) => {
+    if (!from) return;
     setSaving(true);
     setLimit(null);
     const mode: LearningMode = {
-      ...modeFromSuggestion(draft, modes.map((m) => m.id)),
+      ...modeFromSuggestion(from, modes.map((m) => m.id)),
       discovery,
       allowedChannels: channels.map((c) => ({ id: c.id, title: c.title, handle: c.handle ?? undefined })),
     };
@@ -51,13 +52,20 @@ export function CreateSpace({ modes, onCreated, onCancel }: { modes: LearningMod
       await addMode(mode);
     } catch (err) {
       setSaving(false);
-      if (err instanceof SpaceLimitError) return setLimit(err.message);
-      throw err;
+      setLimit(err instanceof SpaceLimitError ? err.message : 'FocusSpace couldn’t create that Space. Try again.');
+      return;
     }
     await updateItem('settings', (s) => ({ ...s, activeModeId: mode.id, focusEnabled: true, onboarded: true }));
     for (const c of channels) void sendMessage('channel/add', { input: c.id }).catch(() => undefined);
     setSaving(false);
     onCreated(mode);
+  };
+
+  /** "System design" → Create: the Space is made straight away, with its subtopics. Customizing is optional. */
+  const quickCreate = () => {
+    const text = input.trim();
+    if (!text) return;
+    void create(inferModeIntent(text));
   };
 
   if (!draft) {
@@ -66,7 +74,7 @@ export function CreateSpace({ modes, onCreated, onCancel }: { modes: LearningMod
         className="fs-stack fs-create"
         onSubmit={(e) => {
           e.preventDefault();
-          if (input.trim()) understand(input);
+          quickCreate();
         }}
       >
         <label className="fs-label" htmlFor="fs-intent" style={{ fontSize: 15 }}>
@@ -75,18 +83,24 @@ export function CreateSpace({ modes, onCreated, onCancel }: { modes: LearningMod
         <TextInput id="fs-intent" autoFocus value={input} onChange={(e) => setInput(e.target.value)} placeholder="e.g. System Design, Punjabi music, DSA" maxLength={60} style={{ height: 46, fontSize: 16 }} />
         <div className="fs-choice-row" aria-label="Examples">
           {STARTER_INTENTS.map((s) => (
-            <button key={s} type="button" className="fs-choice" onClick={() => understand(s)}>
+            <button key={s} type="button" className="fs-choice" aria-pressed={input === s} onClick={() => setInput(s)}>
               {s}
             </button>
           ))}
         </div>
-        <div className="fs-row" style={{ justifyContent: 'flex-end' }}>
+        {limit && <LimitNotice text={limit} />}
+        <div className="fs-row" style={{ justifyContent: 'space-between' }}>
           <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" iconRight={<ArrowRight />} disabled={!input.trim()}>
-            Continue
-          </Button>
+          <div className="fs-row">
+            <Button variant="secondary" disabled={!input.trim() || saving} onClick={() => understand(input)}>
+              Customize first
+            </Button>
+            <Button type="submit" variant="primary" iconRight={<ArrowRight />} loading={saving} disabled={!input.trim()}>
+              Create space
+            </Button>
+          </div>
         </div>
       </form>
     );
@@ -152,20 +166,31 @@ export function CreateSpace({ modes, onCreated, onCancel }: { modes: LearningMod
         <Switch label="Discover videos across YouTube" checked={discovery} onChange={setDiscovery} />
       </label>
 
-      {limit && (
-        <p className="fs-notice" role="status">
-          {limit}
-        </p>
-      )}
+      {limit && <LimitNotice text={limit} />}
 
       <div className="fs-row" style={{ justifyContent: 'space-between' }}>
         <Button variant="ghost" icon={<ArrowLeft />} onClick={() => setDraft(null)}>
           Back
         </Button>
-        <Button variant="primary" loading={saving} disabled={!draft.name.trim()} onClick={create}>
+        <Button variant="primary" loading={saving} disabled={!draft.name.trim()} onClick={() => void create()}>
           Create space
         </Button>
       </div>
     </div>
+  );
+}
+
+/** The Space allowance, with the way past it right there: a free account (5 Spaces) when signed out. */
+function LimitNotice({ text }: { text: string }) {
+  const guest = /without an account/i.test(text);
+  return (
+    <p className="fs-notice" role="status">
+      {text}{' '}
+      {guest && (
+        <button type="button" className="fs-link" onClick={openSignIn}>
+          Sign in, it’s free
+        </button>
+      )}
+    </p>
   );
 }

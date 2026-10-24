@@ -137,8 +137,6 @@ export interface Settings {
    * they said they are not preparing for one; `null` while not asked yet (and for installs from before).
    */
   exam: string | null;
-  /** Every Space is open: reached by studying in the exam Space (modes/unlock.ts) or chosen in Settings. */
-  spacesUnlocked: boolean;
   /** Developer aid: show why each video got its relevance score. */
   debugRelevance: boolean;
   /** Tell FocusSpace, once a day, that this install was used — nothing else (background/activity.ts). */

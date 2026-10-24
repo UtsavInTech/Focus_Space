@@ -17,10 +17,8 @@ import type { DashboardData } from '../DashboardApp';
 import { navigate } from '../router';
 import { Section, patch, isHttpUrl } from './section';
 import { setItem } from '@/storage/storage';
-import { chooseExam, setFocusEnabled, unlockAllSpaces } from '@/modes/service';
+import { chooseExam, setFocusEnabled } from '@/modes/service';
 import { EXAMS, examInfo, isExamId } from '@/modes/exams';
-import { unlockHint } from '@/modes/unlock';
-import { useLockState } from '@/ui/use-lock';
 import { Button, Segmented, SettingRow, Switch, TextInput } from '@/ui/components/primitives';
 import { FilterEditor } from '@/ui/components/FilterEditor';
 import { Modal } from '@/ui/components/Modal';
@@ -152,7 +150,6 @@ function AiSection({ settings }: { settings: Settings }) {
 /* ─── Exam & locked Spaces ─────────────────────────────────────────────────── */
 
 function ExamRow({ settings }: { settings: Settings }) {
-  const lock = useLockState();
   const exam = examInfo(settings.exam);
   return (
     <>
@@ -176,13 +173,6 @@ function ExamRow({ settings }: { settings: Settings }) {
           ))}
         </select>
       </SettingRow>
-      {lock?.locked && exam && (
-        <SettingRow title="More Spaces unlock as you study" description={`${unlockHint(lock, exam.label)}. Starting with one Space is how FocusSpace helps you actually finish it. You can open everything now if you prefer.`}>
-          <Button size="sm" variant="secondary" onClick={() => void unlockAllSpaces()}>
-            Open every Space now
-          </Button>
-        </SettingRow>
-      )}
     </>
   );
 }

@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { LearningMode, Settings } from '@/types/domain';
-import { blankMode } from './templates';
-import { addTemplate, chooseExam, SpaceLimitError, SpaceLockedError } from './service';
+import { addTemplate, chooseExam } from './service';
 import { examFromText } from './exam-intent';
 
 /** The same chrome shim as spaces-limit.test.ts: storage plus a server that allows every Space. */
@@ -31,24 +30,22 @@ afterEach(() => {
 });
 
 describe('choosing an exam', () => {
-  it('builds the exam Space, opens it, and locks other new Spaces for a new learner', async () => {
+  it('builds the exam Space and opens it, and never blocks other Spaces', async () => {
     const data = fakeChrome({ modes: [] });
     await chooseExam('upsc');
-    const settings = data.settings as Settings;
     expect((data.modes as LearningMode[]).map((m) => m.id)).toEqual(['upsc']);
-    expect(settings).toMatchObject({ exam: 'upsc', activeModeId: 'upsc', onboarded: true, spacesUnlocked: false });
-
-    const err = await addTemplate('dsa').catch((e) => e);
-    expect(err).toBeInstanceOf(SpaceLockedError);
-    expect(err).toBeInstanceOf(SpaceLimitError); // every surface that explains a full allowance explains this too
-    expect((err as Error).message).toMatch(/UPSC/);
+    expect(data.settings as Settings).toMatchObject({ exam: 'upsc', activeModeId: 'upsc', onboarded: true });
+    await expect(addTemplate('dsa')).resolves.toMatchObject({ id: 'dsa' });
+    await expect(addTemplate('system-design')).resolves.toBeNull(); // not a template id; created through CreateSpace instead
   });
 
-  it('never locks a learner who already had Spaces', async () => {
-    const data = fakeChrome({ modes: [{ ...blankMode('dsa', 1), name: 'DSA' }] });
-    await chooseExam('ssc');
-    expect((data.settings as Settings).spacesUnlocked).toBe(true);
-    await expect(addTemplate('web-dev')).resolves.toMatchObject({ id: 'web-dev' });
+  it('choosing again reshapes the Space and keeps its creators', async () => {
+    const data = fakeChrome({ modes: [] });
+    await chooseExam('btech', { branch: ['cse'], year: ['y2'] }, [{ id: 'UC1', title: 'Gate Smashers' }]);
+    await chooseExam('btech', { branch: ['cse'], year: ['y3'] });
+    const btech = (data.modes as LearningMode[]).find((m) => m.id === 'btech')!;
+    expect(btech.allowedChannels.map((c) => c.title)).toEqual(['Gate Smashers']);
+    expect(btech.topics.map((t) => t.name)).toContain('Operating System');
   });
 
   it('understands an exam typed or said to the guide', () => {
