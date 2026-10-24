@@ -326,20 +326,6 @@
 .fs-exams.is-compact .fs-exam-go { display: none; }
 .fs-exam-skip { font-size: 14px; }
 
-/* ─── Locked Spaces ────────────────────────────────────────────────────────── */
-
-.fs-lock-meter { display: flex; flex-direction: column; gap: 8px; width: min(520px, 100%); padding: 12px 16px; border-radius: 14px; background: var(--fs-surface-2); text-align: left; }
-.fs-lock-meter.is-compact { width: auto; padding: 0; background: none; gap: 6px; }
-.fs-lock-meter-head { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--fs-text); }
-.fs-lock-meter-head svg { flex: none; color: var(--fs-accent-text); }
-.fs-lock-meter-bar { height: 6px; border-radius: 3px; background: var(--fs-surface-3); overflow: hidden; }
-.fs-lock-meter-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--fs-accent), var(--fs-gold)); transition: width 600ms var(--fs-ease); }
-.fs-chip.is-locked { color: var(--fs-text-3); background: transparent; box-shadow: inset 0 0 0 1px var(--fs-border); cursor: not-allowed; }
-.fs-chip.is-locked:hover { background: var(--fs-hover); }
-.fs-menu-lock { padding: 6px 16px 10px; }
-.fs-menu-locked { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 6px; }
-.fs-menu-locked-item { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border-radius: 6px; background: var(--fs-surface-2); color: var(--fs-text-3); font-size: 12px; }
-
 /* ─── Small screens ────────────────────────────────────────────────────────── */
 
 @media (max-width: 700px) {
@@ -352,19 +338,6 @@
   .fs-poster-grid { grid-template-columns: minmax(0, 1fr); }
   .fs-ondevice { grid-template-columns: 1fr; padding: 20px; }
 }
-
-/* ─── Sidebar map: locked Spaces ───────────────────────────────────────────── */
-
-.fs-guide-lock { display: flex; flex-direction: column; gap: 6px; margin: 8px 12px 4px; padding: 10px 12px; border-radius: 12px; background: var(--fs-surface-2); }
-.fs-guide-lock-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--fs-text); }
-.fs-guide-lock-label svg { color: var(--fs-accent-text); }
-.fs-guide-lock small { font-size: 11px; line-height: 15px; color: var(--fs-text-2); }
-.fs-guide-lock-bar { height: 4px; border-radius: 2px; background: var(--fs-surface-3); overflow: hidden; }
-.fs-guide-lock-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--fs-accent), var(--fs-gold)); }
-.fs-guide-item.is-locked { color: var(--fs-text-3); cursor: not-allowed; }
-.fs-guide-item.is-locked:hover { background: transparent; }
-.fs-guide-item.is-locked > span { flex: 1; }
-.fs-guide-lock-icon { flex: none; opacity: 0.7; }
 
 /* The Space bar while pinned under YouTube's top bar (usePinnedBar.ts): a frosted strip, like YouTube's own chips. */
 .fs-bar.is-pinned { padding: 10px 24px; background: color-mix(in srgb, var(--fs-bg) 92%, transparent); backdrop-filter: blur(14px); box-shadow: 0 1px 0 var(--fs-border); }
