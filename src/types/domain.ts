@@ -56,12 +56,14 @@ export interface FilterConfig {
  * teaching cues (tutorial, lecture…), "media" rewards music/video cues
  * (official video, album…), "general" sits in between.
  */
-export type SpaceKind = 'learning' | 'media' | 'general';
+export type SpaceKind = 'learning' | 'media' | 'general' | 'institute';
 
 /** A "mode" in code, a "space" in the UI: an intention the user brings to YouTube. */
 export interface LearningMode {
   id: ID;
   name: string;
+  /** Server-issued, read-only course. This metadata is never used to authorise server access. */
+  source?: {orgId:string;courseId:string;batchId?:string;courseVersion:number;orgName:string;logo?:string;accent?:string;progressConsent:boolean;contactConsent:boolean;items:{type:'video'|'playlist';videoId?:string;playlistId?:string;quizId?:string;membersOnly?:boolean;topicId:string}[]};
   /** Legacy emoji (pre-V3); the UI uses `icon`. */
   emoji: string;
   /** Lucide icon name from src/modes/icons.ts. */

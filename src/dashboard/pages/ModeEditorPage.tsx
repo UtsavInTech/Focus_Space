@@ -1,3 +1,4 @@
+import { InstituteManage } from '@/content/ui/InstituteHome';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowUp, FlaskConical, Trash2, X } from 'lucide-react';
 import type { LearningMode, SpaceKind, Topic } from '@/types/domain';
@@ -47,6 +48,7 @@ export function ModeEditorPage({ data, modeId }: { data: DashboardData; modeId: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode?.updatedAt]);
 
+  if(mode?.source)return <section><h1>{mode.name}</h1><p>Read-only course from {mode.source.orgName}. Your institute manages its structure.</p><InstituteManage mode={mode}/></section>;
   if (!mode || !draft) {
     return (
       <EmptyState icon={<X />} title="This space doesn't exist" actions={<Button onClick={() => navigate('/modes')}>Back to spaces</Button>}>

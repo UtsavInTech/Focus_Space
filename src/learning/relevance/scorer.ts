@@ -219,7 +219,7 @@ const exactness = (m: Match<TopicTerm>) => {
   return 0.5;
 };
 
-export const QUERY_EVIDENCE: Record<SpaceKind, number> = { learning: 0.35, general: 0.55, media: 0.75 };
+export const QUERY_EVIDENCE: Record<SpaceKind, number> = { learning: 0.35, institute: 0.35, general: 0.55, media: 0.75 };
 
 export interface ScoreOptions {
   boilerplate?: ReadonlySet<string>;

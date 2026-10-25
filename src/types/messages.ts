@@ -15,6 +15,12 @@ import type { CodeSent, PaymentRecord, ProfilePatch, SignupTicket, SpaceAllowanc
  * Add a message by extending MessageMap; request/response types flow from there.
  */
 export interface MessageMap {
+  'institutes/sync': {req:{force?:boolean};res:{ok:boolean;error?:string}};
+  'institutes/leave': {req:{modeId:string};res:{ok:boolean}};
+  'institutes/withdraw': {req:{orgId:string};res:{ok:boolean}};
+  'institutes/progress': {req:{modeId:string;videoId:string;progress:number;seconds:number};res:{ok:boolean}};
+  'institutes/score': {req:{modeId:string;videoId:string;score:number;total:number};res:{ok:boolean}};
+  'institutes/student': {req:{orgId:string;courseId?:string;quizId?:string;answers?:number[]};res:unknown};
   /** ui → background: import the subscription list from the signed-in YouTube session. */
   'subscriptions/import': { req: Record<string, never>; res: ImportResult };
   /** ui → background: refresh the video library from channel uploads. */

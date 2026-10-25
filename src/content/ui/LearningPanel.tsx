@@ -345,6 +345,7 @@ export function NowLearning({
                 signedIn,
                 extras: !!usage?.quiz?.extras,
                 onRound: quizRound,
+                onScore: mode.source?.progressConsent ? (score,total)=>{void sendMessage('institutes/score',{modeId:mode.id,videoId:video.id,score,total}).catch(()=>undefined);} : undefined,
                 // On-device answers cost nothing, so no ceiling; FocusSpace's AI follows the plan's monthly questions.
                 onDevice: status?.provider === 'chrome',
                 remaining: status?.provider === 'chrome' || status?.label !== HOSTED_AI_LABEL ? null : usage?.quiz ? Math.max(0, usage.quiz.limit - usage.quiz.used) : null,

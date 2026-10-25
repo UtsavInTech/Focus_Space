@@ -75,7 +75,7 @@ export function localCreate(text: string, modes: Pick<LearningMode, 'id' | 'name
     name: suggestion.name,
     templateId: suggestion.templateId,
     icon: suggestion.icon,
-    kind: suggestion.kind,
+    kind: suggestion.kind === 'institute' ? 'learning' : suggestion.kind,
     description: suggestion.description,
     topics: suggestion.topics.map((t) => ({ name: t.name, keywords: t.keywords })),
     keywords: suggestion.keywords,

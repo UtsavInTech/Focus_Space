@@ -26,7 +26,7 @@ import { PREFERENCE_VERSION, type PreferenceProfile } from '@/types/preferences'
 import { NOTES_VERSION, type SavedNote } from '@/types/notes';
 import type { AuthState } from '@/types/auth';
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 /** Knowledge maps per video, rebuilt when their input signature or KNOWLEDGE_VERSION changes. */
 export interface KnowledgeCacheStore {
@@ -55,6 +55,7 @@ export interface DiscoveryCacheEntry {
 /** Every key FocusSpace keeps in chrome.storage.local, with its type. */
 export interface StorageSchema {
   schemaVersion: number;
+  instituteCache: import('@/institutes/model').InstituteCache;
   settings: Settings;
   modes: LearningMode[];
   session: LearningSession | null;
@@ -258,6 +259,7 @@ export const DEFAULT_SYNC: SyncState = {
 function allDefaults(): StorageSchema {
   return {
     schemaVersion: SCHEMA_VERSION,
+    instituteCache: {lastSync:0,courses:{}},
     settings: DEFAULT_SETTINGS,
     // No Spaces until the learner picks one: the templates are suggestions (modes/templates.ts), and a
     // Space the learner never chose must not count against an allowance they never used.
@@ -317,6 +319,9 @@ export function normalize<K extends StorageKey>(key: K, raw: unknown): StorageSc
       merged.api = { ...DEFAULT_SETTINGS.api, ...(s.api ?? {}) };
       if (merged.exam !== null && merged.exam !== 'none' && !isExamId(merged.exam)) merged.exam = null;
       return merged as StorageSchema[K];
+    }
+    case 'instituteCache': {
+      const value=raw as Partial<import('@/institutes/model').InstituteCache>;return {lastSync:typeof value.lastSync==='number'?value.lastSync:0,courses:value.courses&&typeof value.courses==='object'?value.courses:{}} as StorageSchema[K];
     }
     case 'modes': {
       if (!Array.isArray(raw)) return defaultsFor(key);

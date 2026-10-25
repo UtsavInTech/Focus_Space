@@ -3,7 +3,7 @@ import { ALLOW_VIDEO_EVENT } from './allow-video';
 import type { PageContext } from '@/integrations/youtube/urls';
 import { getClassifier } from '@/ai/registry';
 import { updateItem } from '@/storage/storage';
-import { extensionAlive } from '@/messaging/runtime';
+import { sendMessage, extensionAlive } from '@/messaging/runtime';
 import type { WatchEntry } from '@/types/domain';
 import type { ContentState, Store } from './store';
 import type { Slot } from './ui/slots';
@@ -206,7 +206,7 @@ export function createController(store: Store<ContentState>, slots: Slots) {
   /** Local watch progress powers "Continue watching" and series continuity. */
   function saveProgress(force = false) {
     const { s, mode, active } = focus();
-    if (!active || !mode || !s.settings.trackWatchHistory || s.page.type !== 'watch' || !s.video?.meta) return;
+    if (!active || !mode || s.page.type !== 'watch' || !s.video?.meta) return;
     const id = s.video.id;
     const flexyId = document.querySelector(WATCH.flexy)?.getAttribute('video-id');
     if (flexyId && flexyId !== id) return;
@@ -218,6 +218,8 @@ export function createController(store: Store<ContentState>, slots: Slots) {
     if (lastSaved.id === id && Math.abs(progress - lastSaved.progress) < 0.005) return;
     lastSaved = { id, progress, at: Date.now() };
 
+    if(mode.source)void sendMessage('institutes/progress',{modeId:mode.id,videoId:id,progress,seconds:Math.round(video.currentTime)}).catch(()=>undefined);
+    if(!s.settings.trackWatchHistory)return;
     const meta = s.video.meta;
     const url = new URL(location.href);
     const topicId = getClassifier().classify(meta, mode).topicId;

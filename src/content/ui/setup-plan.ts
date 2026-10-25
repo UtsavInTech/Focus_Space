@@ -67,7 +67,7 @@ export function planFromSuggestion(s: IntentSuggestion): SetupSpacePlan {
     name: s.name,
     templateId: s.templateId,
     icon: s.icon,
-    kind: s.kind,
+    kind: s.kind === 'institute' ? 'learning' : s.kind,
     description: s.description,
     topics: s.topics.map((t) => ({ name: t.name, keywords: t.keywords })),
     keywords: s.keywords,

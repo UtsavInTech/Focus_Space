@@ -75,6 +75,7 @@ export async function toggleFocus(): Promise<boolean> {
 }
 
 export async function createMode(input: Partial<LearningMode> = {}): Promise<LearningMode> {
+  if(input.source||input.kind==='institute')throw new Error('Institute courses come from your enrolled account.');
   const now = Date.now();
   await authorizeSpace(uniqueId(input.name || 'mode', (await getItems(['modes'])).modes.map((m) => m.id)), input.name ?? 'New space');
   let created!: LearningMode;
@@ -88,15 +89,20 @@ export async function createMode(input: Partial<LearningMode> = {}): Promise<Lea
 
 /** Store a fully-formed space (e.g. from intent inference) and make it active. */
 export async function addMode(mode: LearningMode): Promise<void> {
+  if(mode.source||mode.kind==='institute')throw new Error('Institute courses come from your enrolled account.');
   await authorizeSpace(mode.id, mode.name);
   await updateItem('modes', (modes) => [...modes.filter((m) => m.id !== mode.id), mode]);
 }
 
+async function editable(id:string):Promise<void>{const {modes}=await getItems(['modes']);if(modes.find(m=>m.id===id)?.source)throw new Error('Institute courses are read-only. Use Leave course instead.');}
+
 export async function updateMode(id: string, patch: Partial<Omit<LearningMode, 'id' | 'createdAt'>>): Promise<void> {
+  await editable(id);
   await updateItem('modes', (modes) => modes.map((m) => (m.id === id ? { ...m, ...patch, updatedAt: Date.now() } : m)));
 }
 
 export async function deleteMode(id: string): Promise<void> {
+  await editable(id);
   const { modes, settings, session } = await getItems(['modes', 'settings', 'session']);
   if (modes.length <= 1) throw new Error('Keep at least one mode.');
   const remaining = modes.filter((m) => m.id !== id);
@@ -159,6 +165,7 @@ const sameChannel = (a: ChannelRef, b: ChannelRef) =>
   (!!a.id && a.id === b.id) || (!!a.handle && !!b.handle && a.handle.toLowerCase() === b.handle.toLowerCase());
 
 export async function setChannelRule(modeId: string, channel: ChannelRef, rule: 'allowed' | 'blocked' | null): Promise<void> {
+  await editable(modeId);
   await updateItem('modes', (modes) =>
     modes.map((m) => {
       if (m.id !== modeId) return m;

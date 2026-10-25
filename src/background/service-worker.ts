@@ -20,6 +20,7 @@ import { SITE_URL, siteUrl } from '@/config';
 import { registerExternalMessaging } from './external';
 import { rememberReturnTab } from './sign-in-return';
 import * as setupAssistant from './setup-assistant';
+import * as institutes from './institutes';
 import { markActive } from './activity';
 import { migrate } from './migrate';
 import { resolveClaim, startOwnership } from './ownership';
@@ -110,7 +111,9 @@ chrome.runtime.onStartup.addListener(async () => {
   await refreshSessionState();
 });
 
+subscribe(['auth','ownership'],()=>void institutes.syncInstitutes(true));
 chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if(alarm.name === TICK_ALARM) void institutes.syncInstitutes();
   if (alarm.name === TICK_ALARM || alarm.name === SESSION_END_ALARM) await refreshSessionState();
   if (alarm.name === SYNC_ALARM) {
     const [settings, channels] = await Promise.all([getItem('settings'), getItem('channels')]);
@@ -205,6 +208,12 @@ listen({
       return { ok: false, error: err instanceof Error ? err.message : 'Could not open FocusSpace.' };
     }
   },
+  'institutes/sync': ({force}) => institutes.syncInstitutes(force),
+  'institutes/leave': ({modeId}) => institutes.leaveInstitute(modeId),
+  'institutes/withdraw': ({orgId}) => institutes.withdrawInstitute(orgId),
+  'institutes/progress': (input) => institutes.recordMilestone(input),
+  'institutes/score': (input) => institutes.reportQuizScore(input),
+  'institutes/student': (input) => institutes.instituteStudentRequest(input),
   'activity/ping': () => markActive(),
   'setup/understand': (request) => setupAssistant.understand(request),
   'voice/transcribe': ({ audio, mime, hint, purpose }) => setupAssistant.transcribeSpeech(audio, mime, hint, purpose),

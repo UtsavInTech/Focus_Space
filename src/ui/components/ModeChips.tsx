@@ -3,7 +3,7 @@ import { Check, ChevronDown } from 'lucide-react';
 import type { LearningMode } from '@/types/domain';
 import { SpaceIcon } from '../icons';
 
-const KIND_LABEL = { learning: 'Learning', media: 'Music & video', general: 'General' } as const;
+const KIND_LABEL = { learning: 'Learning', media: 'Music & video', general: 'General', institute:'Institute' } as const;
 
 export function ModePicker({ modes, value, onChange, placeholder = 'Choose a space' }: { modes: LearningMode[]; value: string | null; onChange: (mode: LearningMode) => void; placeholder?: string }) {
   const [open, setOpen] = useState(false);

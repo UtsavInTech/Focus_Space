@@ -90,6 +90,7 @@ export function QuizSession({
   extras,
   onRound,
   onDevice = false,
+  onScore,
   remaining = null,
 }: {
   watchedSec: number;
@@ -101,6 +102,7 @@ export function QuizSession({
   onRound: (block: QuizBlock, difficulty: QuizDifficulty | undefined, previous: string[]) => Promise<QuizMoreResult>;
   /** Answered by Chrome's on-device model: as many questions as the learner likes, free. */
   onDevice?: boolean;
+  onScore?: (score:number,total:number)=>void;
   /** Questions left this month on FocusSpace's AI (the plan's rule); `null` when there is no ceiling. */
   remaining?: number | null;
 }) {
@@ -122,6 +124,11 @@ export function QuizSession({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ text: string; code?: string } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  const scored = questions.filter(q=>q.answer&&picked[q.n]);
+  const rightNow = scored.filter(q=>picked[q.n]===q.answer!.letter).length;
+  const reportedScore = useRef('');
+  useEffect(()=>{const key=JSON.stringify(questions);if(!questions.length){reportedScore.current='';return;}if(scored.length===questions.length&&!loading&&reportedScore.current!==key){reportedScore.current=key;onScore?.(rightNow,questions.length);}},[rightNow,scored.length,questions.length,loading,onScore]);
 
   if (needsAccount && signedIn === false) {
     return (

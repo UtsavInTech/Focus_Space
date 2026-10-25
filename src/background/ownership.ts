@@ -87,5 +87,5 @@ export function resolveClaim(keep: boolean): Promise<{ ok: boolean }> {
  */
 export async function registerLocalSpaces(): Promise<void> {
   const modes = await getItem('modes');
-  for (const mode of modes) await authorize(mode.id, mode.name).catch(() => undefined);
+  for (const mode of modes.filter(m=>!m.source)) await authorize(mode.id, mode.name).catch(() => undefined);
 }

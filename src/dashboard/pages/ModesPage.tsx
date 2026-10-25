@@ -1,3 +1,4 @@
+import { InstituteManage, InstituteJoinControl } from '@/content/ui/InstituteHome';
 import { useEffect, useState } from 'react';
 import { Check, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { LearningMode } from '@/types/domain';
@@ -13,7 +14,7 @@ import { TemplateCreators } from '@/ui/components/TemplateCreators';
 import type { PickedChannel } from '@/ui/components/ChannelPicker';
 import { SpaceIcon } from '@/ui/icons';
 
-export const KIND_LABEL = { learning: 'Learning', media: 'Music & video', general: 'General' } as const;
+export const KIND_LABEL = { learning: 'Learning', media: 'Music & video', general: 'General', institute:'Institute' } as const;
 
 export function ModesPage({ data, openCreate }: { data: DashboardData; openCreate: boolean }) {
   const { modes, settings } = data;
@@ -93,17 +94,18 @@ export function ModesPage({ data, openCreate }: { data: DashboardData; openCreat
                 >
                   {active ? 'Open on YouTube' : 'Use this space'}
                 </Button>
-                <Button size="sm" variant="ghost" icon={<Pencil />} onClick={() => navigate(`/modes/${mode.id}`)}>
+                {!mode.source&&<Button size="sm" variant="ghost" icon={<Pencil />} onClick={() => navigate(`/modes/${mode.id}`)}>
                   Edit
-                </Button>
+                </Button>}
                 <span className="fs-grow" />
-                <IconButton size="sm" label={`Delete ${mode.name}`} icon={<Trash2 />} disabled={modes.length <= 1} onClick={() => setDeleting(mode)} />
+                {mode.source?<InstituteManage mode={mode}/>:<IconButton size="sm" label={`Delete ${mode.name}`} icon={<Trash2 />} disabled={modes.length <= 1} onClick={() => setDeleting(mode)} />}
               </div>
             </article>
           );
         })}
       </div>
 
+      <InstituteJoinControl/>
       {limit && <Alert tone="info">{limit}</Alert>}
 
       {templates.length > 0 && (

@@ -1,3 +1,4 @@
+import { InstituteWatch } from './InstituteHome';
 import { useEffect, useMemo, useState } from 'react';
 import { Bookmark, Check, ExternalLink, ShieldCheck } from 'lucide-react';
 import type { LearningMode, RelatedVideosPolicy, Settings } from '@/types/domain';
@@ -51,7 +52,7 @@ const byRelevance = (a: RailVideo, b: RailVideo) => b.relevance - a.relevance;
  *
  * Relevance scoring never reorders the course itself.
  */
-export function WatchRail({
+function PersonalWatchRail({
   mode,
   settings,
   video,
@@ -296,3 +297,5 @@ function SaveToTopic({ mode, meta, suggested }: { mode: LearningMode; meta: Vide
     </span>
   );
 }
+
+export function WatchRail(props:Parameters<typeof PersonalWatchRail>[0]){return props.mode.source?<InstituteWatch {...props}/>:<PersonalWatchRail {...props}/>;}

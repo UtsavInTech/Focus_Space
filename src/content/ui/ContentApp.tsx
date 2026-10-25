@@ -1,3 +1,4 @@
+import { sendMessage } from '@/messaging/runtime';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { domAnimation, LazyMotion } from 'motion/react';
@@ -25,6 +26,7 @@ import { SurfaceBoundary } from './SurfaceBoundary';
 const navigator = { go: spaNavigate };
 
 export function ContentApp({ store, slots, controller }: { store: Store<ContentState>; slots: Slots; controller: Controller }) {
+  useEffect(()=>{void sendMessage('institutes/sync',{force:true}).catch(()=>undefined);},[]);
   const s = useSyncExternalStore(store.subscribe, store.get);
   const [creating, setCreating] = useState(false);
   const mode = activeModeOf(s.settings, s.modes);

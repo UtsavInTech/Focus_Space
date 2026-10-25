@@ -1,3 +1,4 @@
+import { InstituteHome } from './InstituteHome';
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Check, ChevronDown, ChevronRight, History, Pencil, Plus, Power, RefreshCw, Sparkles, Trophy, Users, X } from 'lucide-react';
 import type { LearningMode, Settings, Topic } from '@/types/domain';
@@ -46,7 +47,7 @@ export function SpaceHome({ settings, modes, onCreateSpace }: { settings: Settin
   return (
     <div className="fs-home">
       <SpaceBar mode={mode} modes={modes} topicId={topicId} onTopic={setTopicId} onCreate={onCreateSpace} />
-      <SpaceFeed key={mode.id} mode={mode} topicId={topicId} onTopic={setTopicId} />
+      {mode.source?<InstituteHome mode={mode} topicId={topicId}/>:<SpaceFeed key={mode.id} mode={mode} topicId={topicId} onTopic={setTopicId} />}
     </div>
   );
 }
@@ -256,10 +257,10 @@ function SpaceBar({ mode, modes, topicId, onTopic, onCreate }: { mode: LearningM
               <span>New space</span>
             </button>
             <div className="fs-menu-sep" />
-            <button type="button" role="menuitem" className="fs-menu-item" onClick={run(() => void sendMessage('dashboard/open', { route: `/modes/${mode.id}` }))}>
+            {!mode.source&&<button type="button" role="menuitem" className="fs-menu-item" onClick={run(() => void sendMessage('dashboard/open', { route: `/modes/${mode.id}` }))}>
               <Pencil size={18} aria-hidden />
               <span>Edit {mode.name}</span>
-            </button>
+            </button>}
             <button type="button" role="menuitem" className="fs-menu-item" onClick={run(() => void setFocusEnabled(false))}>
               <Power size={18} aria-hidden />
               <span>Turn off Focus Mode</span>

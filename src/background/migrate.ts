@@ -22,6 +22,7 @@ async function run(): Promise<void> {
   }
   const { schemaVersion } = await getItems(['schemaVersion']);
   if (schemaVersion < 5) await toSchema5();
+  if (schemaVersion < 6 && !(await hasItem('instituteCache'))) await setItem('instituteCache',{lastSync:0,courses:{}});
   await setItem('schemaVersion', SCHEMA_VERSION);
 }
 

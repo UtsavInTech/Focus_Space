@@ -53,7 +53,7 @@ export async function authorize(spaceId: string, name?: string): Promise<SpaceAu
   const { user } = await getItem('auth');
   if (!user) {
     const modes = await getItem('modes');
-    const used = modes.filter((m) => m.id !== spaceId).length;
+    const used = modes.filter((m) => !m.source && m.id !== spaceId).length;
     if (used >= GUEST_SPACE_LIMIT) return { ok: false, code: 'space_limit', error: GUEST_LIMIT_MESSAGE, allowance: { plan: 'guest', used, limit: GUEST_SPACE_LIMIT } };
     return { ok: true, allowance: null };
   }
