@@ -47,6 +47,9 @@ import {
   type AuthConfig,
 } from './auth/service';
 import { signInWithGoogle } from './auth/service';
+import { verifyPhoneOwnership } from './auth/service';
+import { instituteRoutes } from './institutes/routes';
+import { configuredInstitutes } from './institutes/db';
 import { createHandoff, redeemHandoff } from './auth/handoff';
 import { authorizeUrl, createState, exchangeCode, loadGoogleConfig, verifyState } from './auth/google';
 import { validateCredentials, validateEmailCode, validateEmailOnly, validatePhoneCode, validatePhoneOnly, validateRefreshRequest, validateSignupCompletion, validateSpaceRequest } from './auth/validate';
@@ -244,6 +247,28 @@ if (razorpay) {
   setInterval(retry, 30 * 60_000).unref();
 }
 
+const handleInstitutes = instituteRoutes({
+  database: () => {
+    if (!authConfig) throw new ApiError(503, 'internal_error', 'Institute accounts are not configured.');
+    return configuredInstitutes(authConfig.tokenSecret);
+  },
+  identity: authorization => {
+    if (!authConfig) throw new ApiError(503, 'internal_error', 'Institute accounts are not configured.');
+    return authenticate(getDb(), authConfig, authorization).user;
+  },
+  startPhone: (_actor, phone) => {
+    if (!authConfig) throw new ApiError(503, 'internal_error', 'Phone verification is not configured.');
+    return startPhoneSignIn(getDb(), authConfig, senders, phone);
+  },
+  verifyPhone: async (actor, phone, code) => {
+    if (!authConfig) throw new ApiError(503, 'internal_error', 'Phone verification is not configured.');
+    verifyPhoneOwnership(getDb(), authConfig, actor.id, phone, code);
+  },
+  staff: process.env.INSTITUTES_STAFF,
+  userExists: id => !!getDb().findUserById(id),
+  clientIp: req => clientIp(req, TRUST_PROXY),
+});
+
 const server = createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, CORS_HEADERS);
@@ -251,6 +276,7 @@ const server = createServer(async (req, res) => {
     return;
   }
   try {
+    if (await handleInstitutes(req, res)) return;
     // Unauthenticated on purpose (no secret, no config value) — just "is this process up and configured",
     // for fast local diagnosis. Never reveals whether the OpenAI key or auth secret is actually valid.
     if (req.method === 'GET' && req.url === HEALTH_ROUTE) {

@@ -132,3 +132,30 @@ curl https://<service>.up.railway.app/v1/health
 
 `auth: "enabled"` confirms `AUTH_TOKEN_SECRET` was read. If it says `disabled`,
 the auth routes are off and nobody can sign in.
+
+## Institutes Phase 1, Step 1 (server foundation, not deployed)
+
+The institute server layer uses a separate Postgres database. Existing account, billing and usage data
+remain on SQLite and its current volume. No personal Space is migrated.
+
+| API variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection URL, supplied by the Railway Postgres service. Used only by `server/institutes/`. Never set this in `VITE_*` or expose it to clients. |
+| `INSTITUTES_STAFF` | Comma-separated FocusSpace user ids or verified email addresses allowed into institute admin routes. Empty means no staff access. Org membership is separate and grants Studio access only for that org. |
+
+The existing `AUTH_TOKEN_SECRET` is required for institute sessions and keyed milestone receipts. Keep
+it stable; rotating receipt keys without migration would recount aggregate milestones. Existing phone
+OTP delivery configuration is reused; contact sharing cannot be verified without a working SMS sender.
+`ADMIN_TOKEN` still protects the original metrics route and never grants institute staff access.
+
+The database role must be able to create the `institutes` schema, tables, indexes and version-immutability
+trigger. Versioned migrations run transactionally on the first institute request under an advisory lock.
+A missing or unavailable database returns 503 for institute routes; the existing API remains independent.
+No new database has been provisioned or deployed as part of the local code change.
+
+Use the existing test/build commands. Institute tests run PostgreSQL in process through the development-
+only PGlite package; they need no `DATABASE_URL` and never access the production database. Before release,
+run separate integration/load checks against a nonproduction Postgres service. Endpoint contracts,
+privacy/deduplication decisions and staging boundaries are in
+[`server/institutes/README.md`](../server/institutes/README.md). Steps 2–4 (import, website tools,
+extension/consent integration) are not implemented by this server-foundation step.

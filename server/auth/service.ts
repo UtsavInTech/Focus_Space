@@ -440,6 +440,15 @@ export function signInWithGoogle(
 
 export const PHONE_UNAVAILABLE = 'Phone sign-in isn’t available yet. Sign in or create an account with your email.';
 
+/** Reuses the phone-login OTP without signing into/creating a different identity.
+ * Institute contact sharing must stay attached to the currently authenticated user.
+ */
+export function verifyPhoneOwnership(db: IdentityDb, config: AuthConfig, userId: string, phone: string, code: string, now = Date.now()): void {
+  const owner = db.findUserByPhone(phone);
+  if (owner && owner.id !== userId) throw new ApiError(409, 'conflict', 'This phone is attached to another FocusSpace account. Sign in with that account.');
+  consumeCode(db, config, 'phone_login', phone, code, now);
+}
+
 export async function startPhoneSignIn(db: IdentityDb, config: AuthConfig, senders: Senders, phone: string): Promise<CodeSent> {
   // Refused before a code is ever created: without an SMS provider it could never reach the learner.
   if (!senders.phone) throw new ApiError(403, 'forbidden', PHONE_UNAVAILABLE);

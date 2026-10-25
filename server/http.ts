@@ -45,7 +45,7 @@ export class ApiError extends Error {
 export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-FocusSpace-Install',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-FocusSpace-Install, If-None-Match',
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'no-referrer',
