@@ -1,6 +1,6 @@
 import { CONTACT } from './legal';
 
-/** Proposed pilot only. Based on docs/INSTITUTES.md, especially student consent in §2.7.
+/** Proposed pilot only. Consent rules: server/institutes/README.md.
  * No institute has agreed to this programme; none is named or pictured here.
  */
 export const INSTITUTE_LINK = { label: 'For institutes', to: '/institutes' } as const;

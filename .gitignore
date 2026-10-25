@@ -14,3 +14,14 @@ node_modules/
 *.sqlite-*
 .env
 /release/
+
+# Private: business plans, sales material and agent hand-offs. Kept locally, never pushed.
+/pitch/
+/docs/prompts/
+/docs/INSTITUTES.md
+/docs/PROGRESS.md
+/docs/INSTITUTE_DISCLOSURE_DRAFT.md
+/web/WEBSITE_REVIEW.md
+# Unused experiments
+/web/src/components/FinaleArcher.tsx
+/web/src/components/PageFracture.tsx
