@@ -71,54 +71,98 @@ if (freeIds.length) {
   await db.publish(orgId, freeCourseId, staff.id);
 }
 
-// A realistic batch of fictional classmates, so the Studio has something worth reading. Same calls as the
-// extension: enrol (with the sharing choices a student makes), progress milestones, Quiz me scores.
-// Seeded, so every run shows the same numbers.
-let seed = 20261025;
+/*
+ * Six weeks of a realistic batch, so the Studio shows what an institute would really see. Same calls as the
+ * extension (enrol, milestones, Quiz me), run on a demo clock: each student joins on some day, studies at
+ * their own hour on some days, and either keeps going, slows down or goes quiet. Seeded, so every run shows
+ * the same story. The demo clock only exists while seeding; it is never part of FocusSpace itself.
+ */
+let seed = 20261026;
 const random = () => {
   seed = (seed + 0x6d2b79f5) | 0;
   let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
+const RealDate = Date;
+let clock: number | null = null;
+class DemoDate extends RealDate {
+  constructor(...args: ConstructorParameters<DateConstructor>) {
+    if (args.length === 0 && clock !== null) super(clock);
+    else super(...(args as [number]));
+  }
+  static now() {
+    return clock ?? RealDate.now();
+  }
+}
+globalThis.Date = DemoDate as DateConstructor;
+
+const DAY = 86400000;
+const today = new RealDate(new RealDate().toISOString().slice(0, 10)).getTime(); // midnight UTC
+const START = today - 41 * DAY;
+const at = (day: number, hour: number) => START + day * DAY + hour * 3600000 + Math.floor(random() * 50) * 60000;
+
 const FIRST = ['Aarav', 'Ananya', 'Ishaan', 'Diya', 'Kabir', 'Meera', 'Vihaan', 'Saanvi', 'Arjun', 'Kavya', 'Reyansh', 'Aditi', 'Rohan', 'Nisha', 'Yash', 'Pooja', 'Dev', 'Riya', 'Karan', 'Sneha', 'Aman', 'Tanvi', 'Rahul', 'Ira'];
 const LAST = ['Sharma', 'Verma', 'Gupta', 'Singh', 'Yadav', 'Mishra', 'Patel', 'Rao', 'Iyer', 'Das', 'Chauhan', 'Joshi', 'Nair', 'Kumar', 'Bhatt', 'Saxena'];
+const NOTES = ['Is there a scholarship test for the next batch?', 'Please call after 6 pm.', 'I want to join the offline batch in Greater Noida.', 'Can I get the Polity notes PDF?', 'I am stuck on Fundamental Rights, can a mentor help?'];
 const CLASSMATES = 180;
+
 for (let i = 0; i < CLASSMATES; i += 1) {
   const name = `${FIRST[Math.floor(random() * FIRST.length)]} ${LAST[Math.floor(random() * LAST.length)]}`;
   const phone = `+9198765${String(10000 + i).padStart(5, '0')}`;
   const user = account(`demo-classmate-${i + 1}@example.com`);
-  const sharesProgress = random() < 0.58;
-  const sharesContact = sharesProgress ? random() < 0.45 : random() < 0.12;
-  // A phone that matches the signed-in identity counts as verified, as after a real SMS code.
-  const who: Actor = { id: user.id, email: user.email, name, phone: sharesContact ? phone : null, emailVerified: false };
-  const consents = { textVersion: CONSENT_VERSION, progress: sharesProgress, contact: sharesContact };
-  await db.enroll(orgId, courseId, who, { phone, joinCode: DEMO.joinCode, consents });
+  // Signed in with their phone, so the number is verified, as for every real student who joins.
+  const who: Actor = { id: user.id, email: user.email, name, phone, emailVerified: false };
+  const sharesProgress = random() < 0.62;
+  const askedOnJoin = random() < 0.09;
+  const joinDay = Math.floor(random() ** 1.7 * 30);
+  const hour = [7, 8, 13, 18, 20, 21, 22, 23][Math.floor(random() * 8)];
+  clock = at(joinDay, hour);
+  await db.enroll(orgId, courseId, who, { phone, joinCode: DEMO.joinCode, consents: { textVersion: CONSENT_VERSION, progress: sharesProgress, contact: askedOnJoin } });
 
-  // How far this student gets: most drift off over the course, a committed few finish it.
-  const commitment = random();
-  const reach = Math.min(batchIds.length, Math.floor(batchIds.length * commitment ** 1.6 * 1.15) + (random() < 0.85 ? 1 : 0));
-  const events = batchIds.slice(0, reach).map((videoId, n) => {
-    const last = n === reach - 1;
-    const stage = last ? (random() < 0.5 ? ('half' as const) : ('started' as const)) : random() < 0.9 ? ('done' as const) : ('half' as const);
-    return { orgId, courseId, userId: user.id, videoId, stage, seconds: 300 + Math.floor(random() * 2400) };
-  });
-  if (events.length) await db.recordProgress(events);
-
-  // Quiz me scores on a few watched lessons; stored only when the student shares progress.
+  // How far and how steadily: a few keep going every other day, most slow down, some stop.
+  const pace = 0.25 + random() * 0.6; // chance of studying on a given day
+  const quitDay = random() < 0.35 ? joinDay + 3 + Math.floor(random() * 20) : 99;
   const skill = 0.35 + random() * 0.6;
-  for (const videoId of batchIds.slice(0, reach).filter(() => random() < 0.35)) {
-    const total = 10;
-    const score = Math.max(0, Math.min(total, Math.round(total * (skill + (random() - 0.5) * 0.3))));
-    await db.quizMeScore(orgId, courseId, user.id, videoId, score, total);
+  let lesson = 0;
+  for (let day = joinDay; day <= 41 && lesson < batchIds.length; day += 1) {
+    if (day > quitDay || random() > pace) continue;
+    const perDay = random() < 0.25 ? 2 : 1;
+    for (let k = 0; k < perDay && lesson < batchIds.length; k += 1) {
+      clock = at(day, hour + k);
+      const videoId = batchIds[lesson];
+      const finished = random() < 0.86;
+      await db.recordProgress([{ orgId, courseId, userId: user.id, videoId, stage: finished ? 'done' : random() < 0.5 ? 'half' : 'started', seconds: finished ? 1500 + Math.floor(random() * 2400) : 300 + Math.floor(random() * 900) }]);
+      if (finished && random() < 0.45) {
+        const score = Math.max(0, Math.min(10, Math.round(10 * (skill + (random() - 0.5) * 0.3))));
+        await db.quizMeScore(orgId, courseId, user.id, videoId, score, 10);
+      }
+      lesson += 1;
+    }
   }
 
-  if (freeCourseId && random() < 0.55) {
-    await db.enroll(orgId, freeCourseId, who, { phone, consents });
-    const watched = freeIds.slice(0, Math.floor(random() * (freeIds.length + 1)));
-    if (watched.length) await db.recordProgress(watched.map((videoId) => ({ orgId, courseId: freeCourseId!, userId: user.id, videoId, stage: 'done' as const, seconds: 900 })));
+  // Some press "Talk to your faculty" later, with a note; a few of those were already called.
+  if (!askedOnJoin && random() < 0.08) {
+    clock = at(Math.min(41, joinDay + 2 + Math.floor(random() * 15)), 19);
+    await db.requestContact(orgId, courseId, user.id, NOTES[Math.floor(random() * NOTES.length)]);
+  }
+
+  if (freeCourseId && random() < 0.5) {
+    clock = at(joinDay, hour);
+    await db.enroll(orgId, freeCourseId, who, { phone, consents: { textVersion: CONSENT_VERSION, progress: sharesProgress, contact: askedOnJoin } });
+    for (const [n, videoId] of freeIds.entries()) {
+      if (random() < 0.4) break;
+      clock = at(Math.min(41, joinDay + n * 3), hour);
+      await db.recordProgress([{ orgId, courseId: freeCourseId, userId: user.id, videoId, stage: 'done', seconds: 1200 }]);
+    }
   }
 }
+// The institute keeps up with its calls: all but the seven newest requests were already handled.
+clock = today - DAY;
+const waiting = (await db.requests(orgId)).filter((r) => r.handled_at === null).sort((a, b) => Number(b.created_at) - Number(a.created_at));
+for (const request of waiting.slice(7)) await db.handleRequest(orgId, String(request.id), faculty.id);
+clock = null;
+globalThis.Date = RealDate;
 
 /* ─── HTTP ───────────────────────────────────────────────────────────────────── */
 
@@ -126,11 +170,10 @@ const handleInstitutes = instituteRoutes({
   database: async () => db,
   identity: (header) => authenticate(identityDb, config, header).user,
   // The demo student joins without sharing contact details, so no SMS code is ever needed.
-  startPhone: async () => {
-    throw new ApiError(503, 'internal_error', 'SMS codes are not available in the demo. Join without contact sharing.');
-  },
-  verifyPhone: async () => {
-    throw new ApiError(503, 'internal_error', 'SMS codes are not available in the demo.');
+  // Demo only: no SMS is sent. The code is always 000000, and the join page says so in the demo.
+  startPhone: async () => ({ sent: true, demoCode: '000000' }),
+  verifyPhone: async (_actor, _phone, code) => {
+    if (code !== '000000') throw new ApiError(400, 'invalid_request', 'In the demo the code is 000000.');
   },
   staff: staff.id,
   userExists: (id) => !!identityDb.findUserById(id),
