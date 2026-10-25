@@ -1,4 +1,4 @@
-import { InstituteManage } from '@/content/ui/InstituteHome';
+import { InstituteManage } from '@/content/ui/institute/InstituteControls';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowUp, FlaskConical, Trash2, X } from 'lucide-react';
 import type { LearningMode, SpaceKind, Topic } from '@/types/domain';

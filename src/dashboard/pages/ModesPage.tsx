@@ -1,4 +1,4 @@
-import { InstituteManage, InstituteJoinControl } from '@/content/ui/InstituteHome';
+import { InstituteManage, InstituteJoinControl } from '@/content/ui/institute/InstituteControls';
 import { useEffect, useState } from 'react';
 import { Check, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { LearningMode } from '@/types/domain';

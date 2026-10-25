@@ -1,4 +1,4 @@
-import { InstituteWatch } from './InstituteHome';
+import { InstituteWatch } from './institute/InstituteWatch';
 import { useEffect, useMemo, useState } from 'react';
 import { Bookmark, Check, ExternalLink, ShieldCheck } from 'lucide-react';
 import type { LearningMode, RelatedVideosPolicy, Settings } from '@/types/domain';

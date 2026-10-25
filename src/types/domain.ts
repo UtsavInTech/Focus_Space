@@ -58,12 +58,36 @@ export interface FilterConfig {
  */
 export type SpaceKind = 'learning' | 'media' | 'general' | 'institute';
 
+/** One lesson or playlist in an institute course, in the faculty's order. */
+export interface InstituteItem {
+  type: 'video' | 'playlist';
+  videoId?: string;
+  playlistId?: string;
+  quizId?: string;
+  membersOnly?: boolean;
+  topicId: string;
+}
+
+/** Where an institute Space came from (src/institutes/model.ts compiles it from the published course). */
+export interface InstituteSource {
+  orgId: string;
+  courseId: string;
+  batchId?: string;
+  courseVersion: number;
+  orgName: string;
+  logo?: string;
+  accent?: string;
+  progressConsent: boolean;
+  contactConsent: boolean;
+  items: InstituteItem[];
+}
+
 /** A "mode" in code, a "space" in the UI: an intention the user brings to YouTube. */
 export interface LearningMode {
   id: ID;
   name: string;
   /** Server-issued, read-only course. This metadata is never used to authorise server access. */
-  source?: {orgId:string;courseId:string;batchId?:string;courseVersion:number;orgName:string;logo?:string;accent?:string;progressConsent:boolean;contactConsent:boolean;items:{type:'video'|'playlist';videoId?:string;playlistId?:string;quizId?:string;membersOnly?:boolean;topicId:string}[]};
+  source?: InstituteSource;
   /** Legacy emoji (pre-V3); the UI uses `icon`. */
   emoji: string;
   /** Lucide icon name from src/modes/icons.ts. */
