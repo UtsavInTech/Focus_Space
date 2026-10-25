@@ -30,5 +30,14 @@ link to them by section, so they are kept rather than rewritten.
 | [LAYER_2B_IDENTITY.md](LAYER_2B_IDENTITY.md) | Accounts, sessions and tokens (`server/auth`). Google sign-in and the website handoff came later. |
 | [LAYER_2C_USAGE_ENTITLEMENTS.md](LAYER_2C_USAGE_ENTITLEMENTS.md) | AI metering and plan entitlements (`server/usage`). Payments were added afterwards in `server/billing`. |
 | [V5_CONTRACT.md](V5_CONTRACT.md) | Preference learning, notes and mind maps, chat and voice. |
+| [INSTITUTES.md](INSTITUTES.md) | Coaching institutes on one product: courses, batches, admin console, consent, leads, scale. **Accepted 25 Oct 2026, not built.** |
+
+## Direction and hand-offs
+
+| Doc | Covers |
+| --- | --- |
+| [PROGRESS.md](PROGRESS.md) | How the product started, what changed and why, where it stands. |
+| [prompts/CODEX_WEBSITE.md](prompts/CODEX_WEBSITE.md) | Prompt for a coding agent: update focusspace.xyz (exam features, For institutes page, Deep and Light). |
+| [prompts/CODEX_INSTITUTES_PHASE1.md](prompts/CODEX_INSTITUTES_PHASE1.md) | Prompt for a coding agent: build institutes phase 1. Run after the website prompt is merged, one step at a time. |
 
 Institute Phase 1 local implementation and release boundaries: [server guide](../server/institutes/README.md).
