@@ -4,7 +4,7 @@ import { onLinkClick } from '../router';
 import { instituteRequest, type Org, type Course, type Batch, type CoursePayload } from '../institute-api';
 import { TOOLS } from '../content/institute-tools';
 import { ControlRoom } from './institute-tools/ControlRoom';
-import { Studio } from './institute-tools/Studio';
+import { StudioApp } from './studio/StudioApp';
 import { formFields } from './institute-tools/shared';
 import './institute-tools.css';
 
@@ -122,10 +122,15 @@ export default function InstituteTools({ view }: { view: View }) {
             setDraft={setDraft}
           />
         )}
-        {org && view === 'studio' && <Studio key={org} org={org} courses={courses} call={call} token={auth.token} role={orgs.find((o) => o.id === org)?.role} />}
       </>
     );
   };
+
+  // The Studio is its own building once someone with access is inside; everything before that (signing in,
+  // no access, no institute yet) uses the plain tool page below.
+  if (view === 'studio' && auth.user && access && org) {
+    return <StudioApp orgs={orgs} org={org} onOrg={setOrg} courses={courses} call={call} token={auth.token} />;
+  }
 
   return (
     <section className="fsw-tools">

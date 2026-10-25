@@ -179,56 +179,6 @@
   gap: 8px !important;
 }
 
-/* ─── Studio: funnel and tables ─────────────────────────────────────────── */
-
-.fsw-tool-metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 14px;
-  margin: 24px 0;
-}
-
-.fsw-tool-metrics > div {
-  padding: 16px;
-  background: var(--fs-surface-2);
-  border: 1px solid var(--fs-border);
-  border-radius: 6px;
-}
-
-.fsw-tool-metrics dt {
-  font-size: 12px;
-  color: var(--fs-text-2);
-}
-
-.fsw-tool-metrics dd {
-  font-size: 25px;
-  margin: 8px 0 0;
-}
-
-.fsw-tool-table {
-  overflow-x: auto;
-  border: 1px solid var(--fs-border);
-  margin: 18px 0;
-}
-
-.fsw-tool-table table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.fsw-tool-table th, .fsw-tool-table td {
-  padding: 12px;
-  border-bottom: 1px solid var(--fs-border);
-}
-
-.fsw-tool-table th {
-  background: var(--fs-surface-2);
-  font-weight: 600;
-}
-
 /* ─── Join page ──────────────────────────────────────────────────────────── */
 
 .fsw-institute-join {
@@ -269,8 +219,5 @@
   }
   .fsw-tools input {
     font-size: 16px !important;
-  }
-  .fsw-tool-table {
-    max-width: 100%;
   }
 }
