@@ -4,6 +4,8 @@ import { usePageMotion } from './page-motion';
 import { PageAtmosphere } from './components/PageAtmosphere';
 
 const LightHome = lazy(() => import('./components/LightHome'));
+const InstituteTools = lazy(() => import('./components/InstituteTools'));
+const InstituteJoin = lazy(() => import('./components/InstituteJoin'));
 const InstitutesPage = lazy(() => import('./components/InstitutesPage'));
 import { usePath } from './router';
 import { initialCurrency, rememberCurrency } from './currency';
@@ -46,7 +48,7 @@ export function App() {
 
   useEffect(() => {
     document.title =
-      path === '/pricing'
+      path === '/admin' ? 'Control room · FocusSpace' : path === '/studio' ? 'Institute studio · FocusSpace' : /^\/(join|learn)\//.test(path) ? 'Institute course · FocusSpace' : path === '/pricing'
         ? 'Pricing · FocusSpace'
         : path === '/institutes'
           ? INSTITUTES.title
@@ -77,7 +79,7 @@ export function App() {
       <SiteNav appearance={appearance} onAppearance={setAppearance} />
       <main id="main" className={appearance === 'light' && path !== '/' ? 'fsw-motion-page' : undefined}>
         {appearance === 'light' && path !== '/' && <PageAtmosphere key={path} />}
-        {legal ? (
+        {path === '/admin' || path === '/studio' ? (<Suspense fallback={<p role="status">Loading institute tools…</p>}><InstituteTools view={path==='/admin'?'admin':'studio'}/></Suspense>) : /^\/(join|learn)\/[^/]+$/.test(path) ? (<Suspense fallback={<p role="status">Loading course…</p>}><InstituteJoin kind={path.startsWith('/join/')?'join':'learn'} identifier={path.split('/')[2]}/></Suspense>) : legal ? (
           <LegalPage doc={legal} lead={legal.slug === '/privacy' ? <DataSummary /> : undefined} />
         ) : isConnect ? (
           <ConnectPage />

@@ -1,3 +1,4 @@
+import { InstituteAccount } from './InstituteAccount';
 import { hasStoreListing, installHref } from '../install';
 import { useEffect, useState } from 'react';
 import { navigate, onLinkClick } from '../router';
@@ -69,6 +70,7 @@ export function AccountPage() {
       </header>
 
       <ProfilePanel />
+      <InstituteAccount />
 
       <PlanRow status={status} error={usageError} />
 

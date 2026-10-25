@@ -59,7 +59,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!apiConfigured) {
     throw new ApiError('FocusSpace accounts are not available on this build yet.', 'not_configured', 0);
   }
