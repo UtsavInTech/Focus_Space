@@ -4,11 +4,10 @@ import { useReducedMotion } from 'motion/react';
 import './hero-walls.css';
 
 /** Sculpted side fins. Only their small 3D transforms move; the light is static. */
-export function HeroWalls({ suspended = false }: { suspended?: boolean }) {
+export function HeroWalls({ suspended = false, paused, onPausedChange }: { suspended?: boolean; paused: boolean; onPausedChange: (paused: boolean) => void }) {
   const scene = useRef<HTMLDivElement>(null);
   const id = useId().replace(/:/g, '');
   const reduced = useReducedMotion();
-  const [paused, setPaused] = useState(false);
   const [visible, setVisible] = useState(false);
   const [hidden, setHidden] = useState(document.hidden);
 
@@ -46,6 +45,6 @@ export function HeroWalls({ suspended = false }: { suspended?: boolean }) {
         })}
       </div>)}
     </div>
-    {!reduced && <button type="button" className="fsl-walls-toggle" aria-label={paused ? 'Play architectural animation' : 'Pause architectural animation'} onClick={() => setPaused(p => !p)}>{paused ? <Play size={11} /> : <Pause size={11} />}<span>{paused ? 'Play motion' : 'Pause motion'}</span></button>}
+    {!reduced && <button type="button" className="fsl-walls-toggle" aria-label={paused ? 'Play the hero animation' : 'Pause the hero animation'} onClick={() => onPausedChange(!paused)}>{paused ? <Play size={11} /> : <Pause size={11} />}<span>{paused ? 'Play motion' : 'Pause motion'}</span></button>}
   </div>;
 }

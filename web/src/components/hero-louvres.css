@@ -1,0 +1,22 @@
+/* Phones and tablets: the walls' metal fins, laid on their side behind the film (HeroLouvres.tsx). */
+.fsl-louvre-stage { position: relative; isolation: isolate; perspective: 1000px; }
+.fsl-louvres { position: absolute; z-index: -1; left: 50%; width: 100vw; top: -4%; bottom: -12%; transform: translateX(-50%); perspective: 700px; pointer-events: none;
+  mask-image: linear-gradient(to right, #0008, #000 18%, #000 82%, #0008), linear-gradient(to bottom, transparent, #000 14%, #000 80%, transparent);
+  mask-composite: intersect; }
+.fsl-louvre-light { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 55%, #e7d9ae55, transparent 62%); }
+.fsl-slat { position: absolute; left: -10%; right: -10%; height: 21%; top: calc(var(--slat) * 19.5% - 2%); transform-origin: 50% 50%; transform-style: preserve-3d; }
+.fsl-slat:nth-child(odd) .fsl-slat-sway { transform: scaleX(-1); }
+.fsl-slat-sway { width: 100%; height: 100%; }
+.fsl-slat svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 14px 14px #3b402f33); }
+/* A slow idle sway once settled, like the walls. Only while the stage is on screen. */
+.fsl-louvre-stage .fsl-slat-sway { animation: fsl-slat-sway 14s ease-in-out infinite; animation-delay: calc(var(--slat) * -1.7s); animation-play-state: paused; }
+.fsl-louvre-stage.is-playing .fsl-slat-sway { animation-play-state: running; }
+.fsl-slat:nth-child(odd) .fsl-slat-sway { animation-name: fsl-slat-sway-flip; }
+@keyframes fsl-slat-sway { 0%, 100% { transform: translateX(-2%) rotateZ(-.3deg); } 50% { transform: translateX(2%) rotateZ(.4deg); } }
+@keyframes fsl-slat-sway-flip { 0%, 100% { transform: scaleX(-1) translateX(-2%) rotateZ(-.3deg); } 50% { transform: scaleX(-1) translateX(2%) rotateZ(.4deg); } }
+.fsl-louvre-film { position: relative; }
+@media (prefers-reduced-motion: reduce) { .fsl-louvre-stage .fsl-slat-sway { animation: none; } }
+/* Two columns (small laptops): keep the louvres on the film's side, clear of the headline. */
+@media (min-width: 1025px) {
+  .fsl-louvres { left: -14%; right: -40vw; width: auto; transform: none; mask-image: linear-gradient(to right, transparent, #000 22%), linear-gradient(to bottom, transparent, #000 14%, #000 80%, transparent); mask-composite: intersect; }
+}

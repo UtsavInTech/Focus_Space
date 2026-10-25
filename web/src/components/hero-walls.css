@@ -21,11 +21,11 @@
 .fsl-hero-media .fsl-film-play small { font-size: 6px; }
 .fsl-hero-media .fsl-image-caption span:last-child { display: none; }
 .fsl-hero-media .fsl-image-caption { margin-top: 12px; font-size: 8px; }
+/* Phones and tablets: no room beside the content. HeroLouvres takes over behind the film. */
+@media (max-width: 1279px) { .fsl-walls-art { display: none; } }
 @media (max-width: 760px) {
   .fsl-hero-stage .fsl-hero { max-width: 600px; min-height: 0; gap: 30px; padding-top: 30px; padding-bottom: 28px; }
   .fsl-hero-note { padding-bottom: 56px; max-width: 370px; }
-  .fsl-wall { width: 24px; opacity: .45; }
-  .fsl-wall-fin:nth-last-child(-n+3) { display: none; }
   .fsl-walls-toggle { bottom: 12px; right: 50%; transform: translateX(50%); }
   .fsl-hero-media .fsl-film-play { font-size: 10px; padding: 7px 12px 7px 8px; }
   .fsl-hero-media .fsl-film-play > span:first-child { width: 28px; height: 28px; }
