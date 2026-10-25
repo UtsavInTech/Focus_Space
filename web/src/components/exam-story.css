@@ -19,7 +19,13 @@
 .fsl-exam-steps h4 { font-size: 16px; font-weight: 600; letter-spacing: -.025em; }
 .fsl-exam-steps p { font-size: 14px; line-height: 1.7; color: var(--fs-text-2); margin-top: 8px; }
 .fsl-exam-note { grid-column: 1 / -1; font-size: 12px; line-height: 1.65; color: var(--fs-text-2); max-width: 780px; }
+.fsl-exam-figures { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 28px; margin: 12px 0 8px; }
+.fsl-exam-figures figure { margin: 0; min-width: 0; }
+.fsl-exam-shot { overflow: hidden; border-radius: 12px; background: #0f0f0f; box-shadow: 0 0 0 1px var(--fs-border), 0 24px 50px -30px #23281c66; }
+.fsl-exam-shot img { display: block; width: 100%; height: auto; }
+.fsl-exam-figures figcaption { margin-top: 12px; font-size: 13px; color: var(--fs-text-2); }
 @media (max-width:760px) {
+  .fsl-exam-figures { grid-template-columns: minmax(0,1fr); gap: 22px; }
   .fsl-gallery-context { min-height: 175px; }
   .fsl-gallery-context > p { font-size: 15px; }
   .fsl-gallery-context li { font-size: 12px; }

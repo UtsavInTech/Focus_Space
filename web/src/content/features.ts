@@ -52,8 +52,8 @@ export const FEATURES: Feature[] = [
       EXAM_STORY.note,
     ],
     shots: [
-      { name: '01-choose-a-space', alt: 'FocusSpace on YouTube asking “What do you want to focus on?”, with Spaces grouped into Tech, Languages, Creative, Life and Unwind', caption: 'Choosing a Space on YouTube' },
-      { name: '02-your-spaces', alt: 'The Spaces page in the FocusSpace dashboard: the AI/ML and System Design (active) Spaces, and built-in Spaces to add', caption: 'Your Spaces, in the dashboard' },
+      { name: '09-exam-picker', alt: 'FocusSpace on YouTube asking “What are you preparing for?”, with government jobs such as UPSC, SSC and banking, and entrance exams such as JEE, NEET and GATE', caption: 'Picking your goal on YouTube' },
+      { name: '10-exam-home', alt: 'A NEET Space on YouTube: Biology, Physics and Chemistry chips and a featured Kinematics lesson', caption: 'A NEET Space, built from that choice' },
     ],
   },
   {
@@ -81,6 +81,7 @@ export const FEATURES: Feature[] = [
       'Go full screen from the Space bar; Esc brings your tabs and bars back',
     ],
     shots: [
+      { name: '12-streaming-home', alt: 'Shelves of lessons in a NEET Space on YouTube: a Zoology shelf, then fresh picks checked against the syllabus', caption: 'Shelves of lessons for your subjects' },
       { name: '03-your-feed', alt: 'YouTube’s home in a DSA Space: topic chips, then linked-list lectures from the learner’s own subscriptions', caption: 'YouTube’s home, in a DSA Space' },
       { name: '04-continue-watching', alt: 'The FocusSpace dashboard home: Your Spaces, Continue watching with progress bars, and recent notes', caption: 'Continue watching, where you stopped' },
     ],
@@ -92,12 +93,13 @@ export const FEATURES: Feature[] = [
     headline: 'Know where to begin. See what comes next.',
     body: EXAM_STORY.steps[2].text,
     points: [
-      'Foundations → HLD building blocks → HLD case studies → LLD foundations → LLD case studies → Interview',
+      'UPSC: Prelims GS → Prelims CSAT → Mains → Interview. System Design: Foundations → HLD → LLD → Interview',
       'Open a stage to choose a topic and its subtopics',
       'Progress comes from lessons watched; “You are here” marks the next stage to cover',
     ],
-    // No capture of the new path yet. Keep the previous real page open.
-    shots: [],
+    shots: [
+      { name: '11-learning-path', alt: 'A UPSC learning path on YouTube in four stages, Prelims GS, Prelims CSAT, Mains and Interview, with You are here on Prelims GS', caption: 'A path in stages, with “You are here”' },
+    ],
   },
   {
     id: 'course',

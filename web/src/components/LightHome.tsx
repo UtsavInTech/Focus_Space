@@ -4,6 +4,7 @@ import { ArrowDown, ArrowRight, BookOpen, Check, MessageCircle, Network, Play, P
 import { InstallCta } from './InstallCta';
 import { ProductFilm } from './ProductFilm';
 import { HeroWalls } from './HeroWalls';
+import { HeroLouvres } from './HeroLouvres';
 import { SpaceGallery } from './SpaceGallery';
 import { EXAM_STORY, LIGHT_SPACE_COPY, QUIZ_COPY } from '../content/home';
 import './cinema.css';
@@ -25,6 +26,7 @@ export default function LightHome() {
   const [active, setActive] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [filmPlaying, setFilmPlaying] = useState(false);
+  const [motionPaused, setMotionPaused] = useState(false);
   const close = useRef<HTMLButtonElement>(null);
   const expandTrigger = useRef<HTMLButtonElement>(null);
   const reduced = useReducedMotion();
@@ -60,7 +62,7 @@ export default function LightHome() {
 
   return <div className="fsl-home" ref={root}>
     <section className="fsl-hero-stage" id="install">
-      <HeroWalls suspended={filmPlaying} />
+      <HeroWalls suspended={filmPlaying} paused={motionPaused} onPausedChange={setMotionPaused} />
       <div className="fsl-hero">
       <motion.div initial={reduced ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="fsl-hero-copy">
         <p className="fsl-eyebrow"><span /> A LITTLE INTENTION. A WHOLE NEW YOUTUBE.</p>
@@ -71,7 +73,7 @@ export default function LightHome() {
       </motion.div>
       <div className="fsl-hero-media">
         <span className="fsl-media-label"><span /> SEE THE DIFFERENCE. IN 43 SECONDS.</span>
-        <ProductFilm onPlaybackChange={setFilmPlaying} />
+        <HeroLouvres paused={motionPaused || filmPlaying}><ProductFilm onPlaybackChange={setFilmPlaying} /></HeroLouvres>
         <div className="fsl-image-caption"><span>From “just one more video” to “now I get it.”</span><span>THE FOCUSSPACE FILM</span></div>
       </div>
       </div>
@@ -95,6 +97,7 @@ export default function LightHome() {
       <div className="fsl-exam-story">
         <div className="fsl-exam-intro"><p className="fsl-eyebrow">{EXAM_STORY.eyebrow}</p><h3>{EXAM_STORY.title}</h3><p>{EXAM_STORY.intro}</p></div>
         <ol className="fsl-exam-steps">{EXAM_STORY.steps.map((step, index) => <li key={step.title}><span aria-hidden="true">0{index + 1}</span><div><h4>{step.title}</h4><p>{step.text}</p></div></li>)}</ol>
+        <div className="fsl-exam-figures">{EXAM_STORY.figures.map(figure => <figure key={figure.image}><div className="fsl-exam-shot"><ProductImage name={figure.image} alt={figure.alt} /></div><figcaption>{figure.caption}</figcaption></figure>)}</div>
         <p className="fsl-exam-note">{EXAM_STORY.note}</p>
       </div>
     </section>
