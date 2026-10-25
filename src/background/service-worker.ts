@@ -213,6 +213,7 @@ listen({
   'institutes/withdraw': ({orgId}) => institutes.withdrawInstitute(orgId),
   'institutes/progress': (input) => institutes.recordMilestone(input),
   'institutes/score': (input) => institutes.reportQuizScore(input),
+  'institutes/contact': (input) => institutes.requestContact(input),
   'institutes/student': (input) => institutes.instituteStudentRequest(input),
   'activity/ping': () => markActive(),
   'setup/understand': (request) => setupAssistant.understand(request),

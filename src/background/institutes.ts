@@ -1,7 +1,7 @@
 import { getItem, getItems, setItem, updateItem } from '@/storage/storage';
 import { ownerGuard } from '@/storage/ownership';
 import { apiBaseUrl, status } from './auth';
-import { compileCourse, instituteModeId, mergeInstituteModes, milestoneFor, type InstituteMembership, type InstituteCache } from '@/institutes/model';
+import { compileCourse, instituteModeId, mergeInstituteModes, milestoneFor, type InstituteMembership, type InstituteCache, type LocalScore } from '@/institutes/model';
 import type { LearningMode } from '@/types/domain';
 import type { CoursePayload } from '@/institutes/model';
 
@@ -114,7 +114,7 @@ async function sync(force: boolean): Promise<Result> {
     const old = cache.courses[key];
     try {
       const { payload, etag } = await fetchCourse(s, membership, old);
-      courses[key] = { membership, payload, etag };
+      courses[key] = { membership, payload, etag, scores: old?.scores, contactRequestedAt: old?.contactRequestedAt };
       incoming.push(compileCourse(membership, payload));
     } catch (e) {
       failed = true;
@@ -178,7 +178,7 @@ export async function leaveInstitute(modeId: string) {
 export async function withdrawInstitute(orgId: string) {
   const s = await session();
   if (!s) throw new Error('Sign in first.');
-  await json(s, '/v1/consents', { orgId, consents: { textVersion: 'institute-consent-v1', progress: false, contact: false } });
+  await json(s, '/v1/consents', { orgId, consents: { textVersion: 'institute-consent-v2', progress: false, contact: false } });
   await syncInstitutes(true);
   return { ok: true };
 }
@@ -250,13 +250,42 @@ async function flushMilestones(owner: string) {
 
 /* ─── Quizzes and assignments ───────────────────────────────────────────────── */
 
-/** A self-reported "Quiz me" score — sent only while progress sharing is on, and only for a course video. */
+/** Keeps a quiz score on this device for the student's own report. Newest per lecture and kind wins. */
+async function rememberScore(modeId: string, score: LocalScore) {
+  await updateItem('instituteCache', (cache) => {
+    const course = cache.courses[modeId];
+    if (!course) return cache;
+    const kept = (course.scores ?? []).filter((s) => !(s.videoId === score.videoId && s.kind === score.kind));
+    // Bounded: a course of a few hundred lectures, two kinds each.
+    const scores = [...kept, score].slice(-600);
+    return { ...cache, courses: { ...cache.courses, [modeId]: { ...course, scores } } };
+  });
+}
+
+/** A self-reported "Quiz me" score: always kept for the student's own report; sent only while progress sharing is on. */
 export async function reportQuizScore(input: { modeId: string; videoId: string; score: number; total: number }) {
   const mode = (await getItem('modes')).find((m) => m.id === input.modeId);
-  if (!mode?.source?.progressConsent || !mode.source.items.some((item) => item.videoId === input.videoId)) return { ok: true };
+  if (!mode?.source || !mode.source.items.some((item) => item.videoId === input.videoId)) return { ok: true };
+  await rememberScore(mode.id, { videoId: input.videoId, score: input.score, total: input.total, at: Date.now(), kind: 'quizme' });
+  if (!mode.source.progressConsent) return { ok: true };
   const s = await session();
   if (!s) return { ok: false };
   await json(s, '/v1/institutes/quiz-score', { orgId: mode.source.orgId, courseId: mode.source.courseId, videoId: input.videoId, score: input.score, total: input.total });
+  return { ok: true };
+}
+
+/** "Talk to your faculty": the institute sees the student first in its requests, with the note if there is one. */
+export async function requestContact(input: { modeId: string; note?: string }) {
+  const mode = (await getItem('modes')).find((m) => m.id === input.modeId);
+  if (!mode?.source) return { ok: false };
+  const s = await session();
+  if (!s) throw new Error('Sign in to FocusSpace first.');
+  const note = input.note?.trim().slice(0, 500);
+  await json(s, '/v1/institutes/contact', { orgId: mode.source.orgId, courseId: mode.source.courseId, ...(note ? { note } : {}) });
+  await updateItem('instituteCache', (cache) => {
+    const course = cache.courses[mode.id];
+    return course ? { ...cache, courses: { ...cache.courses, [mode.id]: { ...course, contactRequestedAt: Date.now() } } } : cache;
+  });
   return { ok: true };
 }
 
@@ -264,6 +293,14 @@ export async function reportQuizScore(input: { modeId: string; videoId: string; 
 export async function instituteStudentRequest(input: { orgId: string; courseId?: string; quizId?: string; answers?: number[] }) {
   const s = await session();
   if (!s) throw new Error('Sign in first.');
-  if (input.quizId) return input.answers ? json(s, '/v1/quiz-attempts', input) : json(s, `/v1/institutes/quizzes/${input.orgId}/${input.quizId}`);
+  if (input.quizId && input.answers) {
+    const result = await json<{ score: number; total: number }>(s, '/v1/quiz-attempts', input);
+    // The institute quiz's result also goes into the student's own report on this device.
+    const mode = (await getItem('modes')).find((m) => m.source?.orgId === input.orgId && m.source.items.some((item) => item.quizId === input.quizId));
+    const videoId = mode?.source?.items.find((item) => item.quizId === input.quizId)?.videoId;
+    if (mode && videoId) await rememberScore(mode.id, { videoId, score: result.score, total: result.total, at: Date.now(), kind: 'institute' });
+    return result;
+  }
+  if (input.quizId) return json(s, `/v1/institutes/quizzes/${input.orgId}/${input.quizId}`);
   return json(s, `/v1/institutes/${input.orgId}/assignments?courseId=${encodeURIComponent(input.courseId ?? '')}`);
 }

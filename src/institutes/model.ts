@@ -16,9 +16,18 @@ export interface InstituteMembership {
   consents?: { progress: boolean; contact: boolean };
 }
 
+/** A quiz score the student took on this device: kept here for their own report, whether or not they share progress. */
+export interface LocalScore {
+  videoId: string;
+  score: number;
+  total: number;
+  at: number;
+  kind: 'institute' | 'quizme';
+}
+
 export interface InstituteCache {
   lastSync: number;
-  courses: Record<string, { membership: InstituteMembership; payload: CoursePayload; etag: string }>;
+  courses: Record<string, { membership: InstituteMembership; payload: CoursePayload; etag: string; scores?: LocalScore[]; contactRequestedAt?: number }>;
 }
 
 type CourseItem = InstituteItem;

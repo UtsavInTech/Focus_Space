@@ -29,6 +29,7 @@ import { Row } from './home/Row';
 import { InstituteManage } from './institute/InstituteControls';
 import { InstituteQuiz } from './institute/InstituteQuiz';
 import { useLessonInfo } from './institute/lesson-title';
+import { YourReport } from './institute/YourReport';
 
 /**
  * A student's institute Space: the same streaming-style home as every other Space, built only from the
@@ -130,6 +131,7 @@ export function InstituteHome({ mode, topicId, onTopic }: { mode: LearningMode; 
           )}
           <AssignmentShelves assignments={assignments} lessons={lessons} {...shelfProps} />
           <CoursePath mode={mode} lessons={lessons} completed={completed} onTopic={onTopic} />
+          <YourReport mode={mode} lessons={lessons} />
           {shelves.map((shelf) => (
             <TopicShelf key={shelf.topic.id} shelf={shelf} onTopic={onTopic} {...shelfProps} />
           ))}

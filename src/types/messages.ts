@@ -21,6 +21,7 @@ export interface MessageMap {
   'institutes/progress': {req:{modeId:string;videoId:string;progress:number;seconds:number};res:{ok:boolean}};
   'institutes/score': {req:{modeId:string;videoId:string;score:number;total:number};res:{ok:boolean}};
   'institutes/student': {req:{orgId:string;courseId?:string;quizId?:string;answers?:number[]};res:unknown};
+  'institutes/contact': {req:{modeId:string;note?:string};res:{ok:boolean}};
   /** ui → background: import the subscription list from the signed-in YouTube session. */
   'subscriptions/import': { req: Record<string, never>; res: ImportResult };
   /** ui → background: refresh the video library from channel uploads. */
