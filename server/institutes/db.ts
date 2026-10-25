@@ -429,6 +429,11 @@ export class InstitutesDb {
     return { enrolled: !!rows.length, member: rows.some((row) => row.batch_id !== null) };
   }
 
+  /** The latest published version of an institute's course, for its own Studio. */
+  async outline(orgId: string, courseId: string) {
+    return this.latest(this.driver, orgId, courseId);
+  }
+
   private async latest(tx: Driver, orgId: string, courseId: string) {
     const [version] = await tx.query('SELECT version,payload_json FROM institutes.course_versions WHERE org_id=$1 AND course_id=$2 ORDER BY version DESC LIMIT 1', [orgId, courseId]);
     if (!version) return missing();

@@ -6,6 +6,7 @@ import { ProgressQueue } from './queue';
 import type { Actor, Milestone, OrgRole } from './types';
 import * as v from './validate';
 import { importChannel, resolveChannel, youtubeFetch } from './import';
+import { TitleCache } from './titles';
 
 export interface InstituteDependencies {
   database: () => Promise<InstitutesDb>;
@@ -15,6 +16,8 @@ export interface InstituteDependencies {
   staff?: string;
   userExists: (id: string) => boolean;
   clientIp: (request: IncomingMessage) => string;
+  /** Lesson titles for the Studio, held in memory only. Tests pass one with a fake fetch. */
+  titles?: TitleCache;
 }
 
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
@@ -207,7 +210,7 @@ async function studentInstituteRoutes({ method, parts, actor, db, deps, body, re
 
 /* ─── Studio: an institute's own staff, read-only except channel approval ──── */
 
-async function studioRoutes({ res, method, url, parts, actor, db, body, respond }: Context): Promise<boolean> {
+async function studioRoutes({ res, method, url, parts, actor, db, deps, body, respond }: Context): Promise<boolean> {
   if (parts[1] !== 'studio') return false;
   const orgId = v.id(parts[2]);
   if (!(await db.role(orgId, actor!.id))) throw new ApiError(403, 'forbidden', 'Institute staff access is required.');
@@ -223,6 +226,12 @@ async function studioRoutes({ res, method, url, parts, actor, db, body, respond 
   if (parts[3] === 'courses') return respond({ courses: await db.courses(orgId) });
   if (parts[3] === 'channels' && filter.courseId) return respond({ channels: await db.channelSuggestions(orgId, filter.courseId) });
   if (parts[3] === 'funnel') return respond(await db.funnel(orgId, filter.courseId));
+  if (parts[3] === 'outline' && filter.courseId) {
+    // The institute's own published course, so the Studio can group lesson stats into subjects and topics.
+    const outline = await db.outline(orgId, filter.courseId);
+    const ids = outline.data.subjects.flatMap((s) => s.topics.flatMap((t) => t.items.flatMap((item) => (item.videoId ? [item.videoId] : []))));
+    return respond({ ...outline, titles: await deps.titles!.titles(ids) });
+  }
   if (parts[3] === 'students') return respond(await db.students(orgId, filter));
   if (parts[3] === 'leads.csv') {
     const result = await db.leads(orgId, actor!.id, filter);
@@ -404,7 +413,8 @@ async function adminRoutes(ctx: Context): Promise<boolean> {
 /** Tried in order; the first group that answers wins. */
 const HANDLERS: Handler[] = [accountRoutes, publicRoutes, enrolmentRoutes, progressRoutes, studentInstituteRoutes, studioRoutes, adminRoutes];
 
-export function instituteRoutes(deps: InstituteDependencies) {
+export function instituteRoutes(input: InstituteDependencies) {
+  const deps: InstituteDependencies = { ...input, titles: input.titles ?? new TitleCache() };
   const limiters: Limiters = {
     join: new RateLimiter(20, 10 * 60_000),
     progress: new RateLimiter(120, 60_000),

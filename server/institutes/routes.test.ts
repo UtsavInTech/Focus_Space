@@ -8,6 +8,7 @@ import { InstitutesDb, type Driver } from './db';
 import { testDriver } from './test-driver';
 import { csv, institutePath, instituteRoutes, staffAllowed } from './routes';
 import { CONSENT_VERSION, type Actor, type CoursePayload } from './types';
+import { TitleCache } from './titles';
 let driver: Driver,db: InstitutesDb,identityDb: IdentityDb,server: Server,base: string;
 let orgId: string,otherOrg: string,courseId: string,staffToken: string,facultyToken: string,studentToken: string;
 let databaseCalls=0;
@@ -23,7 +24,7 @@ beforeAll(async()=>{
   courseId=String((await db.createCourse(orgId,staff.user.id,{title:'Course',kind:'free',channelId:channel})).id);
   const data:CoursePayload={brand:{name:'Institute A'},subjects:[{id:'s',title:'Subject',topics:[{id:'t',title:'Topic',subtopics:[],items:[{type:'video',videoId:'abcdefghijk'}]}]}],approvedChannels:[{id:channel}],modes:[]};
   await db.saveDraft(orgId,courseId,staff.user.id,data);await db.publish(orgId,courseId,staff.user.id);
-  const handler=instituteRoutes({database:async()=>{databaseCalls++;return db;},identity:header=>authenticate(identityDb,config,header).user,staff:staff.user.id,userExists:id=>!!identityDb.findUserById(id),clientIp:()=> 'test-address',startPhone:async()=>({sent:true}),verifyPhone:async()=>{}});
+  const handler=instituteRoutes({database:async()=>{databaseCalls++;return db;},identity:header=>authenticate(identityDb,config,header).user,staff:staff.user.id,userExists:id=>!!identityDb.findUserById(id),clientIp:()=> 'test-address',startPhone:async()=>({sent:true}),verifyPhone:async()=>{},titles:new TitleCache(async id=>id==='abcdefghijk'?'Lesson A':null)});
   server=createServer(async(req,res)=>{
     try { if (!await handler(req,res)) sendJson(res,200,{legacy:true}); }
     catch(err) { if (err instanceof ApiError) sendJson(res,err.status,err.toResponse());else {sendJson(res,500,{error:'Unexpected'});throw err;} }
@@ -43,6 +44,16 @@ describe('institute HTTP authorization and contracts',()=>{
     expect((await request(`/v1/studio/${otherOrg}/students`,facultyToken)).status).toBe(403);
     expect((await request('/v1/admin/orgs',facultyToken)).status).toBe(403);
     expect(institutePath('/v1/admin/metrics')).toBe(false);expect(await (await request('/v1/admin/metrics')).json()).toEqual({legacy:true});
+  });
+  it('gives an institute\'s own staff its course outline with display titles, and no one else', async () => {
+    const response = await request(`/v1/studio/${orgId}/outline?courseId=${courseId}`, facultyToken);
+    expect(response.status).toBe(200);
+    const outline = await response.json();
+    expect(outline.version).toBe(1);
+    expect(outline.data.subjects[0].topics[0].items[0].videoId).toBe('abcdefghijk');
+    expect(outline.titles).toEqual({ abcdefghijk: 'Lesson A' });
+    expect((await request(`/v1/studio/${otherOrg}/outline?courseId=${courseId}`, facultyToken)).status).toBe(403);
+    expect((await request(`/v1/studio/${orgId}/outline?courseId=${courseId}`, studentToken)).status).toBe(403);
   });
   it('handles public metadata and private ETags without exposing correct answers',async()=>{
     expect((await request(`/v1/courses/${courseId}`)).status).toBe(200);
