@@ -38,7 +38,7 @@ export function SiteNav({ appearance, onAppearance }: { appearance: Appearance; 
           <Logo key={path} animated />
           {/* The sparks belong to the name, not the ring: the ring has its own motion. */}
           <span className="fsw-brand-word">
-            <Wordmark tagline="short" />
+            <Wordmark tagline />
             <Sparkle from="text" rate={5} />
           </span>
         </a>
@@ -83,6 +83,7 @@ export function SiteNav({ appearance, onAppearance }: { appearance: Appearance; 
 
       {open && (
         <nav className="fsw-nav-drawer" id="site-mobile-navigation" aria-label="Main">
+          {auth.ready && auth.user && <a href="/account" onClick={event => { onLinkClick('/account')(event); setOpen(false); }}>My account</a>}
           {LINKS.map((link) => (
             <a
               key={link.to}

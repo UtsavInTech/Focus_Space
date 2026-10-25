@@ -63,7 +63,8 @@
   .fsw-nav-actions > .fsw-btn-primary { display: none; }
   .fsw-appearance button { padding-inline: 9px; font-size: 11px; }
   .fsw-nav .fsw-btn-outline { padding-inline: 10px; font-size: 12px; }
-  .fsw-wordmark-tagline { display: none !important; }
+  .fsw-nav .fsw-wordmark-tagline { display: block; max-width: 150px; white-space: normal; font-size: 8px; line-height: 1.25; letter-spacing: .055em; }
+  .fsw-nav-actions > .fsw-btn-outline { display: none; }
 
   .fsl-home .fsl-hero-stage .fsl-hero { padding: 40px 24px 24px; gap: 32px; max-width: 640px; }
   .fsl-home .fsl-hero h1 { font-size: clamp(36px, 8.8vw, 56px); line-height: 1.08; margin: 20px 0; }
