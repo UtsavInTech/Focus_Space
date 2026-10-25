@@ -37,15 +37,15 @@ export interface DataGroup {
   tone: 'local' | 'sent';
 }
 
-export const DATA_GROUPS: DataGroup[] = [
+export const DATA_GROUPS: DataGroup[] = [{id:'institutes',title:'Institute courses you choose to join',summary:'Joining requires an account and Indian mobile number. Both sharing choices start off.',tone:'sent',points:['Course milestones count towards totals. Named course progress and quiz scores reach the institute only with progress consent.','Your number reaches the institute only with separate contact consent and SMS verification.','Both choices can be withdrawn from your account. Courses and study tools remain available with sharing off. Personal Spaces are never reported.']},
   {
     id: 'browser',
     title: 'Stays on your computer',
-    summary: 'The part of FocusSpace you actually use every day never leaves your browser.',
+    summary: 'Your personal learning content stays in your browser. Institute courses have separate sharing choices.',
     tone: 'local',
     points: [
-      'Your spaces, their topics and the channels you chose for them.',
-      'What you watched with Focus Mode on, and how far you got.',
+      'Your personal Spaces, their topics and the channels you chose for them.',
+      'Personal-Space watch history and how far you got.',
       'Your notes, mind maps and AI conversations.',
       'Your settings, and the feed FocusSpace builds for you.',
     ],
@@ -101,7 +101,7 @@ export const DATA_GROUPS: DataGroup[] = [
  * compresses a group above and claims nothing it does not: 'browser', 'ai', and 'account' in turn.
  */
 export const DATA_DOES: string[] = [
-  'Keeps your Spaces, notes, mind maps and history in your browser.',
+  'Keeps your personal Spaces, notes, mind maps and personal history in your browser.',
   'Sends the AI only the moment you ask about, never your history or subscriptions.',
   'Stores your account and plan only if you sign in.',
 ];
@@ -110,6 +110,6 @@ export const DATA_DOES: string[] = [
 export const DATA_NEVER: string[] = [
   'We do not sell your data, and there is no advertising in FocusSpace.',
   'There is no analytics or tracking in the extension.',
-  'Watching a video sends us nothing. Nothing in the playback path touches our servers.',
-  'We cannot read your spaces, notes or history. They are not on our servers to read.',
+  'Personal Spaces send no institute progress. Joined institute courses send milestone totals; named progress and quiz scores need your consent.',
+  'Personal learning content is never shared with an institute. Contact sharing is a separate, verified choice.',
 ];

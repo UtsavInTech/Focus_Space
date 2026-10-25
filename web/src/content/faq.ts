@@ -53,7 +53,7 @@ export const FAQ: FaqItem[] = [
   },
   {
     q: 'Does FocusSpace see my watch history?',
-    a: 'Your history and subscriptions stay in your browser. They are used locally to rank your feed, and they are never sent to our servers. When you click an AI action, what leaves your browser is the current moment: the video title, the concept you are on, your course position and a short transcript window, and, for a chat message, a few short passages from the same video that match your question. Not your history, not your subscriptions, and a request never carries the full transcript.',
+    a: 'Your personal watch history and subscriptions stay in your browser and rank your feed locally. Joined institute courses send milestone totals; named course progress and quiz scores require your progress-sharing consent. Contact sharing is a separate verified choice. Personal Spaces are never shared with an institute. When you click an AI action, what leaves your browser is the current moment: the video title, the concept you are on, your course position and a short transcript window, and, for a chat message, a few short passages from the same video that match your question. Not your history, not your subscriptions, and a request never carries the full transcript.',
   },
   {
     q: 'Will it break or slow down YouTube?',

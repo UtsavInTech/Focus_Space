@@ -157,5 +157,21 @@ Use the existing test/build commands. Institute tests run PostgreSQL in process 
 only PGlite package; they need no `DATABASE_URL` and never access the production database. Before release,
 run separate integration/load checks against a nonproduction Postgres service. Endpoint contracts,
 privacy/deduplication decisions and staging boundaries are in
-[`server/institutes/README.md`](../server/institutes/README.md). Steps 2–4 (import, website tools,
-extension/consent integration) are not implemented by this server-foundation step.
+[`server/institutes/README.md`](../server/institutes/README.md). Steps 2–4 are implemented locally; see the pilot release boundaries in that document.
+
+
+### Institute pilot import and website
+
+Set `YOUTUBE_API_KEY` on the API service only. Enable YouTube Data API v3 for its project and restrict
+this key to that API and your server where supported. Never use a `VITE_*` key. The importer uses official
+list endpoints, bounded pagination and a 24-hour per-course cache; it does not scrape YouTube.
+No key produces a controlled import error while existing course reads remain available.
+
+Serve website routes `/admin`, `/studio`, `/join/:code`, `/learn/:course` through the existing SPA fallback.
+They use `VITE_API_URL`; the API enforces sessions, staff allow-list and org roles. Configure the existing
+SMS sender before enabling contact verification. Institute content refresh uses the existing extension
+API host permission; no remotely hosted JavaScript is introduced. Release extension 0.7.0 only after
+real Postgres, SMS, live import and manual browser checks. Build assets here are local previews only.
+
+New persistent tables: `institutes.import_cache`, `institutes.channel_approvals`, `institutes.quizme_scores`.
+The complete API route table is in [the institute server guide](../server/institutes/README.md).

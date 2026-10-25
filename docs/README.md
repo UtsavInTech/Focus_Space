@@ -30,3 +30,5 @@ link to them by section, so they are kept rather than rewritten.
 | [LAYER_2B_IDENTITY.md](LAYER_2B_IDENTITY.md) | Accounts, sessions and tokens (`server/auth`). Google sign-in and the website handoff came later. |
 | [LAYER_2C_USAGE_ENTITLEMENTS.md](LAYER_2C_USAGE_ENTITLEMENTS.md) | AI metering and plan entitlements (`server/usage`). Payments were added afterwards in `server/billing`. |
 | [V5_CONTRACT.md](V5_CONTRACT.md) | Preference learning, notes and mind maps, chat and voice. |
+
+Institute Phase 1 local implementation and release boundaries: [server guide](../server/institutes/README.md).

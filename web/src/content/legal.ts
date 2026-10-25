@@ -36,14 +36,14 @@ export const CONTACT = 'utsav.udk@gmail.com';
 export const PRIVACY: LegalDoc = {
   slug: '/privacy',
   title: 'Privacy',
-  updated: UPDATED,
+  updated: '25 October 2026',
   intro:
     'FocusSpace is built so that most of what it knows about you never leaves your browser. This page describes exactly what stays local, what is sent, and what we store.',
   sections: [
     {
       heading: 'What stays in your browser',
       body: [
-        'Your spaces, topics, channel list, watch progress, saved notes, mind maps and settings are stored by the extension in Chrome’s local storage on your own machine. They are not uploaded to us, and we cannot read them.',
+        'Your personal Spaces, their topics and channel lists, personal watch progress, saved notes, mind maps and settings stay in Chrome’s local storage on your computer. Joining an institute course is a separate choice; its enrolment, phone and course progress handling are described below. Your personal Spaces and their history are never shared with an institute.',
         'The account page on this website shows your spaces and settings by asking the extension for them directly, in your browser. That data reaches the page; it does not reach our servers.',
         'Your YouTube watch history and subscriptions are read on youtube.com, by your own signed-in session, to rank your feed. They are used locally and never transmitted to us.',
       ],
@@ -58,7 +58,7 @@ export const PRIVACY: LegalDoc = {
         'Only when you use voice (Talk, the microphone button, or reading an answer aloud): the recording of what you say is sent to us and on to OpenAI to turn it into text, and the text of a reply is sent to OpenAI to turn it into speech. Your microphone is used only after you tap Talk or the microphone, and Chrome asks you for it first.',
         'When you set up with the guide, what you type or say to it, and the names of your spaces and their creators, are sent so it can work out which spaces and channels to create.',
         'Once a day at most, on a day you use FocusSpace on YouTube, the extension tells us that this install was used, with its random install identifier, whether you are signed in, and the names of any FocusSpace features a change on YouTube broke that day. Nothing about what you watched. It is how we count how many people use FocusSpace and whether they come back, and you can turn it off in Settings, under Your data.',
-        'Watching a video sends nothing. Nothing in the playback path contacts our servers.',
+        'Watching a video in a personal Space sends no institute progress. Institute-course milestone handling is described below.',
       ],
     },
     {
@@ -74,6 +74,10 @@ export const PRIVACY: LegalDoc = {
         'Voice usage: how many seconds of voice you used each month, so your plan’s voice allowance applies (signed out, against the same hashed install identifier). We never keep the recordings, or what was said.',
         'Quiz usage: how many Quiz me questions you were shown each month, so your plan’s quiz allowance applies. Not the questions, and not your answers.',
       ],
+    },
+    {
+      heading: 'Institute courses and your choices',
+      body: ['If you join an institute course, we store your account id, the institute and course or batch you joined, your join/leave dates, your required Indian mobile number and whether it has been verified. Joining requires a phone number; sharing it with the institute is optional and requires verification by SMS code. We do not obtain phone numbers from YouTube subscribers, viewers or comments.', 'We record your progress-sharing and contact-sharing choices separately, with the consent notice version and the time you give or withdraw each choice. Neither choice is preselected. Videos, the course path, quizzes and notes remain available when both choices are off.', 'Institute-course milestones (started, half and completed) are sent to our server so enrolled students can be counted in course totals. Without progress sharing, we do not store progress or quiz scores in an identified student record. Private keyed receipts deduplicate the totals and keep completed-video quizzes usable. These receipts are pseudonymous internal counters, not a claim of irreversible anonymisation, and are not shown to the institute.', 'With progress sharing on, your institute can see your name, the institute-course videos you watched, completion and quiz scores. If you separately choose contact sharing and verify your number, it can also receive your phone number for contact about its courses. Personal Spaces, personal videos, subscriptions, notes, mind maps and AI conversations are never included in institute reporting.', 'You can withdraw either sharing choice at any time through your account’s course page. A “Withdraw institute sharing” control in the extension turns both off. Withdrawing progress sharing deletes your identified institute progress and quiz-score rows; it does not remove aggregate totals. Withdrawing contact sharing excludes your number from subsequent exports. We cannot retract a file that an institute already exported while you consented. Leaving a course removes its Space; leaving your last course with an institute withdraws both sharing choices for that institute.', 'Institute courses are cached locally for offline reading. Course refresh and enrolment checks require a connection; an explicit server refusal removes inaccessible cached course content. Personal learning data is not sent by institute reporting.'],
     },
     {
       heading: 'Who else is involved',

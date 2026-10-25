@@ -37,7 +37,7 @@ discover after a review.
 >
 > • No API key to bring. It works the moment you install it.
 > • No account needed to start.
-> • Your watch history and subscriptions never leave your browser.
+> • Your personal watch history and subscriptions stay in your browser. For institute courses you join, course totals are counted; named course progress and quiz scores are shared only if you choose, and contact sharing is a separate verified choice. Personal Spaces are never shared.
 > • The player is never touched, and Focus Mode turns off in one click.
 >
 > Free: 3 Spaces without an account, 5 with a free account, and an AI allowance. Paid plans start at ₹299 / $3.99 a month.
@@ -77,11 +77,17 @@ reason, not the technical one.
 
 ## Data disclosure
 
-Tick these, and nothing else:
+Review these categories against the Store questionnaire before submission:
 
-- **Personally identifiable information** — yes: email address, and optionally name, phone and city, for the account.
-- **Website content** — yes: when the user clicks an AI action, the current video's title, position and a short transcript window are sent to our server to produce an answer — for a chat message, also a few short passages of the same video's transcript that match the question. To build a video's outline, its captions are sent once; only the outline is stored.
-- **Not collected:** health, financial, authentication, personal communications, location, web history, user activity.
+- Personally identifiable information: account email; optional account profile fields; and, only when joining an institute course, a required mobile number and enrolment. The phone is shared with the institute only with separate contact consent and SMS verification.
+
+- User activity: institute-course milestone totals. Identified course progress and quiz scores reach the institute only with progress-sharing consent. Personal watch history and personal Spaces are not reported.
+
+- Website content: the current video context sent when the learner asks for an AI action, as already disclosed. Personal transcripts, notes and AI conversations are not included in institute progress reporting.
+
+- Authentication information: the account credentials/session information processed by the existing account service; the extension never receives an institute’s credentials or a YouTube password. Review the exact Store questionnaire against these flows before submission.
+
+- Not collected for institute reporting: personal communications, precise location, health or financial information. Payment data is handled by Razorpay’s own checkout, as before.
 
 Certify all three: not sold to third parties; used only for the stated single
 purpose; not used for creditworthiness or lending.

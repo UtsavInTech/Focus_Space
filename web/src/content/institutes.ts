@@ -13,7 +13,7 @@ export const INSTITUTES = {
   status: 'PROPOSED PILOT',
   headline: ['Your lectures.', 'Their learning space.'],
   intro: 'We’re planning an institute’s own Space on YouTube. Your lectures in your order, grouped by subject and topic, for the students you teach.',
-  availability: 'This programme is not built or available yet.',
+  availability: 'The pilot implementation is in development and is not publicly available yet.',
   invitation: 'We’re starting this with a small number of institutes as a pilot. Talk to us.',
   contactLabel: 'Talk to us about the pilot',
   studentLabel: 'See how it works for students',
@@ -34,5 +34,5 @@ export const INSTITUTES = {
   privacy: 'In the proposed pilot, students would choose what they share and could withdraw their consent at any time. Their personal Spaces would never be shared with the institute.',
   closingTitle: 'Help shape the pilot.',
   closingText: 'Tell us what you teach and how your students use YouTube. We’ll talk through whether this proposed pilot fits your institute.',
-  faq: 'Not yet. We’re planning a pilot with a small number of coaching institutes. Institute Spaces, the dashboard and joining by code are proposed features, not available today. Talk to us about the pilot on the institutes page.',
+  faq: 'Not yet. We’re planning a pilot with a small number of coaching institutes. Institute Spaces, the dashboard and joining by code are being prepared for the pilot and are not publicly available today. Talk to us about the pilot on the institutes page.',
 };

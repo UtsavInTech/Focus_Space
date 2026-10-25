@@ -48,8 +48,9 @@ describe('data transparency copy', () => {
     }
     // The one claim the whole product rests on, stated on every surface that lists what is stored.
     expect(extensionCopy).toContain('never uploaded');
-    expect(websiteCopy).toContain('never leaves your browser');
-    expect(policyCopy).toContain('not uploaded to us');
+    expect(websiteCopy).toContain('personal');
+    expect(websiteCopy).toContain('sharing choices');
+    expect(policyCopy).toContain('personal spaces and their history are never shared');
   });
 
   it('describes AI usage as more than a count, because usage_events records more than a count', () => {

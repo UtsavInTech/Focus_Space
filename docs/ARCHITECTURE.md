@@ -125,3 +125,24 @@ YouTube ships layout changes without notice. FocusSpace is built so that a chang
 - **Crash boundaries.** Every surface on youtube.com sits in its own `SurfaceBoundary`; a crash shows YouTube's version back and leaves the other surfaces running.
 - **Knowing about it.** Issues are kept in `chrome.storage` (`health`) and shown in *Settings → YouTube compatibility*. With usage counts on, the daily ping carries the broken feature names only; the API logs them as `layout_drift features=…`.
 - **Before learners notice.** `.github/workflows/youtube-canary.yml` runs `scripts/youtube-canary.ts` daily against live youtube.com with the same anchor list (`CRITICAL_ANCHORS`); a failed run emails the repository owners. Run it locally with `CANARY_CHANNEL=chrome npm run canary`.
+
+
+## Institute pilot (implemented locally, not deployed)
+
+Existing SQLite identity/session/billing → authenticated `user_id` → separate PostgreSQL `institutes`
+schema. `server/institutes/db.ts` owns SQL and transactional migrations; `routes.ts` owns access checks;
+`queue.ts` coalesces milestones before acknowledged commits. `import.ts` calls official YouTube Data API
+list endpoints with the server-only key. Import JSON contains IDs and authored course labels, never
+cached YouTube titles/thumbnails. Owner/admin approval is required for suggested outside channels.
+
+Core tables: orgs, org_members, courses, course_versions, batches, students, enrollments, consents,
+progress, course_stats, quizzes, quiz_attempts, assignments, audit_log; private HMAC receipt tables deduplicate
+aggregate counters without named student progress. Import cache, channel approvals and Quiz me scores
+are migrations 2–3. See [the exact route/table contracts](../server/institutes/README.md).
+
+Website lazy routes: staff `/admin`, org `/studio`, student `/join/:code` and `/learn/:course`. Sharing
+choices start off, are separate and revocable, and never gate course tools. Contact requires SMS proof.
+Extension schema 6 keeps account-owned course JSON and ETags, compiles read-only institute modes outside
+personal quotas, and refreshes on YouTube open/periodic ticks. Personal Spaces never send institute
+milestones or scores. Offline cache remains usable; explicit access refusal removes course content.
+No-institute learners retain their existing personal modes/settings. The signature branding is unchanged.

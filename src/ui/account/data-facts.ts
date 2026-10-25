@@ -72,7 +72,7 @@ export const ACCOUNT_DATA_FACTS: readonly DataFact[] = [
 
 /** The part that needs no account, and never leaves the browser. */
 export const LOCAL_DATA_SUMMARY =
-  'Your Spaces and everything in them, your notes, mind maps and AI chats, what you watched, your channel choices and your settings all stay in this browser. FocusSpace cannot read them. They are never uploaded.';
+  'Your personal Spaces, notes, mind maps, AI chats, personal watch history, channel choices and settings stay in this browser and are never uploaded for institute reporting. Joined institute courses send milestone totals; named progress and quiz scores need your consent. Contact sharing is a separate verified choice.';
 
 /** What one AI request carries. `who` is the endpoint's own name, so the sentence names what it talks to. */
 export const aiDataSummary = (who: string): string =>
