@@ -6,10 +6,12 @@ import { InstallCta } from './InstallCta';
 import { Sparkle } from './Sparkle';
 import { Moon, Sun } from 'lucide-react';
 import type { Appearance } from '../appearance';
+import { INSTITUTE_LINK } from '../content/institutes';
 
 const LINKS = [
   { label: 'Features', to: '/#features' },
   { label: 'Pricing', to: '/pricing' },
+  INSTITUTE_LINK,
   { label: 'FAQ', to: '/#faq' },
   // Where a visitor's data lives, and what removing the extension deletes (DataPage.tsx).
   { label: 'Data', to: '/data' },
@@ -69,6 +71,7 @@ export function SiteNav({ appearance, onAppearance }: { appearance: Appearance; 
             type="button"
             className="fsw-nav-toggle"
             aria-expanded={open}
+            aria-controls="site-mobile-navigation"
             aria-label={open ? 'Close menu' : 'Open menu'}
             onClick={() => setOpen((v) => !v)}
           >
@@ -79,11 +82,12 @@ export function SiteNav({ appearance, onAppearance }: { appearance: Appearance; 
       </div>
 
       {open && (
-        <nav className="fsw-nav-drawer" aria-label="Main">
+        <nav className="fsw-nav-drawer" id="site-mobile-navigation" aria-label="Main">
           {LINKS.map((link) => (
             <a
               key={link.to}
               href={link.to}
+              aria-current={!link.to.includes('#') && path === link.to ? 'page' : undefined}
               onClick={(e) => {
                 onLinkClick(link.to)(e);
                 setOpen(false);

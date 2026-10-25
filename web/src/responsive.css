@@ -1,4 +1,18 @@
 /* Website-only responsive refinements. Desktop composition is unchanged. */
+.fsw-nav-links a { white-space: nowrap; }
+.fsw-institute-pilot-strip { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 18px 22px; margin-top: 24px; border-block: 1px solid var(--fs-border-strong); color: var(--fs-text-2); font-size: 14px; line-height: 1.6; }
+.fsw-institute-pilot-strip:hover { color: var(--fs-text); background: var(--fs-surface-2); }
+.fsw-institute-pilot-strip:focus-visible, .fsw-product-modes button:focus-visible { outline: 2px solid var(--fsw-mint); outline-offset: 4px; }
+.fsw-faq-answer a { text-decoration: underline; text-underline-offset: 3px; }
+@media (min-width:1025px) and (max-width:1180px) {
+  .fsw-nav-inner { gap: 16px; }
+  .fsw-nav-actions { margin-left: auto; }
+  .fsw-nav-links, .fsw-hide-sm { display: none; }
+  .fsw-nav-toggle, .fsw-nav-drawer { display: flex; }
+  .fsw-nav-toggle { width: 44px; height: 44px; flex: none; }
+  .fsw-nav-drawer { max-height: calc(100svh - var(--fsw-nav-h)); overflow-y: auto; }
+  .fsw-nav-drawer a { min-height: 44px; display: flex; align-items: center; }
+}
 @media (max-width: 1024px) {
   .fsw-nav-inner { gap: 16px; }
   .fsw-nav-actions { margin-left: auto; }

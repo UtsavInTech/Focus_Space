@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { onLinkClick } from '../router';
 import { InstallCta } from './InstallCta';
 import { DEEP_HERO } from '../content/home';
+import { nextTab } from '../tab-navigation';
 
 /**
  * Deliberately no "80,000,000+ users" badge. FocusSpace has not shipped, and
@@ -90,9 +91,9 @@ function HeroProductPreview() {
             aria-controls="hero-space-panel"
             tabIndex={index === activeMode ? 0 : -1}
             onKeyDown={event => {
-              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+              const next = nextTab(event.key, index, HERO_MODES.length);
+              if (next === null) return;
               event.preventDefault();
-              const next = event.key === 'Home' ? 0 : event.key === 'End' ? HERO_MODES.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + HERO_MODES.length) % HERO_MODES.length;
               pick(next);
               document.getElementById(`hero-space-${next}`)?.focus();
             }}

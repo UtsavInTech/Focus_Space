@@ -8,6 +8,7 @@ import { formatAmount, looksIndian } from '../currency';
 import * as api from '../api';
 import { ANNUAL_DISCOUNT_LABEL, CREDIT_COSTS, FREE_DAILY_AI_CREDITS, FREE_SPACE_LIMIT, PLAN_RANK, PLANS, annualSavingPercent, perMonth } from '../content/plans';
 import type { CurrencyCode, Plan, RecurringPeriod } from '../content/plans';
+import { INSTITUTE_LINK, INSTITUTE_PILOT_STRIP } from '../content/institutes';
 
 interface Props {
   currency: CurrencyCode;
@@ -173,6 +174,8 @@ export function PricingSection({ currency, onCurrency, compact, showCredits }: P
           />
         ))}
       </div>
+
+      <a className="fsw-institute-pilot-strip" href={INSTITUTE_LINK.to} onClick={onLinkClick(INSTITUTE_LINK.to)}>{INSTITUTE_PILOT_STRIP}<span aria-hidden="true">↗</span></a>
 
       <p className="fsw-pricing-note">
         Not ready to pay? A free account keeps {FREE_SPACE_LIMIT} Spaces with {FREE_DAILY_AI_CREDITS} AI credits a day. Moving up later, you only pay the difference.

@@ -5,10 +5,16 @@
  */
 
 import { FREE_DAILY_AI_CREDITS, FREE_SPACE_LIMIT, GUEST_DAILY_AI_CREDITS, GUEST_SPACE_LIMIT } from './plans';
+import { EXAMS } from '@/modes/exams';
+import { INSTITUTE_LINK, INSTITUTES } from './institutes';
+
+// exams.ts imports only plain B.Tech data and text helpers (runtime); its domain/icon imports are types.
+const GOALS = EXAMS.map(exam => exam.label).join(', ');
 
 export interface FaqItem {
   q: string;
   a: string;
+  link?: { label: string; to: string };
 }
 
 export const FAQ: FaqItem[] = [
@@ -18,11 +24,11 @@ export const FAQ: FaqItem[] = [
   },
   {
     q: 'Is FocusSpace free?',
-    a: 'Yes, and the part that makes YouTube usable is free forever: modes, the ranked feed, the learning path, the knowledge map and Shorts removal all run on your own machine and cost us nothing to give away. What a paid plan buys is AI, notes, mind maps, explanations and quizzes, because every one of those is a real request we pay for, plus more Spaces. The cheapest way in is Basic: ₹99 once, yours for life.',
+    a: `You can start free. A free account keeps ${FREE_SPACE_LIMIT} Spaces. Ranking, learning paths, the knowledge map and Shorts removal run locally. Hosted AI follows your plan’s allowance; paid plans offer more Spaces and larger allowances. On supported computers, on-device AI uses no hosted credits.`,
   },
   {
     q: 'Do I need an account?',
-    a: `No. FocusSpace works fully signed out, with ${GUEST_SPACE_LIMIT} Spaces and ${GUEST_DAILY_AI_CREDITS} AI credits a day. A free account raises that to ${FREE_SPACE_LIMIT} Spaces and ${FREE_DAILY_AI_CREDITS} AI credits a day. Basic is ₹99 once, for life. Your Spaces, notes and history stay in the browser you use, an account carries your plan and allowance, not your data.`,
+    a: `No. You can start signed out, with ${GUEST_SPACE_LIMIT} Spaces and ${GUEST_DAILY_AI_CREDITS} AI credits a day. A free account supports ${FREE_SPACE_LIMIT} Spaces and ${FREE_DAILY_AI_CREDITS} AI credits a day, and lets you save to the Library. Your Spaces, notes and history stay in the browser you use; an account carries your plan and allowance, not your data.`,
   },
   {
     q: 'Do I need my own OpenAI API key?',
@@ -30,11 +36,12 @@ export const FAQ: FaqItem[] = [
   },
   {
     q: 'What happens when I move to a bigger plan?',
-    a: 'You only pay the difference. Whatever is left of your current plan is taken off the new one, and the new plan starts that day. If you bought Basic, your first paid month of Plus, Pro or Max is ₹100 off, and Basic stays yours when it ends.',
+    a: 'Eligible upgrades credit the unused part of your current plan against the new one. If you own Basic, the eligible Plus upgrade includes a credit and Basic stays yours when the subscription ends. The checkout quote shows your actual charge before you pay.',
   },
   {
     q: 'What is a credit?',
-    a: 'One AI request, weighted by how much work it is. Asking about a moment or a chat turn costs 1 credit; “Explain this” costs 2; a set of notes or a mind map costs 3. Quiz me is counted separately, in questions, because every question is checked by a second model before you see it. Nothing on the page costs a credit until you click something, watching a video never does.',
+    a: 'An allowance for hosted AI, weighted by how much work the request needs. The pricing page lists the current credit cost for each action. Quiz me is counted separately, in questions; hosted questions are checked by another model. Watching a video never costs a credit.',
+    link: { label: 'See credit costs', to: '/pricing' },
   },
   {
     q: 'Does it work on videos without captions?',
@@ -55,5 +62,14 @@ export const FAQ: FaqItem[] = [
   {
     q: 'How do I cancel?',
     a: 'From your account page, in one click, at any time. You keep the paid plan until the end of the period you already paid for, and then drop to Free. Your modes, notes and mind maps all stay where they are.',
+  },
+  {
+    q: 'Which exams does FocusSpace support?',
+    a: `Goal-based setup includes ${GOALS}. Some goals ask about your exact exam, optional subject, state, branch or year before creating subjects and topics. These are learning maps, not official syllabi. Check the current notification for your exam. Exam bodies do not endorse FocusSpace or any channels shown. You can also create a personal Space for another subject, language or music.`,
+  },
+  {
+    q: 'Can my coaching institute use FocusSpace?',
+    a: INSTITUTES.faq,
+    link: { label: 'Talk to us about the pilot', to: INSTITUTE_LINK.to },
   },
 ];

@@ -1,6 +1,7 @@
 import { onLinkClick } from '../router';
 import { Logo, Wordmark } from './Logo';
 import { Sparkle } from './Sparkle';
+import { INSTITUTE_LINK } from '../content/institutes';
 
 export function Footer() {
   return (
@@ -19,14 +20,15 @@ export function Footer() {
         </div>
 
         <nav aria-label="Product">
-          <h4>Product</h4>
+          <h2>Product</h2>
           <a href="/#features" onClick={onLinkClick('/#features')}>Features</a>
           <a href="/pricing" onClick={onLinkClick('/pricing')}>Pricing</a>
+          <a href={INSTITUTE_LINK.to} onClick={onLinkClick(INSTITUTE_LINK.to)}>{INSTITUTE_LINK.label}</a>
           <a href="/#faq" onClick={onLinkClick('/#faq')}>FAQ</a>
         </nav>
 
         <nav aria-label="Legal">
-          <h4>Legal</h4>
+          <h2>Legal</h2>
           <a href="/data" onClick={onLinkClick('/data')}>Your data</a>
           <a href="/privacy" onClick={onLinkClick('/privacy')}>Privacy</a>
           <a href="/terms" onClick={onLinkClick('/terms')}>Terms</a>

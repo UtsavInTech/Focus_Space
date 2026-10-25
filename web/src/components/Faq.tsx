@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FAQ } from '../content/faq';
+import { onLinkClick } from '../router';
 
 /**
  * One open item at a time. Real <button>s inside headings rather than
@@ -32,7 +33,7 @@ export function Faq() {
                 </button>
               </h3>
               <div className="fsw-faq-answer" aria-hidden={!isOpen}>
-                <div><p>{item.a}</p></div>
+                <div><p>{item.a}{item.link && <> <a href={item.link.to} onClick={onLinkClick(item.link.to)} tabIndex={isOpen ? 0 : -1}>{item.link.label} →</a></>}</p></div>
               </div>
             </div>
           );
