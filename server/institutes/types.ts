@@ -2,7 +2,11 @@ export type OrgRole = 'owner' | 'admin' | 'faculty';
 export type Purpose = 'progress' | 'contact';
 export type Milestone = 'started' | 'half' | 'done';
 
-export const CONSENT_VERSION = 'institute-consent-v1';
+/**
+ * v2 (26 Oct 2026): joining shares the student's name and verified number with the institute; progress
+ * sharing stays a choice; "contact me" asks the institute to call and puts the student first.
+ */
+export const CONSENT_VERSION = 'institute-consent-v2';
 
 /** Milestones only ever move forward; the rank is what "forward" means. */
 export const STAGE_RANK: Record<Milestone, number> = { started: 1, half: 2, done: 3 };
@@ -69,6 +73,8 @@ export interface PageFilter {
   courseId?: string;
   minCompletion?: number;
   minQuizScore?: number;
+  /** Only students who asked to be contacted. */
+  priority?: boolean;
   after?: string;
   limit: number;
 }

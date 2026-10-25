@@ -1,7 +1,7 @@
 import postgres from 'postgres';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { ApiError } from '../http';
-import { STAGE_RANK, type Actor, type CoursePayload, type Item, type Milestone, type OrgRole, type PageFilter, type ProgressEvent, type QuizQuestion, type Sharing } from './types';
+import { CONSENT_VERSION, STAGE_RANK, type Actor, type CoursePayload, type Item, type Milestone, type OrgRole, type PageFilter, type ProgressEvent, type QuizQuestion, type Sharing } from './types';
 import { payload as validatePayload } from './validate';
 
 type Row = Record<string, unknown>;
@@ -121,6 +121,17 @@ INSERT INTO institutes.migrations(version,applied_at) VALUES(1,0) ON CONFLICT DO
 `;
 
 /** Later migrations (2 and 3). Each `CREATE … IF NOT EXISTS` is safe to replay on every start. */
+/**
+ * Version 4 (26 Oct 2026, owner's decision): joining needs a verified phone and the institute receives
+ * every member's number, under the terms version recorded on the enrolment. "Contact me" becomes a
+ * priority request the institute sees in its inbox. Quiz me scores get a time, for the student report.
+ */
+const MIGRATION_4 = `ALTER TABLE institutes.quizme_scores ADD COLUMN IF NOT EXISTS at bigint NOT NULL DEFAULT 0;
+      ALTER TABLE institutes.enrollments ADD COLUMN IF NOT EXISTS terms_version text;
+      CREATE TABLE IF NOT EXISTS institutes.contact_requests(id text PRIMARY KEY,org_id text NOT NULL REFERENCES institutes.orgs(id),user_id text NOT NULL REFERENCES institutes.students(user_id),course_id text,source text NOT NULL CHECK(source IN ('join','sharing','button')),note text,created_at bigint NOT NULL,handled_at bigint,handled_by text);
+      CREATE INDEX IF NOT EXISTS contact_requests_org ON institutes.contact_requests(org_id,handled_at,created_at);
+      INSERT INTO institutes.migrations(version,applied_at) VALUES(4,0) ON CONFLICT DO NOTHING;`;
+
 const MIGRATIONS_2_AND_3 = `CREATE TABLE IF NOT EXISTS institutes.import_cache(org_id text NOT NULL,course_id text NOT NULL,claimed_at bigint NOT NULL,payload_json jsonb,PRIMARY KEY(org_id,course_id),FOREIGN KEY(org_id,course_id) REFERENCES institutes.courses(org_id,id));
       CREATE TABLE IF NOT EXISTS institutes.channel_approvals(org_id text NOT NULL,course_id text NOT NULL,channel_id text NOT NULL,approved_by text,created_at bigint NOT NULL,PRIMARY KEY(org_id,course_id,channel_id),FOREIGN KEY(org_id,course_id) REFERENCES institutes.courses(org_id,id));
       INSERT INTO institutes.migrations(version,applied_at) VALUES(2,0) ON CONFLICT DO NOTHING;
@@ -195,6 +206,7 @@ export class InstitutesDb {
         await tx.query('UPDATE institutes.migrations SET applied_at=$1 WHERE version=1', [Date.now()]);
       }
       await tx.exec(MIGRATIONS_2_AND_3);
+      await tx.exec(MIGRATION_4);
     });
   }
 
@@ -518,13 +530,16 @@ export class InstitutesDb {
   }
 
   /** Withdrawing progress sharing deletes the identified rows it covered — progress, quiz attempts and Quiz me scores. */
-  private async setSharing(tx: Driver, orgId: string, userId: string, sharing: Sharing) {
+  /** Records both choices. Returns true when "contact me" was newly switched on, so a request can be raised. */
+  private async setSharing(tx: Driver, orgId: string, userId: string, sharing: Sharing): Promise<boolean> {
+    let contactAdded = false;
     for (const purpose of ['progress', 'contact'] as const) {
       if (sharing[purpose]) {
-        await tx.query(
-          'INSERT INTO institutes.consents(id,org_id,user_id,text_version,purpose,given_at) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(org_id,user_id,purpose) WHERE withdrawn_at IS NULL DO NOTHING',
+        const added = await tx.query(
+          'INSERT INTO institutes.consents(id,org_id,user_id,text_version,purpose,given_at) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(org_id,user_id,purpose) WHERE withdrawn_at IS NULL DO NOTHING RETURNING id',
           [randomUUID(), orgId, userId, sharing.textVersion, purpose, Date.now()],
         );
+        if (purpose === 'contact' && added.length) contactAdded = true;
         continue;
       }
       await tx.query('UPDATE institutes.consents SET withdrawn_at=$4 WHERE org_id=$1 AND user_id=$2 AND purpose=$3 AND withdrawn_at IS NULL', [orgId, userId, purpose, Date.now()]);
@@ -533,7 +548,26 @@ export class InstitutesDb {
         await tx.query('DELETE FROM institutes.quiz_attempts WHERE org_id=$1 AND user_id=$2', [orgId, userId]);
         await tx.query('DELETE FROM institutes.quizme_scores WHERE org_id=$1 AND user_id=$2', [orgId, userId]);
       }
+      if (purpose === 'contact') {
+        // Taking back "contact me" closes any open request, so nobody is called on an old yes.
+        await tx.query('UPDATE institutes.contact_requests SET handled_at=$3,handled_by=$4 WHERE org_id=$1 AND user_id=$2 AND handled_at IS NULL', [orgId, userId, Date.now(), 'withdrawn']);
+      }
     }
+    return contactAdded;
+  }
+
+  /** A priority request in the institute's inbox: from joining, from switching "contact me" on, or the student's button. */
+  private async raiseRequest(tx: Driver, orgId: string, userId: string, courseId: string | null, source: 'join' | 'sharing' | 'button', note: string | null) {
+    const [open] = await tx.query('SELECT id FROM institutes.contact_requests WHERE org_id=$1 AND user_id=$2 AND handled_at IS NULL LIMIT 1', [orgId, userId]);
+    if (open) {
+      // One open request per student: a second press updates it instead of filling the inbox.
+      if (note) await tx.query('UPDATE institutes.contact_requests SET note=$2,created_at=$3 WHERE id=$1', [open.id, note, Date.now()]);
+      return;
+    }
+    await tx.query(
+      'INSERT INTO institutes.contact_requests(id,org_id,user_id,course_id,source,note,created_at) VALUES($1,$2,$3,$4,$5,$6,$7)',
+      [randomUUID(), orgId, userId, courseId, source, note, Date.now()],
+    );
   }
 
   /** A join code takes a seat in that batch (under a row lock, so two joins can't take the last one); without one, only free courses. */
@@ -553,7 +587,8 @@ export class InstitutesDb {
   async enroll(orgId: string, courseId: string, actor: Actor, input: { phone: string; consents: Sharing; joinCode?: string }) {
     return this.tx(async (tx) => {
       const student = await this.student(tx, actor, input.phone, actor.phone === input.phone);
-      if (input.consents.contact && !student.phone_verified_at) return conflict('Verify this phone by OTP before sharing contact details.');
+      // Owner's decision (26 Oct 2026): the institute receives every member's number, so it must be proven.
+      if (!student.phone_verified_at) return conflict('Verify your phone number to join. Your institute receives it when you join.');
       const [course] = await tx.query(
         "SELECT c.kind FROM institutes.courses c JOIN institutes.orgs o ON o.id=c.org_id WHERE c.org_id=$1 AND c.id=$2 AND c.status='published' AND o.status<>'paused'",
         [orgId, courseId],
@@ -565,10 +600,10 @@ export class InstitutesDb {
       else if (course.kind !== 'free') return denied();
 
       const [enrollment] = await tx.query(
-        "INSERT INTO institutes.enrollments(id,org_id,user_id,course_id,batch_id,joined_at) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(org_id,user_id,course_id,(COALESCE(batch_id,''))) DO UPDATE SET left_at=NULL RETURNING *",
-        [randomUUID(), orgId, actor.id, courseId, batchId, Date.now()],
+        "INSERT INTO institutes.enrollments(id,org_id,user_id,course_id,batch_id,joined_at,terms_version) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(org_id,user_id,course_id,(COALESCE(batch_id,''))) DO UPDATE SET left_at=NULL,terms_version=EXCLUDED.terms_version RETURNING *",
+        [randomUUID(), orgId, actor.id, courseId, batchId, Date.now(), input.consents.textVersion],
       );
-      await this.setSharing(tx, orgId, actor.id, input.consents);
+      if (await this.setSharing(tx, orgId, actor.id, input.consents)) await this.raiseRequest(tx, orgId, actor.id, courseId, 'join', null);
       return { id: enrollment.id, orgId, courseId, batchId };
     });
   }
@@ -593,8 +628,8 @@ export class InstitutesDb {
       if (!student) return denied();
       const [enrolled] = await tx.query('SELECT id FROM institutes.enrollments WHERE org_id=$1 AND user_id=$2 AND left_at IS NULL LIMIT 1', [orgId, userId]);
       if (!enrolled) return denied();
-      if (sharing.contact && !student.phone_verified_at) return conflict('Verify your phone before sharing contact details.');
-      await this.setSharing(tx, orgId, userId, sharing);
+      if (sharing.contact && !student.phone_verified_at) return conflict('Verify your phone before asking to be contacted.');
+      if (await this.setSharing(tx, orgId, userId, sharing)) await this.raiseRequest(tx, orgId, userId, null, 'sharing', null);
     });
   }
 
@@ -694,8 +729,8 @@ export class InstitutesDb {
       if (!(await this.consent(tx, orgId, userId, 'progress'))) return { stored: false };
       await this.requireCourseVideo(tx, orgId, courseId, videoId, access.member);
       await tx.query(
-        'INSERT INTO institutes.quizme_scores(org_id,course_id,user_id,video_id,score,total) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(org_id,course_id,user_id,video_id) DO UPDATE SET score=EXCLUDED.score,total=EXCLUDED.total',
-        [orgId, courseId, userId, videoId, score, total],
+        'INSERT INTO institutes.quizme_scores(org_id,course_id,user_id,video_id,score,total,at) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(org_id,course_id,user_id,video_id) DO UPDATE SET score=EXCLUDED.score,total=EXCLUDED.total,at=EXCLUDED.at',
+        [orgId, courseId, userId, videoId, score, total, Date.now()],
       );
       return { stored: true };
     });
@@ -804,31 +839,118 @@ export class InstitutesDb {
     return { ...totals, videos: videos.map(withDropOff), note: FUNNEL_NOTE };
   }
 
-  async students(orgId: string, filter: PageFilter, leads = false) {
-    // Names/metrics require progress consent. Contact-only leads can expose name/phone, never scores.
-    const rows = await this.driver.query(`WITH candidate AS (
-      SELECT DISTINCT s.user_id,s.name,CASE WHEN $2::boolean THEN s.phone ELSE NULL END AS phone,
-        EXISTS(SELECT 1 FROM institutes.consents c WHERE c.org_id=$1 AND c.user_id=s.user_id AND c.purpose='progress' AND c.withdrawn_at IS NULL) AS sharing_progress
+  /**
+   * Everyone enrolled with this institute. Name and verified number for every member (they agreed to that
+   * when joining); progress, quiz, watch time and activity only for students who share progress.
+   */
+  async students(orgId: string, filter: PageFilter) {
+    const rows = await this.driver.query(`WITH members AS (
+      SELECT s.user_id,s.name,s.phone,MIN(e.joined_at)::bigint AS joined_at,COUNT(*)::int AS courses
       FROM institutes.students s JOIN institutes.enrollments e ON e.user_id=s.user_id
-      WHERE e.org_id=$1 AND e.left_at IS NULL AND ($3::text IS NULL OR e.course_id=$3) AND ($4::text IS NULL OR s.user_id>$4)
-      AND EXISTS(SELECT 1 FROM institutes.consents c WHERE c.org_id=$1 AND c.user_id=s.user_id AND c.purpose=CASE WHEN $2::boolean THEN 'contact' ELSE 'progress' END AND c.withdrawn_at IS NULL)
-      AND (NOT $2::boolean OR s.phone_verified_at IS NOT NULL)
+      WHERE e.org_id=$1 AND e.left_at IS NULL AND ($2::text IS NULL OR e.course_id=$2) AND ($3::text IS NULL OR s.user_id>$3)
+      GROUP BY s.user_id,s.name,s.phone
+    ), flagged AS (
+      SELECT m.*,
+        EXISTS(SELECT 1 FROM institutes.consents c WHERE c.org_id=$1 AND c.user_id=m.user_id AND c.purpose='progress' AND c.withdrawn_at IS NULL) AS sharing_progress,
+        EXISTS(SELECT 1 FROM institutes.consents c WHERE c.org_id=$1 AND c.user_id=m.user_id AND c.purpose='contact' AND c.withdrawn_at IS NULL) AS wants_contact,
+        EXISTS(SELECT 1 FROM institutes.contact_requests r WHERE r.org_id=$1 AND r.user_id=m.user_id AND r.handled_at IS NULL) AS open_request
+      FROM members m
     ), measured AS (
-      SELECT c.*,CASE WHEN sharing_progress THEN (SELECT COUNT(*)::int FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=c.user_id AND p.stage='done' AND ($3::text IS NULL OR p.course_id=$3)) ELSE NULL END AS completed_videos,
-      CASE WHEN sharing_progress THEN (SELECT ROUND(AVG(s.score*100.0/s.total))::int FROM (SELECT a.score,a.total FROM institutes.quiz_attempts a JOIN institutes.quizzes q ON (q.org_id,q.id)=(a.org_id,a.quiz_id) WHERE a.org_id=$1 AND a.user_id=c.user_id AND ($3::text IS NULL OR q.course_id=$3) UNION ALL SELECT z.score,z.total FROM institutes.quizme_scores z WHERE z.org_id=$1 AND z.user_id=c.user_id AND ($3::text IS NULL OR z.course_id=$3)) s) ELSE NULL END AS quiz_score
-      FROM candidate c
-    ), completed AS (SELECT m.*,CASE WHEN sharing_progress THEN LEAST(100,COALESCE(ROUND(completed_videos*100.0/NULLIF((SELECT SUM(c.video_count) FROM institutes.courses c WHERE c.org_id=$1 AND ($3::text IS NULL OR c.id=$3) AND EXISTS(SELECT 1 FROM institutes.enrollments e WHERE e.org_id=$1 AND e.course_id=c.id AND e.user_id=m.user_id AND e.left_at IS NULL)),0)),0))::int ELSE NULL END AS completion_percent FROM measured m)
-    SELECT * FROM completed WHERE ($5::int IS NULL OR completion_percent>=$5) AND ($6::int IS NULL OR quiz_score>=$6) ORDER BY user_id LIMIT $7`, [orgId, leads, filter.courseId ?? null, filter.after ?? null, filter.minCompletion ?? null, filter.minQuizScore ?? null, filter.limit + 1]);
+      SELECT f.*,
+        CASE WHEN sharing_progress THEN (SELECT COUNT(*)::int FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=f.user_id AND p.stage='done' AND ($2::text IS NULL OR p.course_id=$2)) END AS completed_videos,
+        CASE WHEN sharing_progress THEN (SELECT COALESCE(SUM(p.seconds),0)::int FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=f.user_id AND ($2::text IS NULL OR p.course_id=$2)) END AS watch_seconds,
+        CASE WHEN sharing_progress THEN (SELECT MAX(p.updated_at)::bigint FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=f.user_id AND ($2::text IS NULL OR p.course_id=$2)) END AS last_active,
+        CASE WHEN sharing_progress THEN (SELECT COUNT(DISTINCT p.updated_at/86400000)::int FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=f.user_id AND ($2::text IS NULL OR p.course_id=$2)) END AS active_days,
+        CASE WHEN sharing_progress THEN (SELECT ROUND(AVG(s.score*100.0/s.total))::int FROM (SELECT a.score,a.total FROM institutes.quiz_attempts a JOIN institutes.quizzes q ON (q.org_id,q.id)=(a.org_id,a.quiz_id) WHERE a.org_id=$1 AND a.user_id=f.user_id AND ($2::text IS NULL OR q.course_id=$2) UNION ALL SELECT z.score,z.total FROM institutes.quizme_scores z WHERE z.org_id=$1 AND z.user_id=f.user_id AND ($2::text IS NULL OR z.course_id=$2)) s) END AS quiz_score
+      FROM flagged f
+    ), completed AS (
+      SELECT m.*,CASE WHEN sharing_progress THEN LEAST(100,COALESCE(ROUND(completed_videos*100.0/NULLIF((SELECT SUM(c.video_count) FROM institutes.courses c WHERE c.org_id=$1 AND ($2::text IS NULL OR c.id=$2) AND EXISTS(SELECT 1 FROM institutes.enrollments e WHERE e.org_id=$1 AND e.course_id=c.id AND e.user_id=m.user_id AND e.left_at IS NULL)),0)),0))::int END AS completion_percent
+      FROM measured m
+    )
+    SELECT * FROM completed WHERE ($4::int IS NULL OR completion_percent>=$4) AND ($5::int IS NULL OR quiz_score>=$5) AND (NOT $6::boolean OR wants_contact) ORDER BY user_id LIMIT $7`,
+      [orgId, filter.courseId ?? null, filter.after ?? null, filter.minCompletion ?? null, filter.minQuizScore ?? null, !!filter.priority, filter.limit + 1]);
     // One extra row is fetched only to know whether there is a next page.
     const items = rows.slice(0, filter.limit);
     return { items, next: rows.length > filter.limit ? String(items.at(-1)!.user_id) : null };
+  }
+
+  /**
+   * One student's report for the institute: who they are and what they asked for, and, only while they
+   * share progress, every lecture's stage and watch time and every quiz score with its time. Logged.
+   */
+  async studentReport(orgId: string, userId: string, actor: string) {
+    return this.tx(async (tx) => {
+      const courses = await tx.query(
+        'SELECT e.course_id,c.title,e.batch_id,e.joined_at::bigint AS joined_at FROM institutes.enrollments e JOIN institutes.courses c ON (c.org_id,c.id)=(e.org_id,e.course_id) WHERE e.org_id=$1 AND e.user_id=$2 AND e.left_at IS NULL ORDER BY e.joined_at',
+        [orgId, userId],
+      );
+      if (!courses.length) return missing();
+      const [student] = await tx.query('SELECT user_id,name,phone FROM institutes.students WHERE user_id=$1', [userId]);
+      const sharing = await this.consent(tx, orgId, userId, 'progress');
+      const wantsContact = await this.consent(tx, orgId, userId, 'contact');
+      const requests = await tx.query('SELECT id,course_id,source,note,created_at::bigint AS created_at,handled_at::bigint AS handled_at FROM institutes.contact_requests WHERE org_id=$1 AND user_id=$2 ORDER BY created_at DESC LIMIT 20', [orgId, userId]);
+      let lectures: Row[] = [];
+      let quizzes: Row[] = [];
+      if (sharing) {
+        lectures = await tx.query('SELECT course_id,video_id,stage,seconds,updated_at::bigint AS updated_at FROM institutes.progress WHERE org_id=$1 AND user_id=$2 ORDER BY updated_at', [orgId, userId]);
+        quizzes = await tx.query(
+          `SELECT q.course_id,q.video_id,a.score,a.total,a.attempted_at::bigint AS at,'institute' AS kind FROM institutes.quiz_attempts a JOIN institutes.quizzes q ON (q.org_id,q.id)=(a.org_id,a.quiz_id) WHERE a.org_id=$1 AND a.user_id=$2
+           UNION ALL SELECT z.course_id,z.video_id,z.score,z.total,z.at::bigint AS at,'quizme' AS kind FROM institutes.quizme_scores z WHERE z.org_id=$1 AND z.user_id=$2 ORDER BY at`,
+          [orgId, userId],
+        );
+      }
+      await this.audit(tx, orgId, actor, 'student.view', userId);
+      return { student: { ...student, sharing_progress: sharing, wants_contact: wantsContact }, courses, requests, lectures, quizzes };
+    });
+  }
+
+  /** Lecture plays and completions per day for the last eight weeks, from the anonymous daily totals. */
+  async activity(orgId: string, courseId?: string) {
+    const since = new Date(Date.now() - 56 * 86400000).toISOString().slice(0, 10);
+    return this.driver.query(
+      'SELECT course_id,day::text AS day,SUM(started)::int AS started,SUM(done)::int AS done FROM institutes.course_stats WHERE org_id=$1 AND ($2::text IS NULL OR course_id=$2) AND day>=$3::date GROUP BY course_id,day ORDER BY day',
+      [orgId, courseId ?? null, since],
+    );
+  }
+
+  /** The institute's inbox: open "contact me" requests first, then the most recently handled. */
+  async requests(orgId: string) {
+    return this.driver.query(
+      `SELECT r.id,r.user_id,s.name,s.phone,r.course_id,c.title AS course_title,r.source,r.note,r.created_at::bigint AS created_at,r.handled_at::bigint AS handled_at,r.handled_by
+       FROM institutes.contact_requests r JOIN institutes.students s ON s.user_id=r.user_id LEFT JOIN institutes.courses c ON (c.org_id,c.id)=(r.org_id,r.course_id)
+       WHERE r.org_id=$1 ORDER BY (r.handled_at IS NOT NULL), COALESCE(r.handled_at,r.created_at) DESC LIMIT 300`,
+      [orgId],
+    );
+  }
+
+  async handleRequest(orgId: string, requestId: string, actor: string) {
+    return this.tx(async (tx) => {
+      const done = await tx.query('UPDATE institutes.contact_requests SET handled_at=$3,handled_by=$4 WHERE org_id=$1 AND id=$2 AND handled_at IS NULL RETURNING id', [orgId, requestId, Date.now(), actor]);
+      if (!done.length) return missing();
+      await this.audit(tx, orgId, actor, 'request.handled', requestId);
+    });
+  }
+
+  /** The student's "Talk to your faculty" button: switches "contact me" on and puts a request in the inbox. */
+  async requestContact(orgId: string, courseId: string, userId: string, note: string | null) {
+    return this.tx(async (tx) => {
+      await this.lockStudent(tx, userId);
+      const access = await this.active(tx, orgId, courseId, userId);
+      if (!access.enrolled) return denied();
+      await tx.query(
+        'INSERT INTO institutes.consents(id,org_id,user_id,text_version,purpose,given_at) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(org_id,user_id,purpose) WHERE withdrawn_at IS NULL DO NOTHING',
+        [randomUUID(), orgId, userId, CONSENT_VERSION, 'contact', Date.now()],
+      );
+      await this.raiseRequest(tx, orgId, userId, courseId, 'button', note);
+      return { requested: true };
+    });
   }
 
   async leads(orgId: string, actor: string, filter: PageFilter) {
     // Export and audit share one transaction; fail closed if audit cannot be recorded.
     return this.tx(async (tx) => {
       // The SELECT statement snapshot is the export's linearisation point; already-committed withdrawals are excluded.
-      const result = await new InstitutesDb(tx, this.receiptSecret).students(orgId, filter, true);
+      const result = await new InstitutesDb(tx, this.receiptSecret).students(orgId, filter);
       await this.audit(tx, orgId, actor, 'leads.export', JSON.stringify({ ...filter, rows: result.items.length }));
       return result;
     });

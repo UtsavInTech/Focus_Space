@@ -61,13 +61,28 @@ describe('institute HTTP authorization and contracts',()=>{
     expect(JSON.stringify(await result.json())).not.toContain('answer');
     const cached=await fetch(`${base}/v1/courses/${courseId}/v/1`,{headers:{'If-None-Match':result.headers.get('etag')!}});expect(cached.status).toBe(304);
   });
-  it('enrols without sharing or OTP and rejects fabricated consent/identity input',async()=>{
-    const body={courseId,phone:'+919123456789',consents:{textVersion:CONSENT_VERSION,progress:false,contact:false}};
-    expect((await request('/v1/enroll',studentToken,{...body,consents:{...body.consents,progress:'true'}})).status).toBe(400);
-    expect((await request('/v1/enroll',studentToken,{...body,phone:'+12025550123'})).status).toBe(400);
-    expect((await request('/v1/enroll',studentToken,body)).status).toBe(201);
-    const mine=await (await request('/v1/me/institutes',studentToken)).json();expect(mine.courses[0].courseId).toBe(courseId);
-    expect((await request('/v1/consents',studentToken,{orgId,consents:{...body.consents,contact:true}})).status).toBe(409);
+  it('joins only with a verified phone, rejects fabricated input, and lets the student ask to be called', async () => {
+    const body = { courseId, phone: '+919123456789', consents: { textVersion: CONSENT_VERSION, progress: false, contact: false } };
+    expect((await request('/v1/enroll', studentToken, { ...body, consents: { ...body.consents, progress: 'true' } })).status).toBe(400);
+    expect((await request('/v1/enroll', studentToken, { ...body, phone: '+12025550123' })).status).toBe(400);
+    expect((await request('/v1/enroll', studentToken, { ...body, consents: { ...body.consents, textVersion: 'institute-consent-v1' } })).status).toBe(400);
+    // No verified phone yet: the join explains that the institute receives the number.
+    expect((await request('/v1/enroll', studentToken, body)).status).toBe(409);
+    expect((await request('/v1/institutes/phone/verify', studentToken, { phone: body.phone, code: '123456' })).status).toBe(200);
+    expect((await request('/v1/enroll', studentToken, body)).status).toBe(201);
+    const mine = await (await request('/v1/me/institutes', studentToken)).json();
+    expect(mine.courses[0].courseId).toBe(courseId);
+    expect((await request('/v1/institutes/contact', studentToken, { orgId, courseId, note: 'Please call after 6 pm' })).status).toBe(200);
+    const inbox = await (await request(`/v1/studio/${orgId}/requests`, facultyToken)).json();
+    expect(inbox.requests[0]).toMatchObject({ note: 'Please call after 6 pm', phone: body.phone, source: 'button' });
+    expect((await request(`/v1/studio/${otherOrg}/requests`, facultyToken)).status).toBe(403);
+    expect((await request(`/v1/studio/${orgId}/requests/${inbox.requests[0].id}/handled`, facultyToken, {})).status).toBe(200);
+    const roster = await (await request(`/v1/studio/${orgId}/students`, facultyToken)).json();
+    const studentId = roster.items[0].user_id;
+    expect(roster.items[0]).toMatchObject({ phone: body.phone, wants_contact: true, completed_videos: null });
+    expect((await request(`/v1/studio/${orgId}/students/${studentId}`, facultyToken)).status).toBe(200);
+    expect((await request(`/v1/studio/${otherOrg}/students/${studentId}`, facultyToken)).status).toBe(403);
+    expect((await (await request(`/v1/studio/${orgId}/activity?courseId=${courseId}`, facultyToken)).json()).days).toEqual([]);
   });
   it('rate limits join-code guessing by caller, not by guessed code',async()=>{
     const statuses=[];for(let i=0;i<22;i++) statuses.push((await request(`/v1/join/guess-code-${i}`)).status);

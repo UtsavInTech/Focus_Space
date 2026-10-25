@@ -181,6 +181,7 @@ export function page(query: URLSearchParams): PageFilter {
     after: query.has('after') ? id(query.get('after')) : undefined,
     minCompletion: number('minCompletion', 100),
     minQuizScore: number('minQuizScore', 100),
+    priority: query.get('priority') === '1',
     limit,
   };
 }

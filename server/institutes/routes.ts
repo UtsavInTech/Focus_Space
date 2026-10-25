@@ -23,7 +23,7 @@ export interface InstituteDependencies {
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
 /** The largest epoch-ms value a JavaScript Date accepts. */
 const MAX_EPOCH_MS = 8640000000000000;
-const CSV_COLUMNS = ['user_id', 'name', 'phone', 'completed_videos', 'completion_percent', 'quiz_score'];
+const CSV_COLUMNS = ['name', 'phone', 'wants_contact', 'courses', 'completion_percent', 'completed_videos', 'quiz_score', 'watch_seconds', 'last_active'];
 
 /** Staff by account id, or by email only when that email is verified — an unverified address proves nothing. */
 export function staffAllowed(actor: Actor, allowList: string): boolean {
@@ -43,7 +43,13 @@ function csvCell(value: unknown): string {
 }
 
 export function csv(items: Record<string, unknown>[]): string {
-  const rows = items.map((row) => CSV_COLUMNS.map((column) => csvCell(row[column])).join(','));
+  // Times as readable dates for a spreadsheet, and the priority flag as a plain word.
+  const value = (row: Record<string, unknown>, column: string) => {
+    if (column === 'last_active') return row.last_active ? new Date(Number(row.last_active)).toISOString().slice(0, 10) : '';
+    if (column === 'wants_contact') return row.wants_contact ? 'yes' : 'no';
+    return row[column];
+  };
+  const rows = items.map((row) => CSV_COLUMNS.map((column) => csvCell(value(row, column))).join(','));
   return [CSV_COLUMNS.join(','), ...rows].join('\r\n');
 }
 
@@ -202,13 +208,19 @@ async function studentInstituteRoutes({ method, parts, actor, db, deps, body, re
     await db.leave(v.id(input.orgId), v.id(parts[2]), actor!.id);
     return respond({});
   }
+  if (parts[1] === 'institutes' && parts[2] === 'contact' && parts.length === 3 && method === 'POST') {
+    // "Talk to your faculty": the student asks to be called; the institute sees it first in its inbox.
+    const input = v.object(await body());
+    const note = input.note === undefined || input.note === '' ? null : v.text(input.note, 'message', 500);
+    return respond(await db.requestContact(v.id(input.orgId), v.id(input.courseId), actor!.id, note));
+  }
   if (parts[1] === 'institutes' && parts[2] === 'quizzes' && parts.length === 5 && method === 'GET') {
     return respond(await db.quiz(v.id(parts[3]), v.id(parts[4]), actor!.id));
   }
   return false;
 }
 
-/* ─── Studio: an institute's own staff, read-only except channel approval ──── */
+/* ─── Studio: an institute's own staff. Writes: channel approval and marking a request handled ── */
 
 async function studioRoutes({ res, method, url, parts, actor, db, deps, body, respond }: Context): Promise<boolean> {
   if (parts[1] !== 'studio') return false;
@@ -220,12 +232,19 @@ async function studioRoutes({ res, method, url, parts, actor, db, deps, body, re
     await db.suggestChannel(orgId, v.id(input.courseId), actor!.id, v.channel(input.channelId), true);
     return respond({});
   }
+  if (method === 'POST' && parts[3] === 'requests' && parts.length === 6 && parts[5] === 'handled') {
+    await db.handleRequest(orgId, v.id(parts[4]), actor!.id);
+    return respond({});
+  }
+  if (method === 'GET' && parts[3] === 'students' && parts.length === 5) return respond(await db.studentReport(orgId, v.id(parts[4]), actor!.id));
   if (method !== 'GET' || parts.length !== 4) return false;
 
   const filter = v.page(url.searchParams);
   if (parts[3] === 'courses') return respond({ courses: await db.courses(orgId) });
   if (parts[3] === 'channels' && filter.courseId) return respond({ channels: await db.channelSuggestions(orgId, filter.courseId) });
   if (parts[3] === 'funnel') return respond(await db.funnel(orgId, filter.courseId));
+  if (parts[3] === 'activity') return respond({ days: await db.activity(orgId, filter.courseId) });
+  if (parts[3] === 'requests') return respond({ requests: await db.requests(orgId) });
   if (parts[3] === 'outline' && filter.courseId) {
     // The institute's own published course, so the Studio can group lesson stats into subjects and topics.
     const outline = await db.outline(orgId, filter.courseId);

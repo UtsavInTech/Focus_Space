@@ -61,23 +61,37 @@ All bodies are bounded JSON and all private routes require an existing Bearer se
 | POST | `/v1/admin/orgs/:org/courses/:course/quizzes` | Staff-only draft with `videoId,questions` (server keeps answer indices) |
 | POST | `/v1/admin/orgs/:org/quizzes/:quiz/publish` | `{}`; staff approval |
 | GET | `/v1/studio/:org/funnel` | Org staff only: aggregate funnel and video completion/drop-off |
-| GET | `/v1/studio/:org/students` | Org staff only: paged, progress-consenting students |
-| GET | `/v1/studio/:org/leads.csv` | Org staff only: paged, verified, contact-consenting students; audited |
+| GET | `/v1/studio/:org/students` | Org staff only: every enrolled student (name, verified number, flags); progress, quiz, watch time and activity only for progress-sharing students. `priority=1` for "contact me" only |
+| GET | `/v1/studio/:org/students/:user` | Org staff only: one student's report (lectures, quizzes with times, requests); progress parts only with progress sharing; audited |
+| GET | `/v1/studio/:org/activity` | Org staff only: lecture starts and completions per day for eight weeks, from anonymous daily totals |
+| GET | `/v1/studio/:org/outline` | Org staff only: `?courseId=` latest published course, with lesson titles held in memory for a day |
+| GET | `/v1/studio/:org/requests` | Org staff only: "contact me" requests, open first |
+| POST | `/v1/studio/:org/requests/:id/handled` | Org staff only: marks a request done; audited |
+| GET | `/v1/studio/:org/leads.csv` | Org staff only: paged list of enrolled students with name, number and "contact me"; audited |
+| POST | `/v1/institutes/contact` | Student: `{orgId,courseId,note?}` — "Talk to your faculty": turns "contact me" on and raises one open request |
 
-Consent input: `{textVersion:'institute-consent-v1',progress:false,contact:false}`. Both choices must be
-explicit booleans, never inferred/truthy. They are org-wide. Leaving the last course in an org withdraws
-both; leaving one of several courses does not silently revoke permission for the others.
+**Owner's decision, 26 Oct 2026 (consent v2).** Joining any institute course, free or batch, needs a verified
+Indian mobile, and the institute receives the student's name and that number. The join page says so before
+joining, and the notice version is stored on the enrolment (`terms_version`). This is a deliberate business
+choice with known legal risk under India's DPDP Act for free courses; a lawyer should review the join page
+before the first paid contract.
 
-Phone is required only in institute endpoints. Accept an Indian mobile in `+91` E.164 or 10-digit form;
-store normalized E.164, uniquely across all institute students. A phone is fixed once registered in this
-step (there is no phone-change flow yet). OTP is needed only for contact sharing, unless the existing
-signed-in phone identity already proves that same number. The existing SMS provider and code expiry,
-attempt limits and one-time consumption are reused. An OTP for another existing account cannot attach
-that account's phone to this one. No SMS provider means an honest refusal, not a fake verification.
+Consent input: `{textVersion:'institute-consent-v2',progress:false,contact:false}`. Both remaining choices must
+be explicit booleans, never inferred/truthy, and start off. `progress` shares identified progress, quiz scores,
+watch time and study days. `contact` means "Yes, contact me": the student goes first in the institute's list
+and a request lands in its inbox (`contact_requests`); withdrawing it closes open requests. Choices are org-wide.
+Leaving the last course in an org withdraws both; leaving one of several courses does not revoke the others.
+
+Phone: accept an Indian mobile in `+91` E.164 or 10-digit form; store normalized E.164, unique across all
+institute students. A phone is fixed once registered (no phone-change flow yet). It must be proven before
+joining: by the existing SMS code (`/v1/institutes/phone/start|verify`), or by a session that signed in with
+that same phone. The existing SMS provider, code expiry, attempt limits and one-time consumption are reused.
+An OTP for another account cannot attach that account's phone to this one. No SMS provider means an honest
+refusal, not a fake verification (the local demo alone accepts `000000`, and says so on screen).
 
 Student/lead filters: `courseId`, `minCompletion` (percentage), `minQuizScore` (percentage), `limit`
-(1–500), `after` (last returned user id). JSON gives `next`; CSV gives `X-Next-Cursor`. Contact-only
-consent never exposes progress/scores, and therefore cannot match performance filters. CSV values are
+(1–500), `after` (last returned user id). JSON gives `next`; CSV gives `X-Next-Cursor`. Students who
+don't share progress never expose progress/scores, and therefore never match performance filters. CSV values are
 quoted and spreadsheet-formula prefixes neutralized. Every export page is logged atomically with its
 read. Its SQL statement snapshot is its linearization point; withdrawals committed before it are excluded.
 
