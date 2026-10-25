@@ -19,9 +19,10 @@ export const VIDEO_IDS: string[] = [];
 export const DEMO = {
   org: { slug: 'demo-ias-academy', name: 'Demo IAS Academy', accent: '#c2410c' },
   course: { title: 'GS Foundation 2026' },
+  freeCourse: { title: 'Current Affairs Weekly' },
   /** A syntactically valid, fictional channel id: the demo has no real source channel. */
   channelId: 'UCDemoIASAcademy00000000',
-  batch: { name: 'Morning batch 2026', seats: 60 },
+  batch: { name: 'Morning batch 2026', seats: 240 },
   /**
    * The join code students type. The server accepts codes of 10–100 characters, so the demo's code is
    * DEMO-2026-IAS rather than the 9-character DEMO-2026.
@@ -75,6 +76,28 @@ export function demoPayload(ids: readonly string[], quizzes: Record<string, stri
         items: take().map((videoId) => ({ type: 'video' as const, videoId, ...(quizzes[videoId] ? { quizId: quizzes[videoId] } : {}) })),
       })),
     })),
+    approvedChannels: [{ id: DEMO.channelId }],
+    modes: [],
+  };
+}
+
+/** The demo's free course: the last few lessons, as a weekly current-affairs series. */
+export function demoFreePayload(ids: readonly string[]): CoursePayload {
+  const weeks = [ids.slice(0, Math.ceil(ids.length / 2)), ids.slice(Math.ceil(ids.length / 2))].filter((w) => w.length);
+  return {
+    brand: { name: DEMO.org.name, accent: DEMO.org.accent },
+    subjects: [
+      {
+        id: 'october-2026',
+        title: 'October 2026',
+        topics: weeks.map((week, i) => ({
+          id: `week-${i + 1}`,
+          title: `Week ${i + 1}`,
+          subtopics: ['Polity and governance', 'Economy', 'International relations'],
+          items: week.map((videoId) => ({ type: 'video' as const, videoId })),
+        })),
+      },
+    ],
     approvedChannels: [{ id: DEMO.channelId }],
     modes: [],
   };
