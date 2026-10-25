@@ -129,6 +129,12 @@ export class InstitutesDb {
       await tx.exec('CREATE SCHEMA IF NOT EXISTS institutes; CREATE TABLE IF NOT EXISTS institutes.migrations(version integer PRIMARY KEY,applied_at bigint NOT NULL);');
       const installed=await tx.query('SELECT version FROM institutes.migrations WHERE version=1');
       if (!installed.length) { await tx.exec(SCHEMA); await tx.query('UPDATE institutes.migrations SET applied_at=$1 WHERE version=1',[Date.now()]); }
+      await tx.exec(`CREATE TABLE IF NOT EXISTS institutes.import_cache(org_id text NOT NULL,course_id text NOT NULL,claimed_at bigint NOT NULL,payload_json jsonb,PRIMARY KEY(org_id,course_id),FOREIGN KEY(org_id,course_id) REFERENCES institutes.courses(org_id,id));
+      CREATE TABLE IF NOT EXISTS institutes.channel_approvals(org_id text NOT NULL,course_id text NOT NULL,channel_id text NOT NULL,approved_by text,created_at bigint NOT NULL,PRIMARY KEY(org_id,course_id,channel_id),FOREIGN KEY(org_id,course_id) REFERENCES institutes.courses(org_id,id));
+      INSERT INTO institutes.migrations(version,applied_at) VALUES(2,0) ON CONFLICT DO NOTHING;
+      CREATE TABLE IF NOT EXISTS institutes.quizme_scores(org_id text NOT NULL,course_id text NOT NULL,user_id text NOT NULL REFERENCES institutes.students(user_id),video_id text NOT NULL,score integer NOT NULL,total integer NOT NULL CHECK(total>0 AND score>=0 AND score<=total),PRIMARY KEY(org_id,course_id,user_id,video_id),FOREIGN KEY(org_id,course_id) REFERENCES institutes.courses(org_id,id));
+      INSERT INTO institutes.migrations(version,applied_at) VALUES(3,0) ON CONFLICT DO NOTHING;`);
+
     });
   }
   private async tx<T>(work: (tx: Driver) => Promise<T>): Promise<T> {
@@ -185,7 +191,8 @@ export class InstitutesDb {
     return this.tx(async tx => {
       const [course] = await tx.query('SELECT source_channel_id FROM institutes.courses WHERE org_id=$1 AND id=$2 FOR UPDATE',[orgId,courseId]);
       if (!course) return missing();
-      if (data.approvedChannels.some(c=>c.id!==course.source_channel_id)) throw new ApiError(400,'invalid_request','Outside channels require an institute approval workflow; this step supports the source channel only.');
+      const approved=await tx.query('SELECT channel_id FROM institutes.channel_approvals WHERE org_id=$1 AND course_id=$2 AND approved_by IS NOT NULL',[orgId,courseId]);
+      if (data.approvedChannels.some(c=>c.id!==course.source_channel_id&&!approved.some(a=>a.channel_id===c.id))) throw new ApiError(400,'invalid_request','Outside channels require institute admin approval.');
       if (!data.approvedChannels.some(c=>c.id===course.source_channel_id)) throw new ApiError(400,'invalid_request','The institute’s source channel must be approved.');
       await tx.query('UPDATE institutes.courses SET draft_json=$3::jsonb WHERE org_id=$1 AND id=$2',[orgId,courseId,JSON.stringify(data)]);
       await this.audit(tx,orgId,actor,'course.draft',courseId);
@@ -201,6 +208,26 @@ export class InstitutesDb {
       await tx.query("UPDATE institutes.courses SET status='published',video_count=$3 WHERE org_id=$1 AND id=$2",[orgId,courseId,new Set(videoIds(course.draft_json as CoursePayload,course.kind==='batch')).size]);
       await this.audit(tx,orgId,actor,'course.publish',`${courseId}:${version}`); return { courseId,version };
     });
+  }
+  async channelSuggestions(orgId:string,courseId:string) {return this.driver.query('SELECT channel_id,approved_by FROM institutes.channel_approvals WHERE org_id=$1 AND course_id=$2 ORDER BY channel_id',[orgId,courseId]);}
+  async suggestChannel(orgId:string,courseId:string,actor:string,channelId:string,approve=false) {
+    return this.tx(async tx=>{
+      if(approve){const [member]=await tx.query("SELECT role FROM institutes.org_members WHERE org_id=$1 AND user_id=$2 AND role IN ('owner','admin')",[orgId,actor]);if(!member)return denied();}
+      await tx.query('INSERT INTO institutes.channel_approvals(org_id,course_id,channel_id,approved_by,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT(org_id,course_id,channel_id) DO UPDATE SET approved_by=COALESCE(EXCLUDED.approved_by,institutes.channel_approvals.approved_by)',[orgId,courseId,channelId,approve?actor:null,Date.now()]);
+      await this.audit(tx,orgId,actor,approve?'channel.approve':'channel.suggest',channelId);
+    });
+  }
+  async claimImport(orgId:string,courseId:string) {
+    return this.tx(async tx=>{
+      const [course]=await tx.query('SELECT c.*,o.name AS org_name,o.logo_url,o.accent_color FROM institutes.courses c JOIN institutes.orgs o ON o.id=c.org_id WHERE c.org_id=$1 AND c.id=$2 FOR UPDATE',[orgId,courseId]);if(!course)return missing();
+      const [cache]=await tx.query('SELECT claimed_at,payload_json FROM institutes.import_cache WHERE org_id=$1 AND course_id=$2',[orgId,courseId]);
+      if(cache&&Date.now()-Number(cache.claimed_at)<86400000){if(cache.payload_json)return {course,cached:cache.payload_json as CoursePayload};return conflict('An import is running or was already attempted today. Retry tomorrow.');}
+      await tx.query('INSERT INTO institutes.import_cache(org_id,course_id,claimed_at) VALUES($1,$2,$3) ON CONFLICT(org_id,course_id) DO UPDATE SET claimed_at=EXCLUDED.claimed_at,payload_json=NULL',[orgId,courseId,Date.now()]);return {course,cached:null};
+    });
+  }
+  async finishImport(orgId:string,courseId:string,actor:string,data:CoursePayload) {
+    await this.saveDraft(orgId,courseId,actor,data);
+    await this.tx(async tx=>{await tx.query('UPDATE institutes.import_cache SET payload_json=$3::jsonb WHERE org_id=$1 AND course_id=$2',[orgId,courseId,JSON.stringify(data)]);await this.audit(tx,orgId,actor,'course.import',courseId);});
   }
   async createBatch(orgId: string, actor: string, input: { courseId: string; name: string; seats: number; startsOn?: number; endsOn?: number }) {
     return this.tx(async tx => {
@@ -241,13 +268,14 @@ export class InstitutesDb {
     return { payload: publicPayload(row.payload_json as CoursePayload, access.member), etag: `"${courseId}:${version}:${access.member?'member':'public'}"` };
   }
   async mine(userId: string) {
-    const rows = await this.driver.query("SELECT e.org_id,e.course_id,e.batch_id,o.name,o.logo_url,o.accent_color FROM institutes.enrollments e JOIN institutes.orgs o ON o.id=e.org_id WHERE e.user_id=$1 AND e.left_at IS NULL AND o.status<>'paused' ORDER BY e.org_id,e.course_id",[userId]);
+    const rows = await this.driver.query("SELECT e.org_id,e.course_id,e.batch_id,c.title,o.name,o.logo_url,o.accent_color FROM institutes.enrollments e JOIN institutes.courses c ON (c.org_id,c.id)=(e.org_id,e.course_id) JOIN institutes.orgs o ON o.id=e.org_id WHERE e.user_id=$1 AND e.left_at IS NULL AND o.status<>'paused' ORDER BY e.org_id,e.course_id",[userId]);
     const out = [];
     for (const row of rows) {
       const orgId=String(row.org_id),courseId=String(row.course_id);
       const access=await this.active(this.driver,orgId,courseId,userId); if (!access.enrolled) continue;
       const latest=await this.latest(this.driver,orgId,courseId);
-      out.push({ orgId,courseId,batchId: row.batch_id,org:{name:row.name,logo:row.logo_url,accent:row.accent_color},courseVersion:latest.version,etag:`"${courseId}:${latest.version}:${access.member?'member':'public'}"` });
+      const consent=await this.myConsents(orgId,userId);
+      out.push({ orgId,courseId,title:String(row.title),consents:{progress:consent.progress,contact:consent.contact},batchId: row.batch_id,org:{name:row.name,logo:row.logo_url,accent:row.accent_color},courseVersion:latest.version,etag:`"${courseId}:${latest.version}:${access.member?'member':'public'}"` });
     }
     return out;
   }
@@ -271,6 +299,7 @@ export class InstitutesDb {
         if (purpose==='progress') {
           await tx.query('DELETE FROM institutes.progress WHERE org_id=$1 AND user_id=$2',[orgId,userId]);
           await tx.query('DELETE FROM institutes.quiz_attempts WHERE org_id=$1 AND user_id=$2',[orgId,userId]);
+          await tx.query('DELETE FROM institutes.quizme_scores WHERE org_id=$1 AND user_id=$2',[orgId,userId]);
         }
       }
     }
@@ -314,6 +343,7 @@ export class InstitutesDb {
       await tx.query('UPDATE institutes.enrollments SET left_at=$4 WHERE org_id=$1 AND course_id=$2 AND user_id=$3 AND left_at IS NULL',[orgId,courseId,userId,Date.now()]);
       await tx.query('DELETE FROM institutes.progress WHERE org_id=$1 AND course_id=$2 AND user_id=$3',[orgId,courseId,userId]);
       await tx.query('DELETE FROM institutes.quiz_attempts a USING institutes.quizzes q WHERE a.org_id=$1 AND a.user_id=$3 AND (q.org_id,q.id)=(a.org_id,a.quiz_id) AND q.course_id=$2',[orgId,courseId,userId]);
+      await tx.query('DELETE FROM institutes.quizme_scores WHERE org_id=$1 AND course_id=$2 AND user_id=$3',[orgId,courseId,userId]);
       const [other]=await tx.query('SELECT id FROM institutes.enrollments WHERE org_id=$1 AND user_id=$2 AND left_at IS NULL LIMIT 1',[orgId,userId]);
       if (!other) await this.setSharing(tx,orgId,userId,{ textVersion:'leave',progress:false,contact:false });
     });
@@ -346,6 +376,13 @@ export class InstitutesDb {
       }
     });
   }
+  async quizMeScore(orgId:string,courseId:string,userId:string,videoId:string,score:number,total:number){return this.tx(async tx=>{
+    await tx.query('SELECT user_id FROM institutes.students WHERE user_id=$1 FOR UPDATE',[userId]);
+    const access=await this.active(tx,orgId,courseId,userId);if(!access.enrolled)return denied();
+    if(!await this.consent(tx,orgId,userId,'progress'))return {stored:false};
+    const latest=await this.latest(tx,orgId,courseId);if(!videoIds(latest.data,access.member).includes(videoId))return denied();
+    await tx.query('INSERT INTO institutes.quizme_scores(org_id,course_id,user_id,video_id,score,total) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(org_id,course_id,user_id,video_id) DO UPDATE SET score=EXCLUDED.score,total=EXCLUDED.total',[orgId,courseId,userId,videoId,score,total]);return {stored:true};
+  });}
   async createQuiz(orgId: string, courseId: string, actor: string, videoId: string, questions: QuizQuestion[]) {
     return this.tx(async tx=>{
       const course=await this.latest(tx,orgId,courseId);
@@ -416,7 +453,7 @@ export class InstitutesDb {
       AND (NOT $2::boolean OR s.phone_verified_at IS NOT NULL)
     ), measured AS (
       SELECT c.*,CASE WHEN sharing_progress THEN (SELECT COUNT(*)::int FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=c.user_id AND p.stage='done' AND ($3::text IS NULL OR p.course_id=$3)) ELSE NULL END AS completed_videos,
-      CASE WHEN sharing_progress THEN (SELECT ROUND(AVG(a.score*100.0/a.total))::int FROM institutes.quiz_attempts a JOIN institutes.quizzes q ON (q.org_id,q.id)=(a.org_id,a.quiz_id) WHERE a.org_id=$1 AND a.user_id=c.user_id AND ($3::text IS NULL OR q.course_id=$3)) ELSE NULL END AS quiz_score
+      CASE WHEN sharing_progress THEN (SELECT ROUND(AVG(s.score*100.0/s.total))::int FROM (SELECT a.score,a.total FROM institutes.quiz_attempts a JOIN institutes.quizzes q ON (q.org_id,q.id)=(a.org_id,a.quiz_id) WHERE a.org_id=$1 AND a.user_id=c.user_id AND ($3::text IS NULL OR q.course_id=$3) UNION ALL SELECT z.score,z.total FROM institutes.quizme_scores z WHERE z.org_id=$1 AND z.user_id=c.user_id AND ($3::text IS NULL OR z.course_id=$3)) s) ELSE NULL END AS quiz_score
       FROM candidate c
     ), completed AS (SELECT m.*,CASE WHEN sharing_progress THEN LEAST(100,COALESCE(ROUND(completed_videos*100.0/NULLIF((SELECT SUM(c.video_count) FROM institutes.courses c WHERE c.org_id=$1 AND ($3::text IS NULL OR c.id=$3) AND EXISTS(SELECT 1 FROM institutes.enrollments e WHERE e.org_id=$1 AND e.course_id=c.id AND e.user_id=m.user_id AND e.left_at IS NULL)),0)),0))::int ELSE NULL END AS completion_percent FROM measured m)
     SELECT * FROM completed WHERE ($5::int IS NULL OR completion_percent>=$5) AND ($6::int IS NULL OR quiz_score>=$6) ORDER BY user_id LIMIT $7`,[orgId,leads,filter.courseId??null,filter.after??null,filter.minCompletion??null,filter.minQuizScore??null,filter.limit+1]);

@@ -5,6 +5,7 @@ import type { InstitutesDb } from './db';
 import { ProgressQueue } from './queue';
 import type { Actor } from './types';
 import * as v from './validate';
+import { importChannel, resolveChannel, youtubeFetch } from './import';
 
 export interface InstituteDependencies {
   database: () => Promise<InstitutesDb>;
@@ -80,6 +81,10 @@ export function instituteRoutes(deps: InstituteDependencies) {
       const parsed=events.map(raw=>{const e=v.object(raw);if (!['started','half','done'].includes(String(e.stage))) return v.invalid('Invalid milestone.');return {orgId:v.id(e.orgId),courseId:v.id(e.courseId),videoId:v.video(e.videoId),stage:e.stage as 'started'|'half'|'done',seconds:v.integer(e.seconds??0,'seconds',0,86400),userId:actor!.id};});
       await Promise.all(parsed.map(event=>queue!.enqueue(event))); return respond({accepted:parsed.length});
     }
+    if(req.method==='POST'&&path==='/v1/institutes/quiz-score'){
+      const input=v.object(await body()),total=v.integer(input.total,'total',1,1000),score=v.integer(input.score,'score',0,total);
+      return respond(await db.quizMeScore(v.id(input.orgId),v.id(input.courseId),actor!.id,v.video(input.videoId),score,total));
+    }
     if (req.method==='POST'&&path==='/v1/quiz-attempts') {
       const input=v.object(await body()); if (!Array.isArray(input.answers)||input.answers.length>50) return v.invalid('Invalid answers.');
       const answers=input.answers.map(a=>v.integer(a,'answer',0,5));
@@ -100,8 +105,11 @@ export function instituteRoutes(deps: InstituteDependencies) {
     if (parts[1]==='studio') {
       const orgId=v.id(parts[2]);
       if (!await db.role(orgId,actor!.id)) throw new ApiError(403,'forbidden','Institute staff access is required.');
+      if (req.method==='POST'&&parts[3]==='channels'&&parts.length===4){const input=v.object(await body());await db.suggestChannel(orgId,v.id(input.courseId),actor!.id,v.channel(input.channelId),true);return respond({});}
       if (req.method==='GET'&&parts.length===4) {
         const filter=v.page(url.searchParams);
+        if (parts[3]==='courses') return respond({courses:await db.courses(orgId)});
+        if (parts[3]==='channels'&&filter.courseId) return respond({channels:await db.channelSuggestions(orgId,filter.courseId)});
         if (parts[3]==='funnel') return respond(await db.funnel(orgId,filter.courseId));
         if (parts[3]==='students') return respond(await db.students(orgId,filter));
         if (parts[3]==='leads.csv') {
@@ -140,12 +148,18 @@ export function instituteRoutes(deps: InstituteDependencies) {
           if (resource==='courses') {
             if (parts.length===5) {
               if (input.kind!=='free'&&input.kind!=='batch') return v.invalid('Invalid course kind.');
-              return respond({course:await db.createCourse(orgId,actor!.id,{title:v.text(input.title,'course title'),kind:input.kind,channelId:v.channel(input.channelId),examId:input.examId===undefined?undefined:v.id(input.examId)})},201);
+              return respond({course:await db.createCourse(orgId,actor!.id,{title:v.text(input.title,'course title'),kind:input.kind,channelId:await resolveChannel(v.text(input.channelId,'channel id or URL',300),youtubeFetch()),examId:input.examId===undefined?undefined:v.id(input.examId)})},201);
             }
             if (parts.length===7&&resourceId) {
               if (parts[6]==='draft') { await db.saveDraft(orgId,resourceId,actor!.id,v.payload(input.payload));return respond({}); }
               if (parts[6]==='publish') return respond(await db.publish(orgId,resourceId,actor!.id));
-              if (parts[6]==='import') throw new ApiError(501,'invalid_request','Course import is the next implementation step and is not available yet.');
+              if (parts[6]==='import') {
+                if(!process.env.YOUTUBE_API_KEY)throw new ApiError(503,'internal_error','YouTube course import is not configured.');
+                const claim=await db.claimImport(orgId,resourceId);if(claim.cached)return respond({payload:claim.cached,cached:true});
+                const result=await importChannel(String(claim.course.source_channel_id),{name:String(claim.course.org_name),...(claim.course.logo_url?{logo:String(claim.course.logo_url)}:{}),...(claim.course.accent_color?{accent:String(claim.course.accent_color)}:{})},claim.course.exam_id?String(claim.course.exam_id):null,youtubeFetch());
+                await db.finishImport(orgId,resourceId,actor!.id,result.payload);return respond({...result,cached:false});
+              }
+              if(parts[6]==='suggestions'){await db.suggestChannel(orgId,resourceId,actor!.id,v.channel(input.channelId));return respond({});}
               if (parts[6]==='quizzes') return respond({quiz:await db.createQuiz(orgId,resourceId,actor!.id,v.video(input.videoId),v.quiz(input.questions))},201);
             }
           }

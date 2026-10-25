@@ -1,8 +1,8 @@
-# Institutes, Phase 1 / Step 1
+# Institutes, Phase 1 pilot
 
-Server foundation only. Course import (Step 2), admin/student website pages (Step 3), extension integration
-and privacy/store drafts (Step 4) are not built by this step. The public website still calls the pilot
-proposed. No service has been deployed.
+Phase 1 pilot implementation is built locally: Postgres APIs, official playlist import, staff Control room,
+read-only Studio metrics with institute channel approval, student enrolment/consent pages, and cached
+read-only extension Spaces. This is not a public launch. No institute partnership or deployment is claimed.
 
 ## Storage and identity
 
@@ -13,7 +13,7 @@ simulate a multi-process Postgres deployment; run integration/load tests against
 
 `DATABASE_URL` selects Postgres for the `institutes` schema only. Identity, sessions, billing and usage
 stay in SQLite. The key joining them is the authenticated `user_id`. SQL lives only in `db.ts`; test
-SQL is used only to inspect invariants. Migration version 1 runs under a transaction/advisory lock.
+SQL is used only to inspect invariants. Migration versions 1–3 run under a transaction/advisory lock.
 Published versions have a database trigger that forbids updates/deletes. Roll back by publishing a new
 version of a previous draft, not changing history.
 
@@ -53,7 +53,7 @@ All bodies are bounded JSON and all private routes require an existing Bearer se
 | GET, POST | `/v1/admin/orgs/:org/courses` | List/create; creation needs `title,kind,channelId`, optional `examId` |
 | GET, POST | `/v1/admin/orgs/:org/courses/:course/draft` | Read/save reviewed `{payload}` |
 | POST | `/v1/admin/orgs/:org/courses/:course/publish` | `{}`; creates a new immutable version |
-| POST | `/v1/admin/orgs/:org/courses/:course/import` | Explicit 501 until Step 2; never pretends an import succeeded |
+| POST | `/v1/admin/orgs/:org/courses/:course/import` | Official API import; explicit daily cache, requires server `YOUTUBE_API_KEY` |
 | GET, POST | `/v1/admin/orgs/:org/batches` | List/create; creation needs `courseId,name,seats`, optional epoch-ms dates |
 | POST | `/v1/admin/orgs/:org/batches/:batch/settings` | `{status:active\|paused,seats}`; cannot reduce below active enrolment |
 | POST | `/v1/admin/orgs/:org/batches/:batch/rotate` | `{}`; invalidates old join code |
@@ -105,25 +105,51 @@ read. Its SQL statement snapshot is its linearization point; withdrawals committ
   choices. Per-video totals count student-video pairs. These meanings are returned with the API.
 - A passed institute quiz currently means >=70%. This is an explicit server default pending the phase-2
   quiz editor. Correct answers stay server-side; no per-question answer key is returned, even on submit.
-- Phase 1 permits only the source channel in published drafts. Outside channels are rejected until the
-  institute-admin approval workflow is built; nothing is silently approved by an import or student.
+- Published drafts require the source channel. Outside channels require an org owner/admin approval in
+  Studio; faculty and FocusSpace staff cannot grant that approval through the suggestion endpoint.
 - Only YouTube ids are stored in items/channel references. Subject/topic titles and institute branding
   are authored course metadata, not cached YouTube video titles, thumbnails or durations.
 
-## Checks and remaining work
+## Import and extension decisions
 
-Tests use PostgreSQL-in-process and the HTTP route factory with real SQLite sessions. They cover org
-isolation, immutable publishing, stripped private items/answer fields, unverified/unique phones, seat
-races, private batch access after leaving, consent withdrawal while a milestone is queued, no identified
-rows without consent, paging/filters/export auditing, CSV formula safety, OTP ownership, rate-limited join
-code guessing, and 10,000 coalesced milestones yielding one progress row.
+- `YOUTUBE_API_KEY` is server-only. Import uses official channels/playlists/playlistItems list endpoints,
+  pages of 50, at most 100 playlists and 5,000 videos. Playlist titles exist transiently for taxonomy
+  matching; persisted labels come from our catalog or `Playlist N`/`Other`. Staff reviews before publishing.
+- Imports are explicit and cached per course for 24 hours. A failed/in-flight attempt also holds that
+  course's daily claim, preventing repeated quota consumption. Duplicate pagination tokens fail closed.
+- Outside-channel approval is a limited Studio write exception; metrics and student data remain read-only.
+  Staff adds the approved id to the reviewed draft. Suggestions/approvals are audited.
+- Extension schema 6 owns `instituteCache` per account. Refresh on YouTube open and the periodic tick;
+  version payloads use ETag. Offline uses cache; explicit 401/403/404 discards inaccessible content.
+  Institute Spaces bypass personal quotas, keep course order and disable discovery/Shorts.
+- Started is positive watched progress, half is 50%, completed is 80% (the existing completion convention).
+  Milestones coalesce in memory for 1.5 seconds, at most 100 distinct pending videos, with five network
+  attempts. Browser shutdown can lose pending milestones; this is not guaranteed delivery. The server
+  itself acknowledges only committed writes. Quiz me scores are self-reported study results, not
+  authenticated examination results; server-graded institute quizzes are separate.
+- Privacy and Store wording was reviewed and approved by the owner on 25 October 2026. Nothing was submitted.
 
-This is server groundwork, not the full pilot. Course import, the institute-admin approval workflow,
-Control room/Studio/student UI, actual extension requests, consent/privacy/store review and release are
-later steps. Don't move to Step 2 until the owner reviews Step 1. The website work was the base for this
-branch at the owner's request; it has not been merged or deployed here.
+## Additional routes and tables
 
-Validation on this branch: typecheck passed; full suite 105 files / 969 tests passed; extension, website
-and server builds passed. The server bundle also booted from an isolated temporary folder with no
-node_modules: health returned 200 and an unconfigured institute request returned the intended 503.
-No real Postgres service or live SMS was used, and visual browser verification remains unavailable.
+| Method | Path | Result |
+| --- | --- | --- |
+| POST | `/v1/institutes/quiz-score` | Own enrolled video score; stores only with current progress consent |
+| POST | `/v1/admin/orgs/:org/courses/:course/suggestions` | Staff suggests an outside channel |
+| GET | `/v1/studio/:org/courses` | Org course list |
+| GET | `/v1/studio/:org/channels?courseId=...` | Org course suggestions/approvals |
+| POST | `/v1/studio/:org/channels` | Owner/admin approves `{courseId,channelId}` |
+
+Migration 2 adds `import_cache` and `channel_approvals`; migration 3 adds `quizme_scores`.
+Website routes are `/admin`, `/studio`, `/join/:code`, `/learn/:course`; account has course sharing cards.
+
+## Checks and release boundaries
+
+Tests execute PostgreSQL SQL with PGlite and HTTP routes with real SQLite sessions. They cover organisation
+isolation, immutable versions, members-only stripping, private quiz answers, phone uniqueness/verification,
+seat races, consent withdrawal, bounded 10,000-event coalescing, import caching, approval roles, ETag/offline
+refresh and personal-Space reporting isolation. The extension, website and API have separate builds.
+
+Before public launch, verify a real Postgres service under concurrency/load, live YouTube import quota,
+SMS delivery, production configuration and manual extension/browser flows. Browser visual QA was unavailable
+because saved browser permissions denied access; no screenshot validation is claimed. No new public
+service, phone/tablet player, institute billing, CRM integration or faculty quiz editor is included.

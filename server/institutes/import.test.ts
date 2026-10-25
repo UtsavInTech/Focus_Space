@@ -1,0 +1,8 @@
+import {describe,it,expect,vi} from 'vitest';
+import {importChannel,resolveChannel,type YouTubeFetch} from './import';
+const channel=`UC${'a'.repeat(22)}`;
+describe('YouTube course import',()=>{
+ it('resolves channel URLs without fetching arbitrary hosts',async()=>{const read=vi.fn(async()=>({items:[{id:channel}]}));expect(await resolveChannel(`https://www.youtube.com/channel/${channel}`,read)).toBe(channel);expect(read).not.toHaveBeenCalled();expect(await resolveChannel('https://www.youtube.com/@teacher',read)).toBe(channel);await expect(resolveChannel('https://example.com/@teacher',read)).rejects.toThrow();});
+ it('pages videos, deduplicates ids and does not retain YouTube titles',async()=>{const read:YouTubeFetch=async(resource,params)=>resource==='playlists'?{items:[{id:'PLone',snippet:{title:'A private transient playlist title'}}]}:params.pageToken?{items:[{contentDetails:{videoId:'abcdefghijk'}},{contentDetails:{videoId:'lmnopqrstuv'}}]}:{items:[{contentDetails:{videoId:'abcdefghijk'}}],nextPageToken:'next'};const result=await importChannel(channel,{name:'Institute'},null,read);expect(result.videos).toBe(2);expect(result.payload.subjects[0].title).toBe('Other');expect(JSON.stringify(result)).not.toContain('transient');expect(result.payload.subjects[0].topics[0].items.map(i=>i.videoId)).toEqual(['abcdefghijk','lmnopqrstuv']);});
+ it('rejects repeated pagination tokens instead of burning quota',async()=>{const read:YouTubeFetch=async(resource)=>resource==='playlists'?{items:[{id:'PLone'}]}:{items:[],nextPageToken:'loop'};await expect(importChannel(channel,{name:'Institute'},null,read)).rejects.toThrow('repeated page token');});
+});

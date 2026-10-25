@@ -22,7 +22,7 @@ afterAll(async()=>{await driver?.close();});
 
 describe('Postgres institutes data boundaries',()=>{
   it('migrates idempotently, and separates organisation roles and resources',async()=>{
-    await db.migrate(); expect(await driver.query('SELECT version FROM institutes.migrations')).toHaveLength(1);
+    await db.migrate(); expect(await driver.query('SELECT version FROM institutes.migrations')).toHaveLength(3);
     const a=await course(),b=await course(),person=actor();
     await db.setMember(a.orgId,'staff',person.id,'faculty');
     expect(await db.role(a.orgId,person.id)).toBe('faculty');expect(await db.role(b.orgId,person.id)).toBeNull();
@@ -31,6 +31,26 @@ describe('Postgres institutes data boundaries',()=>{
     await expect(db.courseVersion(b.orgId,a.courseId,1)).rejects.toMatchObject({status:404});
     await expect(db.recordProgress([{orgId:b.orgId,courseId:a.courseId,userId:person.id,videoId:video,stage:'done',seconds:10}])).rejects.toMatchObject({status:403});
     await expect(db.createBatch(b.orgId,'staff',{courseId:a.courseId,name:'Wrong org',seats:2})).rejects.toMatchObject({status:404});
+  });
+  it('requires institute approval for outside channels and caches imports for a day',async()=>{
+    const {orgId,courseId}=await course(),admin=actor(),faculty=actor(),outside=`UC${'b'.repeat(22)}`;
+    await db.setMember(orgId,'staff',admin.id,'admin');await db.setMember(orgId,'staff',faculty.id,'faculty');
+    await db.suggestChannel(orgId,courseId,'staff',outside);
+    const draft=data();draft.approvedChannels.push({id:outside});
+    await expect(db.saveDraft(orgId,courseId,'staff',draft)).rejects.toThrow('approval');
+    await expect(db.suggestChannel(orgId,courseId,faculty.id,outside,true)).rejects.toMatchObject({status:403});
+    await db.suggestChannel(orgId,courseId,admin.id,outside,true);await db.saveDraft(orgId,courseId,'staff',draft);
+    expect((await db.claimImport(orgId,courseId)).cached).toBeNull();
+    await expect(db.claimImport(orgId,courseId)).rejects.toMatchObject({status:409});
+    await db.finishImport(orgId,courseId,'staff',data());expect((await db.claimImport(orgId,courseId)).cached).toEqual(data());
+  });
+  it('stores Quiz me scores only with progress consent and deletes them on withdrawal',async()=>{
+    const {orgId,courseId}=await course(),person=actor();await db.enroll(orgId,courseId,person,{phone:phone(),consents:sharing()});
+    expect(await db.quizMeScore(orgId,courseId,person.id,video,3,5)).toEqual({stored:false});
+    await db.changeConsent(orgId,person.id,sharing(true));await db.quizMeScore(orgId,courseId,person.id,video,3,5);
+    expect(await driver.query('SELECT * FROM institutes.quizme_scores WHERE org_id=$1',[orgId])).toHaveLength(1);
+    expect((await db.students(orgId,{courseId,minQuizScore:50,limit:100})).items).toHaveLength(1);
+    await db.changeConsent(orgId,person.id,sharing());expect(await driver.query('SELECT * FROM institutes.quizme_scores WHERE org_id=$1',[orgId])).toHaveLength(0);
   });
   it('creates immutable published versions and does not expose members-only data or answer fields',async()=>{
     const {orgId,courseId}=await course();
