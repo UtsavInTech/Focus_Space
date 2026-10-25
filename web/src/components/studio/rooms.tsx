@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowUpRight, BookOpen, Download, Layers, ListChecks, PhoneCall, PlayCircle, Sparkles, Users } from 'lucide-react';
-import { CountUp, Door, FunnelRibbon, RetentionCurve, Ring, Spark, TalentMap } from './charts';
-import { count, GROUPS, groupOf, percent, summarise, type Group, type Lesson, type Place, type Section, type Student } from './model';
+import { ArrowUpRight, BookOpen, Layers, ListChecks, PlayCircle } from 'lucide-react';
+import { CountUp, Door, Journey, RetentionCurve, Ring, Spark } from './charts';
+import { count, percent, summarise, type Lesson, type Place, type Section } from './model';
 
 export type Totals = Record<string, number>;
 export interface CourseView {
@@ -19,101 +18,44 @@ const KIND_LABEL = { course: 'Course', subject: 'Subject', topic: 'Topic' } as c
 const rise = { hidden: { opacity: 0, y: 24 }, shown: { opacity: 1, y: 0 } };
 const stagger = { hidden: {}, shown: { transition: { staggerChildren: 0.06, delayChildren: 0.15 } } };
 
-function funnelStages(t: Totals, joinedNote: string) {
+function journeySteps(t: Totals) {
   return [
-    { label: 'Joined', value: t.joined ?? 0, note: joinedNote },
-    { label: 'Started', value: t.started ?? 0 },
-    { label: 'Half way', value: t.half ?? 0 },
-    { label: 'Finished a lecture', value: t.done ?? 0 },
-    { label: 'Share progress', value: t.shared_progress ?? 0 },
-    { label: 'Share contact', value: t.shared_contact ?? 0 },
+    { label: 'Joined', value: t.joined ?? 0, hint: 'Enrolled in this course' },
+    { label: 'Began a lecture', value: t.started ?? 0, hint: 'Pressed play at least once' },
+    { label: 'Got halfway through one', value: t.half ?? 0 },
+    { label: 'Finished a lecture', value: t.done ?? 0, hint: 'Watched at least one to the end' },
   ];
 }
 
-/* ─── Lobby: the whole institute ─────────────────────────────────────────── */
+/* ─── Courses: one door per course ──────────────────────────────────────── */
 
-export function Lobby({ orgName, totals, courses, students, go }: { orgName: string; totals: Totals | null; courses: CourseView[]; students: Student[]; go: (p: Place) => void }) {
-  const groups = useMemo(() => {
-    const tally: Record<Group, number> = { toppers: 0, talent: 0, help: 0, drifting: 0 };
-    for (const s of students) if (s.completion !== null) tally[groupOf(s)] += 1;
-    return tally;
-  }, [students]);
-
+export function CoursesPage({ courses, go }: { courses: CourseView[]; go: (p: Place) => void }) {
   return (
     <motion.div variants={stagger} initial="hidden" animate="shown">
-      <motion.header variants={rise} className="fss-hero">
-        <p className="fss-eyebrow">Studio · {orgName}</p>
-        <h1>
-          <CountUp value={totals?.joined ?? 0} /> learners
-          <br />
-          <span>are in your courses.</span>
-        </h1>
-        <p className="fss-lede">Walk through any course, subject or lecture to see where students stay, where they leave, and who is ready for a call.</p>
+      <motion.header variants={rise} className="fss-hero is-room">
+        <p className="fss-eyebrow">Courses</p>
+        <h1>Choose a door.</h1>
+        <p className="fss-lede">Each course opens into its subjects, topics and lectures, with what students did in each.</p>
       </motion.header>
-
-      {totals && (
-        <motion.section variants={rise} className="fss-panel">
-          <div className="fss-panel-head">
-            <h2>From joining to sharing</h2>
-            <p>Every enrolled student is counted here, whether they share or not.</p>
-          </div>
-          <FunnelRibbon stages={funnelStages(totals, 'Across all courses')} />
-        </motion.section>
-      )}
-
-      <motion.section variants={rise} className="fss-section">
-        <div className="fss-section-head">
-          <p className="fss-eyebrow">Courses</p>
-          <h2>Choose a door.</h2>
-        </div>
-        <div className="fss-doors is-wide">
-          {courses.map((course) => {
-            const summary = course.section ? summarise(course.section.lessons) : null;
-            const cover = course.section?.lessons[0]?.id;
-            return (
-              <Door key={course.id} className="is-course" onOpen={() => go({ room: 'course', path: [course.id] })}>
-                {cover && <img className="fss-door-cover" src={thumb(cover, 'hq')} alt="" loading="lazy" />}
-                <span className="fss-door-kind">{course.kind === 'batch' ? 'Batch course' : 'Free course'}</span>
-                <h3>{course.title}</h3>
-                <div className="fss-door-stats">
-                  <span><b>{count(course.totals?.joined ?? 0)}</b> learners</span>
-                  <span><b>{summary?.lessons ?? 0}</b> lectures</span>
-                  {summary && <span><b>{percent(summary.completionRate)}</b> watched to the end</span>}
-                </div>
-                {course.section && <Spark lessons={course.section.lessons} />}
-                <ArrowUpRight className="fss-door-arrow" size={20} aria-hidden="true" />
-              </Door>
-            );
-          })}
-        </div>
-      </motion.section>
-
-      <motion.section variants={rise} className="fss-section">
-        <div className="fss-section-head">
-          <p className="fss-eyebrow">People</p>
-          <h2>The students behind the numbers.</h2>
-        </div>
-        <div className="fss-doors">
-          <Door className="is-side" onOpen={() => go({ room: 'students' })}>
-            <Users size={22} aria-hidden="true" />
-            <h3>Talent board</h3>
-            <p>{count(students.length)} students share their progress with you.</p>
-            <div className="fss-chips">
-              <span><b>{groups.toppers}</b> toppers</span>
-              <span><b>{groups.talent}</b> hidden talent</span>
-              <span><b>{groups.help}</b> need help</span>
-            </div>
-            <ArrowUpRight className="fss-door-arrow" size={20} aria-hidden="true" />
-          </Door>
-          <Door className="is-side" onOpen={() => go({ room: 'leads' })}>
-            <PhoneCall size={22} aria-hidden="true" />
-            <h3>Leads</h3>
-            <p><b>{count(totals?.shared_contact ?? 0)}</b> students agreed to be contacted about your courses.</p>
-            <div className="fss-chips"><span>Verified numbers only</span><span>Every export logged</span></div>
-            <ArrowUpRight className="fss-door-arrow" size={20} aria-hidden="true" />
-          </Door>
-        </div>
-      </motion.section>
+      <motion.div variants={rise} className="fss-doors is-wide">
+        {courses.map((course) => {
+          const summary = course.section ? summarise(course.section.lessons) : null;
+          const cover = course.section?.lessons[0]?.id;
+          return (
+            <Door key={course.id} className="is-course" onOpen={() => go({ room: 'course', path: [course.id] })}>
+              {cover && <img className="fss-door-cover" src={thumb(cover, 'hq')} alt="" loading="lazy" />}
+              <span className="fss-door-kind">{course.kind === 'batch' ? 'Batch course' : 'Free course'}</span>
+              <h3>{course.title}</h3>
+              <div className="fss-door-stats">
+                <span><b>{count(course.totals?.joined ?? 0)}</b> students</span>
+                <span><b>{summary?.lessons ?? 0}</b> lectures</span>
+                {summary && <span><b>{percent(summary.completionRate)}</b> of plays watched to the end</span>}
+              </div>
+              <ArrowUpRight className="fss-door-arrow" size={20} aria-hidden="true" />
+            </Door>
+          );
+        })}
+      </motion.div>
     </motion.div>
   );
 }
@@ -148,18 +90,18 @@ export function SectionRoom({ course, trail, go, onApprove }: { course: CourseVi
       {here.kind === 'course' && course.totals && (
         <motion.section variants={rise} className="fss-panel">
           <div className="fss-panel-head">
-            <h2>From joining to sharing</h2>
-            <p>Everyone enrolled in this course.</p>
+            <h2>{percent((course.totals.done ?? 0) / Math.max(1, course.totals.joined ?? 0))} of students have finished at least one lecture</h2>
+            <p>Everyone enrolled is counted, whether or not they share their progress. {count(course.totals.shared_progress ?? 0)} share progress; {count(course.totals.shared_contact ?? 0)} asked to be contacted.</p>
           </div>
-          <FunnelRibbon stages={funnelStages(course.totals, 'Enrolled in this course')} />
+          <Journey steps={journeySteps(course.totals)} />
         </motion.section>
       )}
 
       {here.lessons.length > 1 && (
         <motion.section variants={rise} className="fss-panel">
           <div className="fss-panel-head">
-            <h2>Lecture by lecture</h2>
-            <p><i className="fss-key is-start" /> began the lecture <i className="fss-key is-done" /> watched it to the end. Point at a lecture to see it; click to open it.</p>
+            <h2>Of {count(here.lessons[0].stats.started)} who began lecture {here.lessons[0].number}, {count(here.lessons.at(-1)!.stats.started)} reached lecture {here.lessons.at(-1)!.number}</h2>
+            <p>Students per lecture, in your order. <i className="fss-key is-start" /> began it <i className="fss-key is-done" /> watched it to the end. Point at a lecture to see it; click to open it.</p>
           </div>
           <RetentionCurve lessons={here.lessons} onPick={openLesson} mark={summary.biggestDrop?.lesson} />
         </motion.section>
@@ -335,112 +277,6 @@ export function LessonRoom({ course, trail, go }: { course: CourseView; trail: s
         {before && <LessonDoor lesson={before} onOpen={() => go({ room: 'course', path: lessonPath(section, before) })} />}
         {after && <LessonDoor lesson={after} onOpen={() => go({ room: 'course', path: lessonPath(section, after) })} />}
       </motion.nav>
-    </motion.div>
-  );
-}
-
-/* ─── Talent board ───────────────────────────────────────────────────────── */
-
-export function StudentsRoom({ students }: { students: Student[] }) {
-  const [group, setGroup] = useState<Group | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [sort, setSort] = useState<'quiz' | 'completion'>('quiz');
-  const shown = students
-    .filter((s) => !group || groupOf(s) === group)
-    .sort((a, b) => (sort === 'quiz' ? (b.quiz ?? -1) - (a.quiz ?? -1) : (b.completion ?? -1) - (a.completion ?? -1)));
-
-  return (
-    <motion.div variants={stagger} initial="hidden" animate="shown">
-      <motion.header variants={rise} className="fss-hero is-room">
-        <p className="fss-eyebrow">Talent board</p>
-        <h1><CountUp value={students.length} /> students<br /><span>share their progress with you.</span></h1>
-        <p className="fss-lede">Each point is one student: lectures completed across, quiz score up. Pick a group to see who is in it. Students who don’t share are counted in course totals only, never named.</p>
-      </motion.header>
-
-      <motion.section variants={rise} className="fss-panel">
-        <TalentMap students={students} selected={selected} onSelect={(id) => setSelected(selected === id ? null : id)} group={group} onGroup={setGroup} />
-        {group && <p className="fss-group-hint"><Sparkles size={14} aria-hidden="true" /> {GROUPS[group].hint}</p>}
-      </motion.section>
-
-      <motion.section variants={rise} className="fss-panel">
-        <div className="fss-panel-head is-row">
-          <h2>{group ? GROUPS[group].label : 'Everyone sharing'} <small>{shown.length}</small></h2>
-          <div className="fss-segment" role="group" aria-label="Sort students">
-            <button type="button" aria-pressed={sort === 'quiz'} onClick={() => setSort('quiz')}>By quiz score</button>
-            <button type="button" aria-pressed={sort === 'completion'} onClick={() => setSort('completion')}>By lectures</button>
-          </div>
-        </div>
-        <ol className="fss-roster">
-          {shown.slice(0, 120).map((s, i) => (
-            <li key={s.id} className={selected === s.id ? 'is-selected' : undefined} onClick={() => setSelected(selected === s.id ? null : s.id)}>
-              <span className="fss-rank">{i + 1}</span>
-              <span className="fss-avatar" aria-hidden="true">{s.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</span>
-              <span className="fss-roster-name">{s.name}<small className={`is-${groupOf(s)}`}>{GROUPS[groupOf(s)].label}</small></span>
-              <span className="fss-roster-meter"><span className="fss-meter"><i style={{ width: `${s.completion ?? 0}%` }} /></span><small>{s.completion ?? 0}% of lectures</small></span>
-              <span className="fss-roster-score">{s.quiz === null ? '—' : `${s.quiz}%`}<small>quiz</small></span>
-            </li>
-          ))}
-        </ol>
-        {shown.length > 120 && <p className="fss-muted">Showing the first 120. Narrow it with a group above.</p>}
-      </motion.section>
-    </motion.div>
-  );
-}
-
-/* ─── Leads ──────────────────────────────────────────────────────────────── */
-
-export function LeadsRoom({ contactable, courses, onExport }: { contactable: number; courses: CourseView[]; onExport: (filters: { courseId: string; minCompletion: number; minQuizScore: number }) => Promise<string | null> }) {
-  const [courseId, setCourseId] = useState('');
-  const [minCompletion, setMinCompletion] = useState(0);
-  const [minQuizScore, setMinQuizScore] = useState(0);
-  const [state, setState] = useState<'idle' | 'busy' | 'done'>('idle');
-  const [more, setMore] = useState(false);
-
-  const run = async () => {
-    setState('busy');
-    try {
-      setMore(!!(await onExport({ courseId, minCompletion, minQuizScore })));
-      setState('done');
-    } catch {
-      setState('idle');
-    }
-  };
-
-  return (
-    <motion.div variants={stagger} initial="hidden" animate="shown">
-      <motion.header variants={rise} className="fss-hero is-room">
-        <p className="fss-eyebrow">Leads</p>
-        <h1><CountUp value={contactable} /> students<br /><span>said yes to a call.</span></h1>
-        <p className="fss-lede">Only students who chose to share their contact details and verified their number by SMS. Anyone who withdraws leaves every later export.</p>
-      </motion.header>
-
-      <motion.section variants={rise} className="fss-panel fss-export">
-        <div className="fss-panel-head">
-          <h2>Build a call list</h2>
-          <p>Progress filters apply only to students who also share progress. Each export is recorded with who made it and when.</p>
-        </div>
-        <div className="fss-export-grid">
-          <label>
-            <span className="fss-eyebrow">Course</span>
-            <select value={courseId} onChange={(e) => setCourseId(e.target.value)}>
-              <option value="">All courses</option>
-              {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-            </select>
-          </label>
-          <label>
-            <span className="fss-eyebrow">Watched at least <b>{minCompletion}%</b></span>
-            <input type="range" min={0} max={100} step={5} value={minCompletion} onChange={(e) => setMinCompletion(Number(e.target.value))} />
-          </label>
-          <label>
-            <span className="fss-eyebrow">Quiz score at least <b>{minQuizScore}%</b></span>
-            <input type="range" min={0} max={100} step={5} value={minQuizScore} onChange={(e) => setMinQuizScore(Number(e.target.value))} />
-          </label>
-        </div>
-        <button type="button" className="fss-cta" onClick={() => void run()} disabled={state === 'busy'}>
-          <Download size={16} aria-hidden="true" /> {state === 'busy' ? 'Preparing…' : 'Download call list (CSV)'}
-        </button>
-        {state === 'done' && <p className="fss-muted">Downloaded{more ? '. There are more: download again for the next page.' : '.'}</p>}
-      </motion.section>
     </motion.div>
   );
 }

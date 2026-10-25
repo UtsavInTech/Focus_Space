@@ -42,9 +42,10 @@ describe('Studio building', () => {
   });
 
   it('round-trips places through the URL hash', () => {
-    for (const hash of ['#/', '#/students', '#/leads', '#/course/c1/polity/basics']) expect(placeHash(parsePlace(hash))).toBe(hash);
+    for (const hash of ['#/', '#/courses', '#/students', '#/students/talent', '#/student/u1', '#/requests', '#/brief', '#/course/c1/polity/basics']) expect(placeHash(parsePlace(hash))).toBe(hash);
     expect(parsePlace('#/unknown')).toEqual({ room: 'lobby' });
-    expect(depth(parsePlace('#/course/c1/polity'))).toBe(2);
+    expect(parsePlace('#/students/nonsense')).toEqual({ room: 'students' });
+    expect(depth(parsePlace('#/course/c1/polity'))).toBe(3);
   });
 
   it('puts each consenting student in one of four groups', () => {

@@ -89,57 +89,61 @@ function JoinedNotice() {
   );
 }
 
-/** Both choices start off and stay optional; the notice says what each one means. */
-function SharingChoices({ orgName, progress, contact, onProgress, onContact }: { orgName: string; progress: boolean; contact: boolean; onProgress: (v: boolean) => void; onContact: (v: boolean) => void }) {
+/** Progress sharing and "contact me": both start off; each says what the institute gets and what the student gets. */
+function SharingChoices({ progress, contact, onProgress, onContact }: { progress: boolean; contact: boolean; onProgress: (v: boolean) => void; onContact: (v: boolean) => void }) {
   return (
-    <fieldset>
-      <legend>
-        {TOOLS.consentTitle} · {orgName}
-      </legend>
-      <label className="fsw-tool-check">
+    <fieldset className="fsw-join-step">
+      <legend><span>3</span> {TOOLS.consentTitle}</legend>
+      <label className="fsw-join-choice">
         <input type="checkbox" checked={progress} onChange={(e) => onProgress(e.target.checked)} />
-        {TOOLS.progress}
+        <span><b>{TOOLS.progress}</b><small>{TOOLS.progressHelp}</small></span>
       </label>
-      <label className="fsw-tool-check">
+      <label className="fsw-join-choice is-priority">
         <input type="checkbox" checked={contact} onChange={(e) => onContact(e.target.checked)} />
-        {TOOLS.contact}
+        <span><b>{TOOLS.contact}</b><small>{TOOLS.contactHelp}</small></span>
       </label>
-      <p>{TOOLS.notice}</p>
-      <p>{TOOLS.benefits}</p>
+      <p className="fsw-join-fine">{TOOLS.notice}</p>
     </fieldset>
   );
 }
 
-/** An SMS code is asked for only when the learner chooses to share contact details. */
-function PhoneVerification({ busy, phone, code, codeSent, onCode, onSend, onVerify }: { busy: boolean; phone: string; code: string; codeSent: boolean; onCode: (v: string) => void; onSend: () => void; onVerify: () => void }) {
+/** Step 2: the number, proven by an SMS code. Skipped when the account already signed in with this phone. */
+function PhoneStep({ orgName, busy, phone, code, codeSent, verified, demoCode, onPhone, onCode, onSend, onVerify }: {
+  orgName: string; busy: boolean; phone: string; code: string; codeSent: boolean; verified: boolean; demoCode: string | null;
+  onPhone: (v: string) => void; onCode: (v: string) => void; onSend: () => void; onVerify: () => void;
+}) {
   return (
-    <div>
-      <button type="button" disabled={busy || !phone} onClick={onSend}>
-        {codeSent ? 'Send another code' : 'Send verification code'}
-      </button>
-      {codeSent && (
-        <>
-          <label>
-            SMS code
-            <input value={code} onChange={(e) => onCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" maxLength={6} />
-          </label>
-          <button type="button" disabled={busy || code.length !== 6} onClick={onVerify}>
-            Verify number
-          </button>
-        </>
+    <fieldset className="fsw-join-step">
+      <legend><span>2</span> {TOOLS.phoneTitle}</legend>
+      <p className="fsw-join-shared">{TOOLS.phoneShared(orgName)}</p>
+      <div className="fsw-join-row">
+        <input type="tel" autoComplete="tel" required value={phone} onChange={(e) => onPhone(e.target.value)} placeholder="+91 98765 43210" aria-label="Indian mobile number" disabled={verified} />
+        {!verified && <button type="button" disabled={busy || phone.replace(/\D/g, '').length < 10} onClick={onSend}>{codeSent ? 'Send again' : 'Send code'}</button>}
+      </div>
+      {codeSent && !verified && (
+        <div className="fsw-join-row">
+          <input value={code} onChange={(e) => onCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="Six-digit code" aria-label="SMS code" />
+          <button type="button" disabled={busy || code.length !== 6} onClick={onVerify}>Verify</button>
+        </div>
       )}
-    </div>
+      {demoCode && !verified && <p className="fsw-join-fine">Demo only: no SMS is sent. The code is {demoCode}.</p>}
+      {verified ? <p role="status" className="fsw-join-ok">✓ Number verified</p> : <p className="fsw-join-fine">{TOOLS.phoneHelp}</p>}
+    </fieldset>
   );
 }
 
-/** The enrol (or edit-sharing) form, for a signed-in learner. */
+/** The join (or change-choices) form, for a signed-in learner. */
 function JoinForm({ kind, identifier, course, enrolled, choices, setChoices, onJoined, setError }: { kind: Kind; identifier: string; course: Landing; enrolled: boolean; choices: Choices; setChoices: (update: (c: Choices) => Choices) => void; onJoined: () => void; setError: (message: string) => void }) {
   const auth = useAuth();
-  const [phone, setPhone] = useState('');
+  const signedInPhone = auth.user?.phone ?? '';
+  const [phone, setPhone] = useState(signedInPhone);
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [demoCode, setDemoCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const { progress, contact, verified } = choices;
+  const { progress, contact } = choices;
+  // Signed in with this very phone: it is already proven.
+  const verified = choices.verified || (!!signedInPhone && normalise(phone) === signedInPhone);
 
   const call = async <T,>(route: string, body: unknown) => {
     const token = await auth.token();
@@ -168,12 +172,11 @@ function JoinForm({ kind, identifier, course, enrolled, choices, setChoices, onJ
         onJoined();
         return;
       }
-      await call('/v1/enroll', { ...(kind === 'join' ? { joinCode: identifier } : { courseId: identifier }), phone, consents });
+      await call('/v1/enroll', { ...(kind === 'join' ? { joinCode: identifier } : { courseId: identifier }), phone: normalise(phone), consents });
       onJoined();
     });
   };
 
-  // A different number needs its own verification.
   const changePhone = (value: string) => {
     setPhone(value);
     setChoices((c) => ({ ...c, verified: false }));
@@ -182,35 +185,42 @@ function JoinForm({ kind, identifier, course, enrolled, choices, setChoices, onJ
 
   const sendCode = () =>
     void act(async () => {
-      await call('/v1/institutes/phone/start', { phone });
+      const sent = await call<{ demoCode?: string }>('/v1/institutes/phone/start', { phone: normalise(phone) });
+      setDemoCode(sent.demoCode ?? null);
       setCodeSent(true);
     });
 
   const verify = () =>
     void act(async () => {
-      await call('/v1/institutes/phone/verify', { phone, code });
+      await call('/v1/institutes/phone/verify', { phone: normalise(phone), code });
       setChoices((c) => ({ ...c, verified: true }));
     });
 
   return (
-    <form onSubmit={submit}>
-      <label>
-        {enrolled ? 'Mobile number (only if verifying contact sharing)' : 'Indian mobile number'}
-        <input type="tel" autoComplete="tel" required={!enrolled} value={phone} onChange={(e) => changePhone(e.target.value)} placeholder="+91…" />
-      </label>
-      <p>{TOOLS.phone}</p>
+    <form onSubmit={submit} className="fsw-join-form">
+      <div className="fsw-join-step is-done"><span>1</span> Signed in{auth.user?.name ? ` as ${auth.user.name}` : ''}</div>
+      {!enrolled && (
+        <PhoneStep orgName={course.org_name} busy={busy} phone={phone} code={code} codeSent={codeSent} verified={verified} demoCode={demoCode}
+          onPhone={changePhone} onCode={setCode} onSend={sendCode} onVerify={verify} />
+      )}
       <SharingChoices
-        orgName={course.org_name}
         progress={progress}
         contact={contact}
         onProgress={(value) => setChoices((c) => ({ ...c, progress: value }))}
         onContact={(value) => setChoices((c) => ({ ...c, contact: value }))}
       />
-      {contact && !verified && <PhoneVerification busy={busy} phone={phone} code={code} codeSent={codeSent} onCode={setCode} onSend={sendCode} onVerify={verify} />}
-      {verified && <p role="status">Phone verified for contact sharing.</p>}
-      <button disabled={busy || (contact && !verified)}>{busy ? 'Saving…' : enrolled ? 'Save sharing choices' : 'Join course'}</button>
+      <button className="fsw-btn fsw-btn-primary fsw-join-go" disabled={busy || (!enrolled && !verified)}>
+        {busy ? 'Saving…' : enrolled ? 'Save my choices' : `Join ${course.title}`}
+      </button>
+      {!enrolled && !verified && <p className="fsw-join-fine">Verify your number to join.</p>}
     </form>
   );
+}
+
+/** "98765 43210", "+91 98765-43210" → "+919876543210". */
+function normalise(value: string) {
+  const digits = value.replace(/\D/g, '');
+  return digits.length === 10 ? `+91${digits}` : digits.length === 12 && digits.startsWith('91') ? `+${digits}` : value.trim();
 }
 
 export default function InstituteJoin({ kind, identifier }: { kind: Kind; identifier: string }) {
@@ -240,7 +250,7 @@ export default function InstituteJoin({ kind, identifier }: { kind: Kind; identi
       <header>
         <p>{course?.org_name ?? 'FOCUSSPACE FOR INSTITUTES'}</p>
         <h1>{course?.title ?? TOOLS.join}</h1>
-        <p>Lectures organised by the institute. Joining is free.</p>
+        <p>Lectures organised by {course?.org_name ?? 'the institute'}, on YouTube, in their order. Joining is free.</p>
       </header>
       {error && (
         <p role="alert" className="fsw-tool-error">

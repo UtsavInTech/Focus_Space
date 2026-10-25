@@ -79,9 +79,9 @@ reason, not the technical one.
 
 Review these categories against the Store questionnaire before submission:
 
-- Personally identifiable information: account email; optional account profile fields; and, only when joining an institute course, a required mobile number and enrolment. The phone is shared with the institute only with separate contact consent and SMS verification.
+- Personally identifiable information: account email; optional account profile fields; and, only when joining an institute course, a mobile number verified by SMS and the enrolment. The institute the learner joins receives their name and verified number, as the join page states before joining.
 
-- User activity: institute-course milestone totals. Identified course progress and quiz scores reach the institute only with progress-sharing consent. Personal watch history and personal Spaces are not reported.
+- User activity: institute-course milestone totals. Identified course progress, time in lectures, study days and quiz scores reach the institute only with progress-sharing consent. Personal watch history and personal Spaces are not reported.
 
 - Website content: the current video context sent when the learner asks for an AI action, as already disclosed. Personal transcripts, notes and AI conversations are not included in institute progress reporting.
 

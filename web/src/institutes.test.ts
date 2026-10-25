@@ -28,9 +28,10 @@ describe('institute pilot invitation', () => {
     expect(html).toContain(`href="${INSTITUTE_CONTACT}"`);
     expect(html).toContain('href="/"');
   });
-  it('keeps contact optional and personal Spaces private', () => {
+  it('states that joining shares the number, keeps progress optional and personal Spaces private', () => {
+    expect(INSTITUTES.flow[1].text).toContain('receives their name and number');
     expect(INSTITUTES.flow[1].text).toContain('separate, optional choice');
-    expect(INSTITUTES.privacy).toContain('withdraw their consent at any time');
+    expect(INSTITUTES.privacy).toContain('withdraw that choice at any time');
     expect(INSTITUTES.privacy).toContain('personal Spaces would never be shared');
   });
 });

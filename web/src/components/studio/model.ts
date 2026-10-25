@@ -104,29 +104,42 @@ export function summarise(lessons: Lesson[]): Summary {
 }
 
 /** Where the Studio is: the lobby, a room inside a course, or one of the side rooms. Lives in the URL hash. */
+export type StudentFilter = 'all' | 'priority' | 'sharing' | 'talent' | 'toppers' | 'help' | 'quiet' | 'private';
+
 export type Place =
-  | { room: 'lobby' }
-  | { room: 'students' }
-  | { room: 'leads' }
+  | { room: 'lobby' } // the overview
+  | { room: 'courses' }
+  | { room: 'students'; filter?: StudentFilter }
+  | { room: 'student'; id: string }
+  | { room: 'requests' }
+  | { room: 'brief' }
   | { room: 'course'; path: string[] }; // [courseId, subjectId?, topicId?, lessonId?]
+
+const FILTERS: StudentFilter[] = ['all', 'priority', 'sharing', 'talent', 'toppers', 'help', 'quiet', 'private'];
 
 export function parsePlace(hash: string): Place {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
-  if (parts[0] === 'students') return { room: 'students' };
-  if (parts[0] === 'leads') return { room: 'leads' };
+  if (parts[0] === 'students') return FILTERS.includes(parts[1] as StudentFilter) && parts[1] !== 'all' ? { room: 'students', filter: parts[1] as StudentFilter } : { room: 'students' };
+  if (parts[0] === 'student' && parts[1]) return { room: 'student', id: parts[1] };
+  if (parts[0] === 'requests') return { room: 'requests' };
+  if (parts[0] === 'brief') return { room: 'brief' };
+  if (parts[0] === 'courses') return { room: 'courses' };
   if (parts[0] === 'course' && parts[1]) return { room: 'course', path: parts.slice(1, 5) };
   return { room: 'lobby' };
 }
 
 export function placeHash(place: Place): string {
   if (place.room === 'course') return `#/course/${place.path.map(encodeURIComponent).join('/')}`;
+  if (place.room === 'student') return `#/student/${encodeURIComponent(place.id)}`;
+  if (place.room === 'students') return place.filter && place.filter !== 'all' ? `#/students/${place.filter}` : '#/students';
   if (place.room === 'lobby') return '#/';
   return `#/${place.room}`;
 }
 
-/** How deep a place is, so a transition can tell "going in" from "coming back out". */
 export function depth(place: Place): number {
-  return place.room === 'course' ? place.path.length : place.room === 'lobby' ? 0 : 1;
+  if (place.room === 'course') return place.path.length + 1;
+  if (place.room === 'student') return 2;
+  return place.room === 'lobby' ? 0 : 1;
 }
 
 /** Follows a course path down the building. Unknown ids stop at the deepest room that exists. */
@@ -169,13 +182,17 @@ export function toStudents(rows: Record<string, unknown>[]): Student[] {
 export type Group = 'toppers' | 'talent' | 'help' | 'drifting';
 
 export const GROUPS: Record<Group, { label: string; hint: string }> = {
-  toppers: { label: 'Toppers', hint: 'Watching most of the course and scoring well.' },
-  talent: { label: 'Hidden talent', hint: 'Scoring well but falling behind on lectures. Worth a call.' },
-  help: { label: 'Needs help', hint: 'Keeping up with lectures, but quiz scores are low.' },
-  drifting: { label: 'Drifting', hint: 'Behind on lectures and on scores. Not yet engaged.' },
+  toppers: { label: 'Toppers', hint: 'At least half the course watched, and 70% or more on quizzes.' },
+  talent: { label: 'Hidden talent', hint: '70% or more on quizzes, but less than half the lectures watched. Worth a call.' },
+  help: { label: 'Needs help', hint: 'At least half the lectures watched, but under 70% on quizzes.' },
+  drifting: { label: 'Drifting', hint: 'Behind on lectures and under 70% on quizzes. Not yet engaged.' },
 };
 
-export function groupOf(student: Student, completionLine = 50, scoreLine = 60): Group {
+/** The one definition used everywhere (map, filters, overview): half the course, and a 70% quiz average. */
+export const COMPLETION_LINE = 50;
+export const SCORE_LINE = 70;
+
+export function groupOf(student: Pick<Student, 'completion' | 'quiz'>, completionLine = COMPLETION_LINE, scoreLine = SCORE_LINE): Group {
   const keepingUp = (student.completion ?? 0) >= completionLine;
   const scoring = (student.quiz ?? 0) >= scoreLine;
   if (keepingUp && scoring) return 'toppers';

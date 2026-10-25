@@ -74,12 +74,23 @@ export function App() {
   const isData = path === '/data';
   const legal = LEGAL_DOCS[path] ?? null;
 
+  // The institute dashboard is an app of its own: no website menu, footer or chat bubble around it.
+  if (path === '/studio') {
+    return (
+      <AuthProvider>
+        <Suspense fallback={<p role="status" className="fsw-studio-loading">Opening your dashboard…</p>}>
+          <InstituteTools view="studio" appearance={appearance} onAppearance={setAppearance} />
+        </Suspense>
+      </AuthProvider>
+    );
+  }
+
   return (
     <AuthProvider>
       <SiteNav appearance={appearance} onAppearance={setAppearance} />
       <main id="main" className={appearance === 'light' && path !== '/' ? 'fsw-motion-page' : undefined}>
         {appearance === 'light' && path !== '/' && <PageAtmosphere key={path} />}
-        {path === '/admin' || path === '/studio' ? (<Suspense fallback={<p role="status">Loading institute tools…</p>}><InstituteTools view={path==='/admin'?'admin':'studio'}/></Suspense>) : /^\/(join|learn)\/[^/]+$/.test(path) ? (<Suspense fallback={<p role="status">Loading course…</p>}><InstituteJoin kind={path.startsWith('/join/')?'join':'learn'} identifier={path.split('/')[2]}/></Suspense>) : legal ? (
+        {path === '/admin' ? (<Suspense fallback={<p role="status">Loading institute tools…</p>}><InstituteTools view="admin" /></Suspense>) : /^\/(join|learn)\/[^/]+$/.test(path) ? (<Suspense fallback={<p role="status">Loading course…</p>}><InstituteJoin kind={path.startsWith('/join/')?'join':'learn'} identifier={path.split('/')[2]}/></Suspense>) : legal ? (
           <LegalPage doc={legal} lead={legal.slug === '/privacy' ? <DataSummary /> : undefined} />
         ) : isConnect ? (
           <ConnectPage />

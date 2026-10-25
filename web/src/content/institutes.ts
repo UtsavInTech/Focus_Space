@@ -20,7 +20,7 @@ export const INSTITUTES = {
   flowTitle: 'The student journey we’re planning',
   flow: [
     { title: 'A join code from you', text: 'Students would join their institute’s Space with a code from their institute.' },
-    { title: 'A clear choice about sharing', text: 'They would see what progress they’re being asked to share. Sharing a phone number for calls or messages would be a separate, optional choice.' },
+    { title: 'Clear steps when they join', text: 'They would verify their mobile number and be told, before joining, that your institute receives their name and number. Sharing progress would be a separate, optional choice, and “Yes, contact me” would put them first in your list.' },
     { title: 'A place for today’s class', text: 'Your faculty would choose the class. Students would find it alongside the subjects and topics in their course.' },
   ],
   detailsTitle: 'Your course, with a little more structure.',
@@ -28,10 +28,10 @@ export const INSTITUTES = {
   details: [
     { title: 'The course you teach', text: 'Lectures and playlists in your order, grouped by subject and topic. Only channels you approve, with no Shorts or videos from other channels in the institute Space.' },
     { title: 'A clearer view of progress', text: 'An institute dashboard would show who watched which lessons and who is falling behind, for students who have agreed to share their institute progress.' },
-    { title: 'Contact with permission', text: 'You would receive phone numbers only from students who explicitly agree to share them for contact. Watching your lectures would not give you their number.' },
+    { title: 'Every student, reachable', text: 'You would receive the name and verified number of every student who joins your course, with students who ask to be contacted marked first and flagged to you straight away. Watching your lectures on YouTube alone would not give you anyone’s number.' },
   ],
   privacyTitle: 'A student’s choice stays theirs.',
-  privacy: 'In the proposed pilot, students would choose what they share and could withdraw their consent at any time. Their personal Spaces would never be shared with the institute.',
+  privacy: 'In the proposed pilot, students would know before joining that you receive their name and number, would choose whether to share their progress, and could withdraw that choice at any time. Their personal Spaces would never be shared with the institute.',
   closingTitle: 'Help shape the pilot.',
   closingText: 'Tell us what you teach and how your students use YouTube. We’ll talk through whether this proposed pilot fits your institute.',
   faq: 'Not yet. We’re planning a pilot with a small number of coaching institutes. Institute Spaces, the dashboard and joining by code are being prepared for the pilot and are not publicly available today. Talk to us about the pilot on the institutes page.',

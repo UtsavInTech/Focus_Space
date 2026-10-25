@@ -6,6 +6,7 @@ import { TOOLS } from '../content/institute-tools';
 import { ControlRoom } from './institute-tools/ControlRoom';
 import { StudioApp } from './studio/StudioApp';
 import { formFields } from './institute-tools/shared';
+import type { Appearance } from '../appearance';
 import './institute-tools.css';
 
 type View = 'admin' | 'studio';
@@ -15,7 +16,7 @@ type Access = { staff: boolean; orgs: Org[] };
  * `/admin` (Control room, FocusSpace staff) and `/studio` (an institute's own staff). Both pick an
  * institute first; the server decides who may see which, and this page only shows its answer.
  */
-export default function InstituteTools({ view }: { view: View }) {
+export default function InstituteTools({ view, appearance = 'light', onAppearance = () => undefined }: { view: View; appearance?: Appearance; onAppearance?: (a: Appearance) => void }) {
   const auth = useAuth();
   const [access, setAccess] = useState<Access | null>(null);
   const [orgs, setOrgs] = useState<Org[]>([]);
@@ -129,7 +130,21 @@ export default function InstituteTools({ view }: { view: View }) {
   // The Studio is its own building once someone with access is inside; everything before that (signing in,
   // no access, no institute yet) uses the plain tool page below.
   if (view === 'studio' && auth.user && access && org) {
-    return <StudioApp orgs={orgs} org={org} onOrg={setOrg} courses={courses} call={call} token={auth.token} />;
+    return <StudioApp orgs={orgs} org={org} onOrg={setOrg} courses={courses} call={call} token={auth.token} appearance={appearance} onAppearance={onAppearance} />;
+  }
+
+  // Before the dashboard opens (signing in, no access, no institute yet), the Studio still stands on its
+  // own page, without the website around it.
+  if (view === 'studio') {
+    return (
+      <section className="fsw-tools fsw-studio-gate">
+        <h1>Institute dashboard</h1>
+        <p>For your institute's owners, admins and faculty.</p>
+        {error && <p role="alert" className="fsw-tool-error">{error}</p>}
+        {body()}
+        <a href="/" onClick={onLinkClick('/')}>Back to FocusSpace</a>
+      </section>
+    );
   }
 
   return (

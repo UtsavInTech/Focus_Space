@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { animate, motion, useInView, useMotionValue, useReducedMotion, useTransform } from 'motion/react';
 import { count, GROUPS, groupOf, percent, type Group, type Lesson, type Student } from './model';
 
@@ -21,69 +21,6 @@ export function CountUp({ value, format = count }: { value: number; format?: (n:
     return () => controls.stop();
   }, [seen, value, reduced, motionValue]);
   return <motion.span ref={ref} className="fss-num">{text}</motion.span>;
-}
-
-/**
- * The funnel as one flowing ribbon: each stage is a column whose height is its share of the first, joined by
- * smooth curves, so the narrowing reads at a glance. Conversion from the previous stage sits on each joint.
- */
-export function FunnelRibbon({ stages }: { stages: { label: string; value: number; note?: string }[] }) {
-  const id = useId().replace(/:/g, '');
-  const reduced = useReducedMotion();
-  const ref = useRef<SVGSVGElement>(null);
-  const seen = useInView(ref, { once: true, margin: '-15% 0px' });
-  const width = 1000;
-  const height = 240;
-  const max = Math.max(1, ...stages.map((s) => s.value));
-  const step = width / stages.length;
-  const half = (value: number) => Math.max(3, ((value / max) * height) / 2);
-  const mid = height / 2;
-
-  // Sampled: flat across each stage, an eased fall between stages, mirrored about the middle.
-  const path = useMemo(() => {
-    const heights = stages.map((s) => half(s.value));
-    const flat = step * 0.58;
-    const at = (x: number) => {
-      const i = Math.min(stages.length - 1, Math.floor(x / step));
-      const into = x - i * step;
-      if (into <= flat || i === stages.length - 1) return heights[i];
-      const t = (into - flat) / (step - flat);
-      return heights[i] + (heights[i + 1] - heights[i]) * t * t * (3 - 2 * t);
-    };
-    const xs = Array.from({ length: 241 }, (_, k) => (k / 240) * width);
-    const top = xs.map((x) => `${x.toFixed(1)},${(mid - at(x)).toFixed(1)}`);
-    const bottom = [...xs].reverse().map((x) => `${x.toFixed(1)},${(mid + at(x)).toFixed(1)}`);
-    return `M ${top.join(' L ')} L ${bottom.join(' L ')} Z`;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stages.map((s) => s.value).join(',')]);
-
-  return (
-    <div className="fss-ribbon">
-      <div className="fss-ribbon-labels" style={{ gridTemplateColumns: `repeat(${stages.length}, 1fr)` }}>
-        {stages.map((stage, i) => (
-          <div key={stage.label}>
-            <span className="fss-eyebrow">{stage.label}</span>
-            <strong><CountUp value={stage.value} /></strong>
-            <small>{i === 0 ? stage.note ?? 'Everyone in this view' : `${percent(stages[i - 1].value ? stage.value / stages[i - 1].value : 0)} of the step before`}</small>
-          </div>
-        ))}
-      </div>
-      <svg ref={ref} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
-        <defs>
-          <linearGradient id={`${id}-fill`} x1="0" x2="1">
-            <stop offset="0" stopColor="var(--fss-accent)" stopOpacity=".95" />
-            <stop offset=".55" stopColor="var(--fss-accent-2)" stopOpacity=".75" />
-            <stop offset="1" stopColor="var(--fss-accent-3)" stopOpacity=".55" />
-          </linearGradient>
-          <clipPath id={`${id}-reveal`}>
-            <motion.rect x="0" y="0" height={height} initial={{ width: reduced ? width : 0 }} animate={{ width: seen || reduced ? width : 0 }} transition={{ duration: 1.6, ease: EASE }} />
-          </clipPath>
-        </defs>
-        <path d={path} fill={`url(#${id}-fill)`} clipPath={`url(#${id}-reveal)`} />
-        <path d={path} fill="none" stroke="var(--fss-line-strong)" strokeWidth="1" vectorEffect="non-scaling-stroke" clipPath={`url(#${id}-reveal)`} />
-      </svg>
-    </div>
-  );
 }
 
 /**
@@ -129,6 +66,7 @@ export function RetentionCurve({ lessons, onPick, mark }: { lessons: Lesson[]; o
   return (
     <div ref={ref} className="fss-curve" onPointerMove={onMove} onPointerLeave={() => setHover(null)} onClick={() => current && onPick?.(current)} role="img"
       aria-label={`Lesson by lesson: ${lessons.map((l) => `lesson ${l.number}, ${l.stats.started} started, ${l.stats.done} finished`).join('; ')}`}>
+      <div className="fss-curve-y" aria-hidden="true"><span>{count(max)} students</span><span>{count(Math.round(max / 2))}</span><span>0</span></div>
       <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id={`${id}-start`} x1="0" x2="0" y1="0" y2="1">
@@ -273,8 +211,145 @@ export function TalentMap({ students, selected, onSelect, group, onGroup }: {
         )}
       </div>
       <div className="fss-map-axes" aria-hidden="true">
-        <span>↑ Quiz score · line at 60%</span>
+        <span>↑ Quiz score · line at 70%</span>
         <span>Lectures done → · line at half</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * How far students got in a course, as plain horizontal bars with the count and share printed on each.
+ * Every bar is measured against the first, so the shortening is the drop-off.
+ */
+export function Journey({ steps }: { steps: { label: string; value: number; hint?: string }[] }) {
+  const base = Math.max(1, steps[0]?.value ?? 1);
+  return (
+    <div className="fss-journey">
+      {steps.map((step, i) => (
+        <div key={step.label} className="fss-journey-row">
+          <div className="fss-journey-label">
+            <b>{step.label}</b>
+            {step.hint && <small>{step.hint}</small>}
+          </div>
+          <div className="fss-journey-track">
+            <motion.i initial={{ width: 0 }} whileInView={{ width: percent(step.value / base) }} viewport={{ once: true }} transition={{ duration: 1.1, delay: i * 0.08, ease: EASE }} />
+          </div>
+          <div className="fss-journey-value">
+            <strong><CountUp value={step.value} /></strong>
+            <small>{i === 0 ? 'everyone' : percent(step.value / base)}</small>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Lectures begun per day for four weeks, this week in full colour, with dates under the bars. */
+export function DailyBars({ days }: { days: { day: string; started: number; done: number }[] }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const max = Math.max(1, ...days.map((d) => d.started));
+  const ticks = [0, Math.round(max / 2), max];
+  const label = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  return (
+    <div className="fss-daily">
+      <div className="fss-daily-y" aria-hidden="true">{[...ticks].reverse().map((t) => <span key={t}>{count(t)}</span>)}</div>
+      <div className="fss-daily-plot" onPointerLeave={() => setHover(null)} role="img"
+        aria-label={`Lectures begun per day: ${days.map((d) => `${label(d.day)} ${d.started}`).join(', ')}`}>
+        {days.map((d, i) => {
+          const thisWeek = i >= days.length - 7;
+          return (
+            <div key={d.day} className={`fss-daily-col${thisWeek ? ' is-now' : ''}`} onPointerEnter={() => setHover(i)}>
+              <motion.span className="fss-daily-bar is-started" initial={{ height: 0 }} whileInView={{ height: percent(d.started / max) }} viewport={{ once: true }} transition={{ duration: 0.8, delay: i * 0.015, ease: EASE }} />
+              <motion.span className="fss-daily-bar is-done" initial={{ height: 0 }} whileInView={{ height: percent(d.done / max) }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2 + i * 0.015, ease: EASE }} />
+              {hover === i && (
+                <span className="fss-daily-tip">
+                  <b>{new Date(`${d.day}T00:00:00Z`).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</b>
+                  {count(d.started)} begun · {count(d.done)} finished
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="fss-daily-x" aria-hidden="true">
+        <span>{label(days[0].day)}</span>
+        <span>Last week</span>
+        <span>This week</span>
+        <span>Today</span>
+      </div>
+    </div>
+  );
+}
+
+/** Eight weeks of study days, Monday at the top, darker for more lectures that day. */
+export function StudyCalendar({ days }: { days: { day: string; count: number }[] }) {
+  const max = Math.max(1, ...days.map((d) => d.count));
+  const weeks = Array.from({ length: Math.ceil(days.length / 7) }, (_, w) => days.slice(w * 7, w * 7 + 7));
+  return (
+    <div className="fss-calendar">
+      <div className="fss-calendar-days" aria-hidden="true"><span>Mon</span><span /><span>Wed</span><span /><span>Fri</span><span /><span>Sun</span></div>
+      <div className="fss-calendar-grid">
+        {weeks.map((w, i) => (
+          <div key={i} className="fss-calendar-week">
+            {w.map((d) => (
+              <span key={d.day} title={`${d.day}: ${d.count} lecture${d.count === 1 ? '' : 's'}`}
+                style={{ '--level': d.count ? 0.25 + (0.75 * d.count) / max : 0 } as CSSProperties} className={d.count ? 'is-on' : undefined} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** When in the day the student studies, in four-hour blocks. */
+export function HourBlocks({ hours }: { hours: number[] }) {
+  const blocks = [
+    { label: '4–8 am', value: hours.slice(4, 8) },
+    { label: '8 am–12', value: hours.slice(8, 12) },
+    { label: '12–4 pm', value: hours.slice(12, 16) },
+    { label: '4–8 pm', value: hours.slice(16, 20) },
+    { label: '8 pm–12', value: hours.slice(20, 24) },
+    { label: '12–4 am', value: hours.slice(0, 4) },
+  ].map((b) => ({ label: b.label, value: b.value.reduce((x, y) => x + y, 0) }));
+  const max = Math.max(1, ...blocks.map((b) => b.value));
+  return (
+    <div className="fss-hours">
+      {blocks.map((b) => (
+        <div key={b.label}>
+          <span className="fss-hours-track"><motion.i initial={{ height: 0 }} whileInView={{ height: percent(b.value / max) }} viewport={{ once: true }} transition={{ duration: 0.9, ease: EASE }} /></span>
+          <small>{b.label}</small>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Quiz scores in the order they were taken, 0–100%, with the student's average as a line. */
+export function QuizChart({ points }: { points: { at: number; percent: number; label: string; kind: 'institute' | 'quizme' }[] }) {
+  const [hover, setHover] = useState<number | null>(null);
+  if (!points.length) return <p className="fss-muted">No quiz scores shared yet.</p>;
+  const avg = points.reduce((n, p) => n + p.percent, 0) / points.length;
+  const x = (i: number) => (points.length === 1 ? 50 : 4 + (i * 92) / (points.length - 1));
+  return (
+    <div className="fss-quiz" onPointerLeave={() => setHover(null)}>
+      <div className="fss-quiz-y" aria-hidden="true"><span>100%</span><span>50%</span><span>0%</span></div>
+      <div className="fss-quiz-plot" role="img" aria-label={`Quiz scores in order: ${points.map((p) => `${p.percent}%`).join(', ')}. Average ${Math.round(avg)}%.`}>
+        <span className="fss-quiz-avg" style={{ bottom: `${avg}%` }}><em>average {Math.round(avg)}%</em></span>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <polyline points={points.map((p, i) => `${x(i)},${100 - p.percent}`).join(' ')} fill="none" stroke="var(--fss-accent)" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+        </svg>
+        {points.map((p, i) => (
+          <button type="button" key={i} className={`fss-quiz-dot is-${p.kind}`} style={{ left: `${x(i)}%`, bottom: `${p.percent}%` }}
+            onPointerEnter={() => setHover(i)} onFocus={() => setHover(i)} aria-label={`${p.label}: ${p.percent}%`} />
+        ))}
+        {hover !== null && (
+          <span className="fss-quiz-tip" style={{ left: `${x(hover)}%`, bottom: `${points[hover].percent}%` }}>
+            <b>{points[hover].percent}%</b> {points[hover].label}
+            <small>{points[hover].kind === 'institute' ? 'Institute quiz' : 'Quiz me'} · {new Date(points[hover].at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</small>
+          </span>
+        )}
       </div>
     </div>
   );

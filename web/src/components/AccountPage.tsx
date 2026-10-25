@@ -1,4 +1,5 @@
 import { InstituteAccount } from './InstituteAccount';
+import { StaffLanding } from './StaffLanding';
 import { hasStoreListing, installHref } from '../install';
 import { useEffect, useState } from 'react';
 import { navigate, onLinkClick } from '../router';
@@ -69,6 +70,7 @@ export function AccountPage() {
         </button>
       </header>
 
+      <StaffLanding />
       <ProfilePanel />
       <InstituteAccount />
 

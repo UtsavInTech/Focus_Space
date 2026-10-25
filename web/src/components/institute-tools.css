@@ -221,3 +221,31 @@
     font-size: 16px !important;
   }
 }
+
+/* ─── Joining: clear numbered steps ─────────────────────────────────────── */
+
+.fsw-join-form { display: grid; gap: 16px; border: 0 !important; padding: 0 !important; }
+.fsw-join-step { display: grid; gap: 12px; margin: 0; padding: 22px 24px; border: 1px solid var(--fs-border); border-radius: 20px; background: var(--fs-surface); }
+.fsw-join-step legend, div.fsw-join-step { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 16px; padding: 0; }
+.fsw-join-step legend { float: left; width: 100%; margin-bottom: 4px; }
+.fsw-join-step legend + * { clear: both; }
+.fsw-join-step legend span, div.fsw-join-step span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 13px; color: #fff; background: var(--fs-brand, #d33a2f); }
+div.fsw-join-step.is-done { color: var(--fs-text-2); font-weight: 500; }
+.fsw-join-shared { margin: 0 !important; padding: 12px 14px; border-radius: 12px; border-left: 3px solid var(--fs-brand, #d33a2f); background: color-mix(in srgb, var(--fs-brand, #d33a2f) 7%, transparent); color: var(--fs-text) !important; }
+.fsw-join-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.fsw-join-row input { flex: 1; min-width: 200px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--fs-border-strong, var(--fs-border)); background: var(--fs-bg); color: var(--fs-text); font: inherit; font-size: 16px; }
+.fsw-join-row button { padding: 12px 18px; border-radius: 12px; border: 1px solid var(--fs-border-strong, var(--fs-border)); background: var(--fs-surface-2, var(--fs-surface)); color: var(--fs-text); font: inherit; font-weight: 600; cursor: pointer; }
+.fsw-join-choice { display: flex !important; flex-direction: row !important; gap: 14px; align-items: flex-start; padding: 14px; border-radius: 14px; border: 1px solid var(--fs-border); cursor: pointer; }
+.fsw-join-choice input { margin-top: 4px; width: 18px; height: 18px; flex: none; accent-color: var(--fs-brand, #d33a2f); }
+.fsw-join-choice span { display: grid; gap: 4px; }
+.fsw-join-choice small { color: var(--fs-text-2); font-size: 13px; line-height: 1.55; }
+.fsw-join-choice.is-priority:has(input:checked) { border-color: var(--fs-brand, #d33a2f); background: color-mix(in srgb, var(--fs-brand, #d33a2f) 6%, transparent); }
+.fsw-join-fine { margin: 0 !important; font-size: 13px; color: var(--fs-text-2); }
+.fsw-join-ok { margin: 0 !important; font-weight: 600; color: #2f9e62 !important; }
+.fsw-join-go { justify-self: start; }
+
+/* The way into the dashboard, on the account page, for institute staff. */
+.fsw-staff-landing { display: flex; align-items: center; gap: 16px; margin: 0 0 24px; padding: 20px 22px; border-radius: 20px; color: #fff !important; text-decoration: none !important;
+  background: linear-gradient(135deg, #e2584b, #a3232e); box-shadow: 0 20px 40px -24px rgba(163, 35, 46, .7); }
+.fsw-staff-landing span { display: grid; gap: 2px; flex: 1; }
+.fsw-staff-landing small { opacity: .85; }

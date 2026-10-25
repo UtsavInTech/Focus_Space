@@ -37,7 +37,7 @@ export interface DataGroup {
   tone: 'local' | 'sent';
 }
 
-export const DATA_GROUPS: DataGroup[] = [{id:'institutes',title:'Institute courses you choose to join',summary:'Joining requires an account and Indian mobile number. Both sharing choices start off.',tone:'sent',points:['Course milestones count towards totals. Named course progress and quiz scores reach the institute only with progress consent.','Your number reaches the institute only with separate contact consent and SMS verification.','Both choices can be withdrawn from your account. Courses and study tools remain available with sharing off. Personal Spaces are never reported.']},
+export const DATA_GROUPS: DataGroup[] = [{id:'institutes',title:'Institute courses you choose to join',summary:'Joining needs an account and a verified Indian mobile number. The institute receives your name and number when you join.',tone:'sent',points:['Course milestones count towards totals. Named course progress, study time and quiz scores reach the institute only if you share progress.','“Yes, contact me” and “Talk to your faculty” put you first in the institute’s list. Both are optional.','Both choices can be withdrawn from your account. Courses and study tools remain available with sharing off. Personal Spaces are never reported.']},
   {
     id: 'browser',
     title: 'Stays on your computer',
@@ -111,5 +111,5 @@ export const DATA_NEVER: string[] = [
   'We do not sell your data, and there is no advertising in FocusSpace.',
   'There is no analytics or tracking in the extension.',
   'Personal Spaces send no institute progress. Joined institute courses send milestone totals; named progress and quiz scores need your consent.',
-  'Personal learning content is never shared with an institute. Contact sharing is a separate, verified choice.',
+  'Personal learning content is never shared with an institute. The institute you join receives your name and verified number.',
 ];

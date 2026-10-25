@@ -27,7 +27,8 @@ type Step = 'email' | 'code' | 'password';
 /** Where to go once signed in. `?next=` is only ever honoured for a path on this site. */
 function nextPath(): string {
   const raw = new URLSearchParams(location.search).get('next');
-  return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/account';
+  // With no destination, the account page decides: institute staff go on to their dashboard.
+  return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/account?from=signin';
 }
 
 export function AuthPage({ mode: initialMode }: { mode: Mode }) {
