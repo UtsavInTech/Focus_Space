@@ -4,6 +4,13 @@
  * docs/) — this file is not the place to describe the roadmap.
  */
 
+import { EXAM_STORY, QUIZ_COPY } from './home';
+
+export const JOURNEY_INTRO = {
+  title: 'Choose your goal. Follow a path. Learn from every lecture.',
+  text: 'Start with your exam, degree or next skill. FocusSpace gives your subjects a place on YouTube, helps with the lecture you are watching, and lets you check what stayed with you.',
+};
+
 export const STAGES = {
   before: 'Before you press play',
   during: 'While you watch',
@@ -36,13 +43,13 @@ export const FEATURES: Feature[] = [
   {
     id: 'modes',
     stage: 'before',
-    label: 'Modes',
-    headline: 'Say what you came for. YouTube rearranges itself.',
-    body: 'A mode is an intention: “DSA”, “System design”, “Punjabi music”. Type it in plain words and FocusSpace works out the topics, the vocabulary and the searches that express it. No keyword lists to maintain.',
+    label: 'Your goal',
+    headline: EXAM_STORY.title,
+    body: EXAM_STORY.intro,
     points: [
-      'Built-in modes for DSA, Web Development, AI/ML, Data Science, SQL, Java and Relaxation',
-      'Add channels you like without subscribing to them',
-      'Switch modes from YouTube’s home, its sidebar, or the extension popup',
+      EXAM_STORY.steps[0].text,
+      EXAM_STORY.steps[1].text,
+      EXAM_STORY.note,
     ],
     shots: [
       { name: '01-choose-a-space', alt: 'FocusSpace on YouTube asking “What do you want to focus on?”, with Spaces grouped into Tech, Languages, Creative, Life and Unwind', caption: 'Choosing a Space on YouTube' },
@@ -65,18 +72,32 @@ export const FEATURES: Feature[] = [
   {
     id: 'feed',
     stage: 'before',
-    label: 'Your feed',
-    headline: 'Your subscriptions first, the rest of YouTube woven in.',
-    body: '“Recommended for you” becomes your own channels ranked by how well they match what you are learning, with a discovery from the wider YouTube after every four, each one relevance-checked before it is shown.',
+    label: 'Your home on YouTube',
+    headline: 'A next lesson up front. A shelf for what follows.',
+    body: 'Your Space opens with a featured video, then shelves of lessons. Your subscriptions are ranked around your subject, with relevant discoveries from wider YouTube alongside them.',
     points: [
-      'An explainable scoring model, not a black box: every video can tell you why it is there',
-      'Shorts and the usual attention traps are gone',
-      'Continue watching knows where you stopped and what you skipped',
+      'A pinned Space bar keeps subjects and topics close as you scroll',
+      'FocusSpace History and Library shelves help you pick up where you left off',
+      'Go full screen from the Space bar; Esc brings your tabs and bars back',
     ],
     shots: [
       { name: '03-your-feed', alt: 'YouTube’s home in a DSA Space: topic chips, then linked-list lectures from the learner’s own subscriptions', caption: 'YouTube’s home, in a DSA Space' },
       { name: '04-continue-watching', alt: 'The FocusSpace dashboard home: Your Spaces, Continue watching with progress bars, and recent notes', caption: 'Continue watching, where you stopped' },
     ],
+  },
+  {
+    id: 'learning-path',
+    stage: 'before',
+    label: 'Learning paths',
+    headline: 'Know where to begin. See what comes next.',
+    body: EXAM_STORY.steps[2].text,
+    points: [
+      'Foundations → HLD building blocks → HLD case studies → LLD foundations → LLD case studies → Interview',
+      'Open a stage to choose a topic and its subtopics',
+      'Progress comes from lessons watched; “You are here” marks the next stage to cover',
+    ],
+    // No capture of the new path yet. Keep the previous real page open.
+    shots: [],
   },
   {
     id: 'course',
@@ -115,7 +136,7 @@ export const FEATURES: Feature[] = [
     points: [
       'Nothing happens during playback: no requests, no cost, no lag',
       'Talk to it hands-free, and hear the answer read back',
-      'No API key to bring. It works the moment you install it.',
+      'On supported computers, on-device AI can take over when hosted AI credits run out',
     ],
     shots: [
       { name: '06-ask-ai', alt: 'FocusSpace AI answering on YouTube’s home in a System Design Space, recommending specific lectures', caption: 'FocusSpace AI, on YouTube’s home' },
@@ -125,12 +146,12 @@ export const FEATURES: Feature[] = [
     id: 'quiz',
     stage: 'after',
     label: 'Quizzes you can trust',
-    headline: 'Every question is checked before you see it.',
-    body: 'Quiz me asks on what you have watched so far, or the whole video: five questions for every fifteen minutes, one round at a time. Each question is written, then checked by Jev, a decision model from TypeSafe, which solves it on its own without seeing the answer. Anything Jev is unsure about goes to a reasoning model that traces it step by step: a wrong answer is corrected, and a question with no right option, or two, never reaches you.',
+    headline: 'Choose your round. Check what you learned.',
+    body: QUIZ_COPY,
     points: [
-      'Code is traced exactly as it runs: printf("%d") over {6, 2, 0, 4, 5} prints 62045, not 6 2 0 4 5',
-      'Questions about the subject, never about the lecture numbering',
-      'Easy, Medium or Hard, with your score, on Plus and above',
+      'On FocusSpace AI, questions are checked by another model before they are shown',
+      'Questions stay with the part of the video you chose',
+      'Difficulty and score are available on eligible paid plans',
     ],
     shots: [],
   },

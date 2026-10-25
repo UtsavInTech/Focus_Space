@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Pause, Play } from 'lucide-react';
-import { FEATURES, STAGES, type Shot } from '../content/features';
+import { FEATURES, JOURNEY_INTRO, STAGES, type Shot } from '../content/features';
 import { Starfield } from './Starfield';
 
 /**
@@ -69,8 +69,8 @@ export function FeatureJourney() {
     <section className="fsw-section fsw-journey" id="features">
       <Starfield progress={progressRef} />
       <div className="fsw-section-head" data-reveal>
-        <h2>Set it up by talking. Learn from every lecture. Prove it with a quiz.</h2>
-        <p>FocusSpace shapes YouTube around your subject, explains the lecture you are in, and checks what you have learned, all inside the YouTube you already use.</p>
+        <h2>{JOURNEY_INTRO.title}</h2>
+        <p>{JOURNEY_INTRO.text}</p>
       </div>
 
       <div className="fsw-journey-body" ref={bodyRef}>

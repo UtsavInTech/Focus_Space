@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { onLinkClick } from '../router';
 import { InstallCta } from './InstallCta';
+import { DEEP_HERO } from '../content/home';
 
 /**
  * Deliberately no "80,000,000+ users" badge. FocusSpace has not shipped, and
@@ -35,13 +36,7 @@ export function Hero() {
           <span className="fsw-grad">what you came for</span>
         </h1>
 
-        <p className="fsw-lede">
-          Tell FocusSpace what you are learning. Your home page becomes your
-          own subscriptions ranked against that intention, the best of the
-          wider YouTube woven in, and the attention traps gone. On a video it
-          follows the course you are on and turns what you watched into notes
-          and mind maps.
-        </p>
+        <p className="fsw-lede">{DEEP_HERO.intro}</p>
 
         <div className="fsw-hero-cta">
           <InstallCta
@@ -59,10 +54,7 @@ export function Hero() {
           />
         </div>
 
-        {/* What sets it apart, in one line: it learns the learner, and the learner shapes it. */}
-        <p className="fsw-hero-tagline">
-          YouTube that learns how you prefer to learn. <span>Add your own personal touch.</span>
-        </p>
+        <p className="fsw-hero-tagline">{DEEP_HERO.tagline}</p>
       </div>
 
       <HeroProductPreview />
@@ -74,29 +66,11 @@ export function Hero() {
  * Real FocusSpace product previews showing the extension across
  * different learning modes.
  *
- * The screenshots rotate automatically, while the mode buttons also
- * allow visitors to switch manually.
+ * Visitors choose a capture with keyboard-operable tabs; screenshots remain still.
  */
 function HeroProductPreview() {
   const [activeMode, setActiveMode] = useState(0);
-  // Auto-rotation is an introduction, not a loop the visitor has to fight: the moment someone picks a
-  // mode themselves, their choice is what stays on screen. Auto-advancing over a deliberate click is the
-  // kind of thing that makes a page feel like a generic template rather than a product paying attention.
-  const [autoplay, setAutoplay] = useState(true);
-
-  useEffect(() => {
-    if (!autoplay) return;
-    const timer = window.setInterval(() => {
-      setActiveMode((current) => (current + 1) % HERO_MODES.length);
-    }, 5000);
-
-    return () => window.clearInterval(timer);
-  }, [autoplay]);
-
-  const pick = (index: number) => {
-    setAutoplay(false);
-    setActiveMode(index);
-  };
+  const pick = (index: number) => setActiveMode(index);
 
   const mode = HERO_MODES[activeMode];
 
@@ -112,6 +86,16 @@ function HeroProductPreview() {
             key={item.name}
             type="button"
             role="tab"
+            id={`hero-space-${index}`}
+            aria-controls="hero-space-panel"
+            tabIndex={index === activeMode ? 0 : -1}
+            onKeyDown={event => {
+              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+              event.preventDefault();
+              const next = event.key === 'Home' ? 0 : event.key === 'End' ? HERO_MODES.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + HERO_MODES.length) % HERO_MODES.length;
+              pick(next);
+              document.getElementById(`hero-space-${next}`)?.focus();
+            }}
             aria-selected={index === activeMode}
             className={index === activeMode ? 'is-active' : ''}
             onClick={() => pick(index)}
@@ -121,7 +105,7 @@ function HeroProductPreview() {
         ))}
       </div>
 
-      <div className="fsw-product-image">
+      <div className="fsw-product-image" id="hero-space-panel" role="tabpanel" aria-labelledby={`hero-space-${activeMode}`} tabIndex={0}>
         {/* WebP at two widths (web/public/<name>-1600|900.webp): the screenshot is the largest thing on the
             page, and a phone should not download the desktop copy. The width and height stop the column
             jumping when it arrives; the first one is the page's main image, so it is fetched first and

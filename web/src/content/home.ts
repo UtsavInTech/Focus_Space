@@ -33,3 +33,8 @@ export const LIGHT_SPACE_COPY = {
 };
 
 export const QUIZ_COPY = 'Choose 5, 10, 15 or 20 questions per round on what you’ve watched or the full video. FocusSpace AI follows your plan’s question allowance. On-device AI is available on supported computers without using credits.';
+
+export const DEEP_HERO = {
+  intro: 'Pick your exam, degree or next skill. FocusSpace organises YouTube around your subjects, with a place to start and relevant lessons to follow. While you watch, ask about the lecture, make notes or check your understanding with a quiz.',
+  tagline: 'Your subjects. Your creators. Your place to learn.',
+};
