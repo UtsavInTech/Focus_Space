@@ -1,5 +1,5 @@
-import { sendMessage } from '@/messaging/runtime';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { sendMessage } from '@/messaging/runtime';
 import { createPortal } from 'react-dom';
 import { domAnimation, LazyMotion } from 'motion/react';
 import { activeModeOf, effectiveFilters, needsFirstSpace } from '@/modes/service';
@@ -22,6 +22,10 @@ import { FocusPill } from './FocusPill';
 import { WelcomeGuide } from './WelcomeGuide';
 import { shouldShowAiEntry } from './ai-entry-visibility';
 import { SurfaceBoundary } from './SurfaceBoundary';
+import { ExamPicker } from './ExamPicker';
+import { homeNav } from './home/nav';
+import { syncFocusView } from './home/FullScreen';
+import { examInfo, type ExamId } from '@/modes/exams';
 
 const navigator = { go: spaNavigate };
 
@@ -29,6 +33,7 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
   useEffect(()=>{void sendMessage('institutes/sync',{force:true}).catch(()=>undefined);},[]);
   const s = useSyncExternalStore(store.subscribe, store.get);
   const [creating, setCreating] = useState(false);
+  const [settingUpExam, setSettingUpExam] = useState<ExamId | null>(null);
   const mode = activeModeOf(s.settings, s.modes);
   const active = s.ready && s.settings.focusEnabled && !!mode;
   const config = effectiveFilters(s.settings, mode);
@@ -36,9 +41,14 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
   const theme = s.ytDark ? 'dark' : 'light';
 
   useEffect(() => {
-    // The FocusSpace home is a cinema: always dark, whatever YouTube's theme (home.css sets the backdrop).
-    Object.values(slots).forEach((slot) => slot.setTheme(slot === slots.home ? 'dark' : theme, s.settings.density));
+    // With the cinema look on (the default), YouTube itself is dark here, so every slot follows it.
+    Object.values(slots).forEach((slot) => slot.setTheme(theme, s.settings.density));
   }, [slots, theme, s.settings.density]);
+
+  // In full screen, YouTube's top bar and sidebar are hidden on the FocusSpace home only: a video opened
+  // from it plays on YouTube's normal watch page (still full screen), and the bars go again back home.
+  const homeShown = active && config.filters.replaceHomeFeed && s.page.type === 'home';
+  useEffect(() => syncFocusView(homeShown), [homeShown]);
 
   const assessment = useMemo(() => (active && mode && s.video?.meta ? localSidekick.assess({ mode, session: null, video: s.video.meta }) : null), [active, mode, s.video]);
 
@@ -97,6 +107,8 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
           {/* Always there: the switch is how Focus Mode goes off as well as on. */}
           {s.ready && <FocusPill on={s.settings.focusEnabled} />}
 
+          {/* Full screen away from the home: the Space bar's Exit button is not there, so this is. */}
+
           {/* The first-run guide. With FocusSpace switched off there is nothing on the page for it to point at. */}
           {/* Not on a watch page, where it would sit on the player's controls; it is there again on the way back. */}
           {s.settings.focusEnabled && s.page.type !== 'watch' && <WelcomeGuide settings={s.settings} modes={s.modes} />}
@@ -104,12 +116,35 @@ export function ContentApp({ store, slots, controller }: { store: Store<ContentS
           <Modal open={creating} onClose={() => setCreating(false)} title="New space" width={580}>
             <CreateSpace
               modes={s.modes}
+              current={mode}
+              onExam={(id) => {
+                setCreating(false);
+                setSettingUpExam(id);
+              }}
+              onAddedInside={(modeId, topicId) => {
+                setCreating(false);
+                homeNav.set({ modeId, topicId });
+                spaNavigate('/');
+              }}
               onCancel={() => setCreating(false)}
               onCreated={() => {
                 setCreating(false);
                 spaNavigate('/');
               }}
             />
+          </Modal>
+
+          {/* An exam or course picked from "New space": its own short setup (subjects, year, teachers). */}
+          <Modal open={!!settingUpExam} onClose={() => setSettingUpExam(null)} title={settingUpExam ? `Set up ${examInfo(settingUpExam)?.label}` : 'Set up'} subtitle="A couple of quick choices, then your Space is ready." width={720}>
+            {settingUpExam && (
+              <ExamPicker
+                initialExam={settingUpExam}
+                onChosen={() => {
+                  setSettingUpExam(null);
+                  spaNavigate('/');
+                }}
+              />
+            )}
           </Modal>
         </OverlayRootContext.Provider>
       </YouTubeDataContext.Provider>

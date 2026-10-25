@@ -37,6 +37,12 @@ export const SPACE_CATEGORIES: readonly SpaceCategory[] = [
     modeIds: ['btech'],
   },
   {
+    id: 'degrees',
+    name: 'College & school',
+    description: 'Your course, year by year: BCA, B.Sc, B.Com, MBBS, Class 11–12.',
+    modeIds: ['bca', 'bsc', 'bcom', 'mbbs', 'school'],
+  },
+  {
     id: 'technical',
     name: 'Tech & Engineering',
     description: 'Build things, and get through interviews.',

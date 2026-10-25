@@ -1,8 +1,9 @@
 import { InstituteHome } from './InstituteHome';
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Check, ChevronDown, ChevronRight, History, Pencil, Plus, Power, RefreshCw, Sparkles, Trophy, Users, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronRight, History, Pencil, Plus, Power, RefreshCw, Search, Sparkles, Trophy, Users, X } from 'lucide-react';
 import type { LearningMode, Settings, Topic } from '@/types/domain';
-import { activeModeOf, addTemplateWithChannels, missingTemplates, selectMode, setChannelRule, setFocusEnabled, SpaceLimitError } from '@/modes/service';
+import { activeModeOf, addTemplateWithChannels, missingTemplates, selectMode, setChannelRule, setFocusEnabled, SpaceLimitError, updateMode } from '@/modes/service';
+import { groupId, groupTitle, scopeIds, subjectAsTopic, subjectOf, subtopicsOf, withSubtopic, withTopic } from '@/modes/groups';
 import { groupByCategory } from '@/modes/categories';
 import { parseVideoInput, removeFromTopic, saveToTopic } from '@/modes/playlists';
 import { updateItem } from '@/storage/storage';
@@ -21,7 +22,6 @@ import { Modal } from '@/ui/components/Modal';
 import { TemplateCreators } from '@/ui/components/TemplateCreators';
 import type { PickedChannel } from '@/ui/components/ChannelPicker';
 import { useBecauseYouPlayed, useContinueWatching, useDiscovery, useFeedView } from '../data/hooks';
-import { TIER_LABEL } from '@/learning/classifier';
 import type { NextLearningItem } from '@/learning/next';
 import { examInfo, isExamId, type ExamId } from '@/modes/exams';
 import { ExamPicker } from './ExamPicker';
@@ -29,6 +29,9 @@ import { Billboard, type Featured } from './home/Billboard';
 import { Row } from './home/Row';
 import { PosterCard, PosterSkeletons } from './home/PosterCard';
 import { usePinnedBar } from './home/usePinnedBar';
+import { LearningPath, PathPosition, useTopicProgress, COVERED_AFTER } from './home/LearningPath';
+import { useHomeTopic } from './home/nav';
+import { FullScreenButton, FullScreenOffer, useFullScreen } from './home/FullScreen';
 import { FocusSpaceHistoryRow, FocusSpaceLibraryRow } from './home/FocusSpaceRows';
 import { continueToVisible, discoveredToVisible, libraryToVisible, publishContinueWatching, publishFeedVideos } from '../data/visible-feed';
 import type { CardData } from './FeedCard';
@@ -38,15 +41,20 @@ const PAGE = 16;
 /** FocusSpace's home inside YouTube: pick a space (or, first, an exam), then a streaming-style home. */
 export function SpaceHome({ settings, modes, onCreateSpace }: { settings: Settings; modes: LearningMode[]; onCreateSpace: () => void }) {
   const mode = activeModeOf(settings, modes);
-  const [topicId, setTopicId] = useState<string | null>(null);
-
-  useEffect(() => setTopicId(null), [mode?.id]);
+  // Shared with YouTube's sidebar, which can open a subject ("NEET → Chemistry") here too.
+  const [topicId, setTopicId] = useHomeTopic(mode?.id ?? null);
+  const full = useFullScreen();
+  // A new Space or topic starts at the top: the bar, the path, then its videos.
+  useEffect(() => {
+    if (mode) window.scrollTo({ top: 0 });
+  }, [mode?.id, topicId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!mode || !settings.onboarded) return <FirstRun settings={settings} modes={modes} onCreate={onCreateSpace} />;
 
   return (
     <div className="fs-home">
-      <SpaceBar mode={mode} modes={modes} topicId={topicId} onTopic={setTopicId} onCreate={onCreateSpace} />
+      <SpaceBar mode={mode} modes={modes} topicId={topicId} onTopic={setTopicId} onCreate={onCreateSpace} full={full} />
+      {!topicId && <FullScreenOffer wide={full.wide} onAccept={full.toggle} />}
       {mode.source?<InstituteHome mode={mode} topicId={topicId}/>:<SpaceFeed key={mode.id} mode={mode} topicId={topicId} onTopic={setTopicId} />}
     </div>
   );
@@ -70,8 +78,8 @@ function FirstRun({ settings, modes, onCreate }: { settings: Settings; modes: Le
       <div className="fs-first-run fs-exam-stage">
         <div className="fs-exam-stage-glow" aria-hidden />
         <span className="fs-exam-stage-eyebrow">Step 1 of 2 · Your goal</span>
-        <h1>Which exam are you preparing for?</h1>
-        <p>FocusSpace turns YouTube into a classroom for that exam: only lessons from your syllabus, your teachers first, nothing else on the page.</p>
+        <h1>What are you preparing for?</h1>
+        <p>An exam, your degree, or a course of your own. FocusSpace turns YouTube into a classroom for it: only lessons from your syllabus, your teachers first, nothing else on the page. You can add more Spaces later, like UPSC next to B.Tech.</p>
         <ExamPicker />
       </div>
     );
@@ -206,7 +214,21 @@ async function browseNormally() {
   await setFocusEnabled(false);
 }
 
-function SpaceBar({ mode, modes, topicId, onTopic, onCreate }: { mode: LearningMode; modes: LearningMode[]; topicId: string | null; onTopic: (id: string | null) => void; onCreate: () => void }) {
+function SpaceBar({
+  mode,
+  modes,
+  topicId,
+  onTopic,
+  onCreate,
+  full,
+}: {
+  mode: LearningMode;
+  modes: LearningMode[];
+  topicId: string | null;
+  onTopic: (id: string | null) => void;
+  onCreate: () => void;
+  full: { wide: boolean; toggle: () => void };
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -276,10 +298,11 @@ function SpaceBar({ mode, modes, topicId, onTopic, onCreate }: { mode: LearningM
           {mode.topics.map((t, i) => (
             <Fragment key={t.id}>
               {/* The hierarchy, inline: "Prelims · GS", "Mains", "Optional", "Year 2" before their topics. */}
+              {/* A subject opens as a page of its own: all of Chemistry, then Organic inside it. */}
               {t.group && t.group !== mode.topics[i - 1]?.group && (
-                <span className="fs-chip-group" aria-hidden>
+                <button type="button" role="tab" className="fs-chip-group" aria-selected={topicId === groupId(t.group)} onClick={() => onTopic(topicId === groupId(t.group!) ? null : groupId(t.group!))} title={`All of ${groupTitle(t.group)}`}>
                   {t.group}
-                </span>
+                </button>
               )}
               <button type="button" role="tab" className="fs-chip" aria-selected={t.id === topicId} onClick={() => onTopic(t.id === topicId ? null : t.id)} title={t.group ? `${t.group} → ${t.name}` : t.name}>
                 {t.name}
@@ -288,23 +311,32 @@ function SpaceBar({ mode, modes, topicId, onTopic, onCreate }: { mode: LearningM
           ))}
         </div>
       )}
+      <FullScreenButton wide={full.wide} onToggle={full.toggle} />
     </div>
     </>
   );
 }
 
-function useSentinel(onVisible: () => void) {
-  const ref = useRef<HTMLDivElement>(null);
-  const callback = useRef(onVisible);
-  callback.current = onVisible;
+/**
+ * Whether the end of the list is near the screen. A state, not a one-off event: an IntersectionObserver
+ * only reports *changes*, so a learner already at the bottom when new videos arrive would never get
+ * another "load more" — the feed just stopped (the "20 Botany videos, then nothing" bug).
+ */
+function useNearEnd() {
+  // A callback ref: the home and a topic page each draw their own end-of-list marker, and opening a topic
+  // replaces the element. Observing only the first one is why topic pages never loaded past one page.
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
+  const [near, setNear] = useState(false);
   useEffect(() => {
-    const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && callback.current(), { rootMargin: '900px 0px' });
+    const io = new IntersectionObserver((entries) => setNear(entries.some((e) => e.isIntersecting)), { rootMargin: '900px 0px' });
     io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return ref;
+    return () => {
+      io.disconnect();
+      setNear(false);
+    };
+  }, [el]);
+  return [setEl, near] as const;
 }
 
 const why = (mode: LearningMode, topicId: string | null, matched: string[]) => {
@@ -323,22 +355,30 @@ const MIN_ROW = 3;
 const MAX_TOPIC_ROWS = 6;
 
 function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: string | null; onTopic: (id: string | null) => void }) {
-  const topic = mode.topics.find((t) => t.id === topicId) ?? null;
-  // A subject's subtopics (DBMS → normalization, SQL, transactions): a second row of chips that narrows it.
-  const subtopics = useMemo(() => (topic ? topic.keywords.filter((k) => !k.startsWith('~') && normalizeText(k) !== normalizeText(topic.name)).slice(0, 12) : []), [topic]);
+  // A subject (NEET → Chemistry) opens as one topic made of its topics; a topic opens as itself.
+  const subject = useMemo(() => subjectOf(mode, topicId), [mode, topicId]);
+  const topic = useMemo(() => (subject ? subjectAsTopic(subject) : mode.topics.find((t) => t.id === topicId) ?? null), [mode, topicId, subject]);
+  // A topic's subtopics (DBMS → normalization, SQL, transactions): a second row of chips that narrows it.
+  const subtopics = useMemo(() => (topic && !subject ? subtopicsOf(topic).slice(0, 30) : []), [topic, subject]);
   const [subtopic, setSubtopic] = useState<string | null>(null);
   useEffect(() => setSubtopic(null), [topicId]);
   const { view, loading, channelIds } = useFeedView(mode);
   const store = useStorage(['watchHistory', 'sync'] as const);
   const subs = useMemo(() => {
-    const list = !view ? [] : topic ? topicItems(view, topic.id) : view.items;
+    if (!view) return [];
+    let list = view.items;
+    if (subject) {
+      const ids = scopeIds(mode, subject.id);
+      const fit = (v: FeedVideo) => Math.max(...ids.map((id) => v.topicScores[id] ?? 0));
+      list = view.items.filter((v) => fit(v) >= 0.5).sort((a, b) => fit(b) - fit(a));
+    } else if (topic) list = topicItems(view, topic.id);
     if (!subtopic) return list;
     const want = normalizeText(subtopic);
     return list.filter((v) => normalizeText(v.title).includes(want) || v.matched.some((m) => normalizeText(m) === want));
-  }, [view, topic, subtopic]);
+  }, [view, mode, subject, topic, subtopic]);
   const libraryIds = useMemo(() => (view ? view.items.map((v) => v.id) : []), [view]);
-  // Searching YouTube for the subtopic itself, still filed under its subject.
-  const searchTopic = useMemo(() => (topic && subtopic ? { ...topic, name: subtopic } : topic), [topic, subtopic]);
+  // Searching YouTube for the subtopic itself, still filed under its topic.
+  const searchTopic = useMemo(() => (topic && subtopic ? { ...topic, name: subtopic, keywords: [] } : topic), [topic, subtopic]);
   const discovery = useDiscovery(mode, searchTopic, libraryIds, channelIds);
   const continuing = useContinueWatching(mode, view);
   const progress = useMemo(() => new Map((store?.watchHistory ?? []).map((e) => [e.videoId, e.progress])), [store?.watchHistory]);
@@ -380,9 +420,15 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
   const continueShown = useMemo(() => continuing.slice(0, 4).map(continueToVisible), [continuing]);
   useEffect(() => publishContinueWatching(continueShown), [continueShown]);
 
-  const sentinel = useSentinel(() => setVisible((v) => (entries.length > v ? v + PAGE : v)));
+  const [sentinel, nearEnd] = useNearEnd();
+  // Near the end and more is ready: show the next page. Runs again whenever more arrives.
+  useEffect(() => {
+    if (nearEnd && entries.length > visible) setVisible((v) => v + PAGE);
+  }, [nearEnd, entries.length, visible]);
 
+  const covers = (terms: string[]) => coveredTerms(mode, terms);
   const subCard = (v: FeedVideo): CardData => ({
+    covers: covers(v.matched),
     id: v.id,
     title: v.title,
     channelTitle: v.channelTitle,
@@ -393,6 +439,7 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
     tier: v.tier,
     source: v.source,
     why: why(mode, v.topicId, v.matched),
+    about: coversLine(covers(v.matched)),
   });
   const discCard = (d: DiscoveredVideo): CardData => ({
     id: d.video.id,
@@ -405,6 +452,8 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
     tier: d.cls.tier,
     source: 'discovery',
     why: d.reasons.join(' · '),
+    covers: covers(d.cls.matchedTerms),
+    about: aboutLine(d.video.description) || coversLine(covers(d.cls.matchedTerms)),
   });
 
   // Every video once, best first: the pool the billboard, Top 10 and topic shelves draw from.
@@ -433,8 +482,11 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
           channelTitle: p.card.channelTitle,
           durationSec: p.card.durationSec,
           eyebrow: i === 0 ? `Best ${mode.name} video for you` : p.card.source === 'discovery' ? 'Fresh pick for you' : 'From your channels',
-          why: p.card.why,
-          tierLabel: TIER_LABEL[p.card.tier],
+          // What is in the video, in its own words, rather than how well it scored.
+          // "Covers Botany." only repeats the tags shown above it; a description line says more.
+          why: p.card.about && !p.card.about.startsWith('Covers ') ? p.card.about : '',
+          tierLabel: null,
+          covers: p.card.covers?.slice(0, 3),
           progress: p.card.progress,
           topicId: p.topicId,
           topicName: topicName(p.topicId),
@@ -511,15 +563,36 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
     </>
   );
 
+  const endOfFeed = !!topic && entries.length > 0 && !loading && !discovery.loading && (discovery.exhausted || !mode.discovery) && visible >= entries.length && (
+    <EndOfFeed
+      name={subtopic ?? topic.name}
+      query={`${subtopic ?? topic.name} ${mode.searchHint || mode.name}`}
+      next={subject ? subject.topics.map((t) => ({ label: t.name, go: () => onTopic(t.id) })) : subtopics.filter((k) => k !== subtopic).slice(0, 6).map((k) => ({ label: titleCase(k), go: () => setSubtopic(k) }))}
+    />
+  );
+
   if (topic) {
+    const addSubtopic = async (text: string) => {
+      await updateMode(mode.id, { topics: withSubtopic(mode.topics, topic.id, text) });
+      setSubtopic(text.trim().toLowerCase());
+    };
+    const addTopic = async (text: string) => {
+      if (!subject) return;
+      const next = withTopic(mode.topics, text, subject.name);
+      await updateMode(mode.id, { topics: next.topics });
+      if (next.id) onTopic(next.id);
+    };
     return (
       <>
         <section className="fs-section" aria-label={`${topic.name} videos`}>
+          <Crumbs mode={mode} topic={topic} subject={!!subject} onTopic={onTopic} />
+          {!subject && <PathPosition mode={mode} topic={topic} onTopic={onTopic} />}
           <div className="fs-section-head">
-            <h2>{subtopic ? `${topic.name} · ${subtopic}` : `${topic.name} videos`}</h2>
+            <h2>{subtopic ? `${topic.name} · ${titleCase(subtopic)}` : subject ? `All of ${topic.name}` : `${topic.name} videos`}</h2>
             {summary && <span>{summary}</span>}
           </div>
-          {subtopics.length > 0 && (
+          {subject && <SubjectTopics mode={mode} topics={subject.topics} onTopic={onTopic} onAdd={addTopic} subjectName={subject.title} />}
+          {!subject && (
             <div className="fs-subtopics" role="tablist" aria-label={`${topic.name} subtopics`}>
               <span className="fs-subtopics-label">Subtopics</span>
               <button type="button" role="tab" className="fs-chip" aria-selected={!subtopic} onClick={() => setSubtopic(null)}>
@@ -527,17 +600,19 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
               </button>
               {subtopics.map((k) => (
                 <button key={k} type="button" role="tab" className="fs-chip" aria-selected={subtopic === k} onClick={() => setSubtopic(subtopic === k ? null : k)}>
-                  {k.replace(/\b\w/g, (c) => c.toUpperCase())}
+                  {titleCase(k)}
                 </button>
               ))}
+              <AddInline label="Add subtopic" placeholder={`A subtopic of ${topic.name}`} onAdd={addSubtopic} />
             </div>
           )}
           {notes}
           {grid}
           {emptyState}
+          {endOfFeed}
           {discovery.error && entries.length > 0 && <div className="fs-note">{discovery.error}</div>}
         </section>
-        <TopicPlaylist mode={mode} topic={topic} />
+        {!subject && <TopicPlaylist mode={mode} topic={topic} />}
       </>
     );
   }
@@ -546,6 +621,7 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
     <>
       {featured.length > 0 ? <Billboard items={featured} onTopic={onTopic} /> : warming ? <div className="fs-billboard fs-billboard-skeleton fs-skeleton" aria-hidden /> : null}
       {notes}
+      <LearningPath mode={mode} onTopic={onTopic} />
 
       {continuing.length > 0 && (
         <Row title="Continue learning" icon={<History size={20} aria-hidden />}>
@@ -683,41 +759,58 @@ function TopicPlaylist({ mode, topic }: { mode: LearningMode; topic: Topic }) {
     }
   };
 
+  const [adding, setAdding] = useState(false);
+  const form = (
+    <form className="fs-playlist-add" onSubmit={add}>
+      <input className="fs-input" autoFocus={adding} value={input} onChange={(e) => setInput(e.target.value)} placeholder={`Paste a YouTube link to keep it in ${topic.name}`} aria-label={`Add a video to ${topic.name}`} />
+      <Button type="submit" size="sm" icon={<Plus />} loading={busy} disabled={!input.trim()}>
+        Add video
+      </Button>
+    </form>
+  );
+
+  // Nothing saved yet: one quiet line, not a whole section, so the end of the feed is not a form.
+  if (!saved.length)
+    return (
+      <div className="fs-playlist-empty">
+        <span>
+          <b>Your own {topic.name} list.</b> Keep the lessons you want to come back to: tap Save on a video’s page, or{' '}
+          <button type="button" className="fs-link" onClick={() => setAdding(true)}>
+            paste a link
+          </button>
+          .
+        </span>
+        {adding && form}
+        {error && <span className="fs-muted-line fs-error">{error}</span>}
+      </div>
+    );
+
   return (
     <section className="fs-section fs-playlist" aria-label={`${topic.name} playlist`}>
       <div className="fs-section-head">
-        <h2>{topic.name}</h2>
+        <h2>Your {topic.name} list</h2>
         <span>
-          Your playlist · {saved.length} {saved.length === 1 ? 'video' : 'videos'}
+          {saved.length} saved {saved.length === 1 ? 'video' : 'videos'}
         </span>
       </div>
-      {saved.length > 0 ? (
-        <ol className="fs-playlist-list">
-          {saved.map((v, i) => (
-            <li key={v.videoId}>
-              <span className="fs-playlist-index">{String(i + 1).padStart(2, '0')}</span>
-              <YtLink href={watchUrl(v.videoId)} className="fs-playlist-item">
-                <img src={`https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`} alt="" loading="lazy" />
-                <span>
-                  <b>{v.title}</b>
-                  <small>{v.channelTitle}</small>
-                </span>
-              </YtLink>
-              <button type="button" className="fs-icon-plain" aria-label={`Remove ${v.title}`} onClick={() => void removeFromTopic(mode.id, topic.id, v.videoId)}>
-                <X size={16} />
-              </button>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <p className="fs-muted-line">Save videos to {topic.name} from the watch page, or paste a link below.</p>
-      )}
-      <form className="fs-playlist-add" onSubmit={add}>
-        <input className="fs-input" value={input} onChange={(e) => setInput(e.target.value)} placeholder={`Paste a YouTube link to add it to ${topic.name}`} aria-label={`Add a video to ${topic.name}`} />
-        <Button type="submit" size="sm" icon={<Plus />} loading={busy} disabled={!input.trim()}>
-          Add video
-        </Button>
-      </form>
+      <ol className="fs-playlist-list">
+        {saved.map((v, i) => (
+          <li key={v.videoId}>
+            <span className="fs-playlist-index">{String(i + 1).padStart(2, '0')}</span>
+            <YtLink href={watchUrl(v.videoId)} className="fs-playlist-item">
+              <img src={`https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`} alt="" loading="lazy" />
+              <span>
+                <b>{v.title}</b>
+                <small>{v.channelTitle}</small>
+              </span>
+            </YtLink>
+            <button type="button" className="fs-icon-plain" aria-label={`Remove ${v.title}`} onClick={() => void removeFromTopic(mode.id, topic.id, v.videoId)}>
+              <X size={16} />
+            </button>
+          </li>
+        ))}
+      </ol>
+      {form}
       {error && <span className="fs-muted-line fs-error">{error}</span>}
     </section>
   );
@@ -795,4 +888,151 @@ function ChannelsSection({ mode, view, discovered, channelIds }: { mode: Learnin
       </div>
     </section>
   );
+}
+
+/* ─── Topic & subject pages ────────────────────────────────────────────────── */
+
+/** Subtopics as labels: "named reactions" → "Named Reactions", and acronyms stay acronyms ("GOC", "IUPAC"). */
+const ACRONYMS = new Set(['goc', 'iupac', 'dsa', 'dbms', 'sql', 'oop', 'oops', 'psm', 'ent', 'gst', 'ncert', 'dns', 'http', 'https', 'api', 'cdn', 'cap', 'lld', 'hld', 'gs', 'csat', 'dilr', 'varc', 'qa', 'ai', 'ml', 'nlp', 'llm', 'llms', 'gi', 'cns', 'shm', 'ac', 'dc', 'emi', 'pyq', 'pyqs', 'ui', 'ux', 'css', 'html', 'php', 'cad', 'cam', 'rcc', 'vlsi', 'dsp', 'uml', 'solid']);
+const titleCase = (text: string) => text.replace(/[\p{L}\p{N}]+/gu, (w) => (ACRONYMS.has(w.toLowerCase()) ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1)));
+
+/**
+ * Where you are, and the way back: "← Back · NEET › Chemistry › Organic Chemistry". Back goes up one
+ * level (topic → its subject → the Space's home); every crumb is a way straight there.
+ */
+function Crumbs({ mode, topic, subject, onTopic }: { mode: LearningMode; topic: Topic; subject: boolean; onTopic: (id: string | null) => void }) {
+  const parent = !subject && topic.group ? groupId(topic.group) : null;
+  return (
+    <nav className="fs-crumbs" aria-label="Where you are">
+      <button type="button" className="fs-crumb-back" onClick={() => onTopic(parent)}>
+        <ArrowLeft size={16} aria-hidden /> {parent ? `Back to ${groupTitle(topic.group!)}` : `Back to ${mode.name} home`}
+      </button>
+      <span className="fs-crumb-trail">
+        <button type="button" className="fs-link" onClick={() => onTopic(null)}>
+          {mode.name}
+        </button>
+        {parent && (
+          <>
+            <ChevronRight size={14} aria-hidden />
+            <button type="button" className="fs-link" onClick={() => onTopic(parent)}>
+              {groupTitle(topic.group!)}
+            </button>
+          </>
+        )}
+        <ChevronRight size={14} aria-hidden />
+        <b aria-current="page">{topic.name}</b>
+      </span>
+    </nav>
+  );
+}
+
+/** A subject's topics as tiles (Physical · Organic · Inorganic), each with its progress, plus a way to add one. */
+function SubjectTopics({ mode, topics, subjectName, onTopic, onAdd }: { mode: LearningMode; topics: Topic[]; subjectName: string; onTopic: (id: string) => void; onAdd: (name: string) => Promise<void> }) {
+  const progress = useTopicProgress(mode.id);
+  return (
+    <div className="fs-subject-topics">
+      {topics.map((t) => {
+        const done = progress.get(t.id) ?? 0;
+        return (
+          <button key={t.id} type="button" className={`fs-subject-tile${done >= COVERED_AFTER ? ' is-covered' : ''}`} onClick={() => onTopic(t.id)}>
+            <b>
+              {done >= COVERED_AFTER && <Check size={14} aria-hidden />} {t.name}
+            </b>
+            <small>
+              {subtopicsOf(t).length} subtopics{done ? ` · ${done} watched` : ''}
+            </small>
+            <span className="fs-subject-tile-subs">{subtopicsOf(t).slice(0, 3).map(titleCase).join(' · ')}</span>
+          </button>
+        );
+      })}
+      <AddInline label={`Add a topic to ${subjectName}`} placeholder={`A chapter or part of ${subjectName}`} onAdd={onAdd} tile />
+    </div>
+  );
+}
+
+/** "+ Add subtopic": a chip that opens into a small field, so a learner can grow a topic where they are. */
+function AddInline({ label, placeholder, onAdd, tile = false }: { label: string; placeholder: string; onAdd: (text: string) => Promise<void>; tile?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!open)
+    return (
+      <button type="button" className={tile ? 'fs-subject-tile fs-subject-tile-add' : 'fs-chip fs-chip-add'} onClick={() => setOpen(true)}>
+        <Plus size={14} aria-hidden /> {label}
+      </button>
+    );
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!text.trim() || busy) return;
+    setBusy(true);
+    try {
+      await onAdd(text.trim());
+      setText('');
+      setOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form className={`fs-add-inline${tile ? ' is-tile' : ''}`} onSubmit={submit}>
+      <input className="fs-input" autoFocus value={text} maxLength={60} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && setOpen(false)} placeholder={placeholder} aria-label={label} />
+      <Button type="submit" size="sm" loading={busy} disabled={!text.trim()}>
+        Add
+      </Button>
+      <button type="button" className="fs-icon-plain" aria-label="Cancel" onClick={() => setOpen(false)}>
+        <X size={14} aria-hidden />
+      </button>
+    </form>
+  );
+}
+
+/** The end of what FocusSpace is sure about, said plainly, with where to go next: never a silent stop. */
+function EndOfFeed({ name, query, next }: { name: string; query: string; next: { label: string; go: () => void }[] }) {
+  return (
+    <div className="fs-end-feed">
+      <b>That’s every clear {name} video FocusSpace found for now.</b>
+      <span>It only shows lessons that match, so the list ends instead of filling up with guesses.</span>
+      {next.length > 0 && (
+        <div className="fs-chips fs-chips-wrap">
+          <span className="fs-subtopics-label">Keep going with</span>
+          {next.map((n) => (
+            <button key={n.label} type="button" className="fs-chip" onClick={n.go}>
+              {n.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <YtLink href={searchUrl(query)} className="fs-btn fs-btn-secondary">
+        <Search size={15} aria-hidden /> Search all of YouTube for “{name}”
+      </YtLink>
+    </div>
+  );
+}
+
+/* ─── What a video covers, in words ────────────────────────────────────────── */
+
+/** The subtopics a video was matched on, most specific first: never the Space's own name or search words. */
+function coveredTerms(mode: LearningMode, terms: string[]): string[] {
+  const own = new Set([mode.name, mode.searchHint, ...mode.keywords].map((k) => normalizeText(k.replace(/^~/, ''))));
+  const topicNames = new Set(mode.topics.map((t) => normalizeText(t.name)));
+  const kept = [...new Set(terms.map((t) => t.trim()).filter((t) => t.length > 2 && !own.has(normalizeText(t))))];
+  return kept.sort((a, b) => Number(topicNames.has(normalizeText(a))) - Number(topicNames.has(normalizeText(b)))).map(titleCase);
+}
+
+const coversLine = (terms: string[]) => (terms.length ? `Covers ${terms.slice(0, 3).join(', ')}.` : '');
+
+/** Promotion lines that open many lesson descriptions ("Join our Telegram", "Use code…"): skipped. */
+const PROMO = /telegram|whatsapp|instagram|subscribe|download|app\b|batch|enrol|enroll|coupon|discount|use code|join|link|follow|visit|register|call|contact|price|offer/i;
+
+/** The first sentence of a video's description that says what is in it, short enough to read at a glance. */
+function aboutLine(description: string | null | undefined): string {
+  if (!description) return '';
+  const sentences = description
+    .replace(/https?:\/\/\S+/g, ' ')
+    .replace(/#[\p{L}\p{N}_-]+/gu, ' ')
+    .split(/\n+|(?<=[.!?])\s+/)
+    .map((x) => x.replace(/\s+/g, ' ').trim());
+  const line = sentences.find((x) => x.length >= 30 && !PROMO.test(x) && /\p{L}{3}/u.test(x));
+  if (!line) return '';
+  return line.length > 170 ? `${line.slice(0, 167).replace(/\s+\S*$/, '')}…` : line;
 }

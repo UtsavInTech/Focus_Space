@@ -8,6 +8,7 @@ import type { WatchEntry } from '@/types/domain';
 import type { ContentState, Store } from './store';
 import type { Slot } from './ui/slots';
 import { setFlags, type FilterFlag } from './youtube/filters/css-rules';
+import { syncCinemaFix } from './youtube/cinema';
 import { checkLayout, FAIL_OPEN, FAIL_OPEN_EVENT, recordIssues } from './youtube/health';
 import { clearMarks, markSearchResults, markShortsChips, type MarkStats } from './youtube/filters/relevance-marker';
 import { currentVideoElement, readVideoMetadata } from './youtube/metadata';
@@ -59,6 +60,8 @@ export function createController(store: Store<ContentState>, slots: Slots) {
   const failedOpen = new Set<FilterFlag>();
   let healthTimer = 0;
   let healthFor = '';
+  /** FocusSpace switched YouTube to its dark theme (cinema look); only then does it ever switch it back. */
+  let ownDark = false;
   // A FocusSpace surface that crashed asks for YouTube's own version back (ui/SurfaceBoundary.tsx).
   window.addEventListener(FAIL_OPEN_EVENT, (event) => {
     const flag = (event as CustomEvent<unknown>).detail;
@@ -312,7 +315,25 @@ export function createController(store: Store<ContentState>, slots: Slots) {
     const home = slots.home.attached;
     if (s.slots.home !== home || s.slots.watch !== watch || s.slots.search !== search || s.slots.guide !== guide || s.slots.aiEntry !== aiEntry) patch.slots = { home, watch, search, guide, aiEntry };
     if (!sameStats(s.searchStats, searchStats)) patch.searchStats = searchStats;
-    const ytDark = document.documentElement.hasAttribute('dark');
+    // Cinema look: the whole of YouTube — top bar, sidebar, page — in YouTube's own dark theme while
+    // FocusSpace is on, so FocusSpace's dark home is one seamless screen rather than a dark box on white.
+    // Someone who already uses YouTube dark is untouched; their own light theme returns when this ends.
+    const html = document.documentElement;
+    const wantDark = s.settings.cinemaDark && (active || showHome);
+    if (wantDark && !html.hasAttribute('dark')) {
+      html.setAttribute('dark', 'true');
+      ownDark = true;
+    } else if (!wantDark && ownDark) {
+      html.removeAttribute('dark');
+      ownDark = false;
+    }
+    // Tells the page-side bridge the dark theme is ours, so YouTube's navigation doesn't reload over it.
+    if (ownDark !== html.hasAttribute('data-fs-own-dark')) {
+      if (ownDark) html.setAttribute('data-fs-own-dark', '');
+      else html.removeAttribute('data-fs-own-dark');
+    }
+    syncCinemaFix(ownDark);
+    const ytDark = html.hasAttribute('dark');
     if (ytDark !== s.ytDark) patch.ytDark = ytDark;
     if (Object.keys(patch).length) store.set(patch);
   }
@@ -407,6 +428,8 @@ export function createController(store: Store<ContentState>, slots: Slots) {
     document.removeEventListener('yt-navigate-start', onNavigateStart);
     window.clearInterval(restoreTimer);
     observers.forEach((o) => o.disconnect());
+    if (ownDark) document.documentElement.removeAttribute('dark');
+    syncCinemaFix(false);
     holdCleanup?.();
     watchAbort?.abort();
   }

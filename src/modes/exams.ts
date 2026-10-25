@@ -24,9 +24,9 @@ import { SKILLS, SUBTOPICS } from './btech-subjects';
  * YouTube channel, and FocusSpace says so where it shows them.
  */
 
-export type ExamGroup = 'government' | 'entrance' | 'engineering';
+export type ExamGroup = 'government' | 'entrance' | 'engineering' | 'degrees';
 
-export type ExamId = 'upsc' | 'ssc' | 'banking' | 'railways' | 'state-psc' | 'defence' | 'teaching' | 'judiciary' | 'jee' | 'neet' | 'gate' | 'cat' | 'btech';
+export type ExamId = 'upsc' | 'ssc' | 'banking' | 'railways' | 'state-psc' | 'defence' | 'teaching' | 'judiciary' | 'jee' | 'neet' | 'gate' | 'cat' | 'btech' | 'bca' | 'bsc' | 'bcom' | 'mbbs' | 'school';
 
 export interface ExamOption {
   id: string;
@@ -78,6 +78,7 @@ export const EXAM_GROUPS: { id: ExamGroup; label: string; hint: string }[] = [
   { id: 'government', label: 'Government jobs', hint: 'UPSC, SSC, banking, railways, state PSC and more' },
   { id: 'entrance', label: 'Entrance exams', hint: 'JEE, NEET, GATE, CAT' },
   { id: 'engineering', label: 'B.Tech & Engineering', hint: 'Your branch, year by year' },
+  { id: 'degrees', label: 'College & school', hint: 'BCA, B.Sc, B.Com, MBBS, Class 11–12' },
 ];
 
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
@@ -435,6 +436,23 @@ const JEE: ExamInfo = {
   creators: ['Physics Wallah', 'Vedantu JEE', 'Unacademy JEE', 'MathonGo'],
 };
 
+/**
+ * NEET as subjects → their parts, the way NCERT and every coaching batch splits them: Biology into
+ * Botany and Zoology, Physics into its four units, Chemistry into Physical, Organic and Inorganic.
+ * Exported so older NEET Spaces (one "Physics" and one "Chemistry" topic) catch up (modes/curricula.ts).
+ */
+export const NEET_TOPICS: Topic[] = [
+  t('Botany', ['botany', 'plant physiology', 'plant kingdom', 'photosynthesis', 'cell cycle', 'molecular basis of inheritance', 'genetics', 'ecology', 'morphology of flowering plants', 'plant anatomy'], 'Biology'),
+  t('Zoology', ['zoology', 'human physiology', 'animal kingdom', 'human reproduction', 'biotechnology', 'evolution', 'human health and disease', 'structural organisation in animals', 'breathing and exchange of gases'], 'Biology'),
+  t('Mechanics', ['mechanics', 'units and measurements', 'kinematics', 'laws of motion', 'work energy and power', 'rotational motion', 'gravitation', 'mechanical properties of solids', 'fluid mechanics'], 'Physics'),
+  t('Heat, Oscillations & Waves', ['thermal properties of matter', 'thermodynamics', 'kinetic theory of gases', 'oscillations', 'simple harmonic motion', 'waves'], 'Physics'),
+  t('Electricity & Magnetism', ['electrostatics', 'capacitance', 'current electricity', 'moving charges and magnetism', 'magnetism and matter', 'electromagnetic induction', 'alternating current', 'electromagnetic waves'], 'Physics'),
+  t('Optics & Modern Physics', ['ray optics', 'wave optics', 'dual nature of radiation and matter', 'atoms', 'nuclei', 'semiconductor electronics', 'modern physics'], 'Physics'),
+  t('Physical Chemistry', ['physical chemistry', 'mole concept', 'structure of atom', 'chemical thermodynamics', 'chemical equilibrium', 'ionic equilibrium', 'redox reactions', 'solutions', 'electrochemistry', 'chemical kinetics'], 'Chemistry'),
+  t('Organic Chemistry', ['organic chemistry', 'goc', 'iupac nomenclature', 'isomerism', 'hydrocarbons', 'haloalkanes and haloarenes', 'alcohols phenols and ethers', 'aldehydes ketones and carboxylic acids', 'amines', 'biomolecules'], 'Chemistry'),
+  t('Inorganic Chemistry', ['inorganic chemistry', 'periodic table', 'classification of elements', 'chemical bonding', 's block', 'p block', 'd and f block', 'coordination compounds'], 'Chemistry'),
+];
+
 const NEET: ExamInfo = {
   id: 'neet',
   group: 'entrance',
@@ -446,12 +464,7 @@ const NEET: ExamInfo = {
   description: 'NEET UG: biology first, then physics and chemistry, NCERT line by line.',
   searchHint: 'neet',
   keywords: ['neet', 'neet ug', '~ncert', '~class 11', '~class 12', 'ncert biology'],
-  topics: [
-    t('Botany', ['botany', 'plant physiology', 'plant kingdom', 'photosynthesis', 'cell cycle', 'molecular basis of inheritance', 'genetics', 'ecology'], 'Biology'),
-    t('Zoology', ['zoology', 'human physiology', 'animal kingdom', 'human reproduction', 'biotechnology', 'evolution', 'human health and disease'], 'Biology'),
-    t('Physics', ['physics', 'kinematics', 'laws of motion', 'electrostatics', 'current electricity', 'optics', 'modern physics', 'thermodynamics'], 'Physics'),
-    t('Chemistry', ['chemistry', 'organic chemistry', 'inorganic chemistry', 'physical chemistry', 'mole concept', 'chemical bonding', 'goc'], 'Chemistry'),
-  ],
+  topics: NEET_TOPICS,
   questions: [],
   creators: ['Physics Wallah', 'Competition Wallah', 'Vedantu NEET', 'Unacademy NEET'],
 };
@@ -623,7 +636,171 @@ const BTECH: ExamInfo = {
   creators: ['NPTEL', 'Neso Academy'],
 };
 
-export const EXAMS: readonly ExamInfo[] = [UPSC, SSC, BANKING, RAILWAYS, STATE_PSC, DEFENCE, TEACHING, JUDICIARY, JEE, NEET, GATE, CAT, BTECH];
+
+/* ─── College & school: BCA, B.Sc, B.Com, MBBS, Class 11–12 ────────────────── */
+
+/** A subject with its subtopics: the B.Tech list when it has the subject, else these. */
+const subject = (group: string, name: string, extra: string[] = []) => t(name, [name.toLowerCase(), ...(SUBTOPICS[name] ?? []), ...extra], group);
+/** Year (or phase) → subjects, for degrees asked "which year are you in?". */
+type ByYear = Record<string, { label: string; subjects: [string, string[]?][] }>;
+const yearQuestion = (years: ByYear, defaults: string[], prompt = 'Which year are you in?'): ExamQuestion => ({
+  id: 'year',
+  prompt,
+  help: 'Pick more than one if you are revising earlier subjects too.',
+  multi: true,
+  defaults,
+  options: Object.entries(years).map(([id, y]) => opt(id, y.label, { topics: y.subjects.map(([name, extra]) => subject(y.label, name, extra)) })),
+});
+
+const BCA_YEARS: ByYear = {
+  y1: { label: '1st year', subjects: [['Computer Fundamentals', ['computer fundamentals', 'number system', 'computer memory', 'input output devices']], ['Programming in C'], ['Digital Electronics'], ['Discrete Mathematics'], ['Office Automation', ['ms word', 'ms excel', 'ms powerpoint']]] },
+  y2: { label: '2nd year', subjects: [['Data Structures'], ['Object Oriented Programming', ['c++', 'oops in c++']], ['DBMS'], ['Operating System'], ['Computer Networks'], ['Java Programming', ['java', 'core java', 'jdbc', 'multithreading in java']]] },
+  y3: { label: '3rd year', subjects: [['Python Programming', ['python', 'python for beginners', 'pandas', 'numpy']], ['Web Development', ['html', 'css', 'javascript', 'php', 'react']], ['Software Engineering'], ['Cloud Computing'], ['Machine Learning'], ['Mobile App Development', ['android development', 'flutter', 'kotlin']]] },
+};
+
+const BCA: ExamInfo = {
+  id: 'bca',
+  group: 'degrees',
+  label: 'BCA',
+  covers: 'Computer applications, year by year',
+  icon: 'code',
+  emoji: '💻',
+  name: 'BCA',
+  description: 'BCA: the subjects of your year, with programming and placements alongside.',
+  searchHint: 'bca',
+  keywords: ['bca', 'bca lectures', 'bca semester', 'bca 1st year', 'bca 2nd year', 'bca 3rd year', '~computer applications', '~semester exam'],
+  topics: [],
+  questions: [yearQuestion(BCA_YEARS, ['y1'])],
+  creators: ['Gate Smashers', "Jenny's Lectures", 'Apna College', 'CodeWithHarry', 'Neso Academy'],
+};
+
+const BSC_MAJORS: [string, string, [string, string[]][]][] = [
+  ['physics', 'Physics', [['Mechanics', ['classical mechanics', 'newtons laws', 'rigid body dynamics']], ['Electricity & Magnetism', ['electrostatics', 'magnetostatics', 'maxwell equations']], ['Waves & Optics', ['interference', 'diffraction', 'polarization']], ['Thermal Physics', ['thermodynamics', 'kinetic theory', 'statistical mechanics']], ['Mathematical Physics', ['vector analysis', 'fourier series', 'special functions']], ['Quantum Mechanics', ['schrodinger equation', 'wave function', 'uncertainty principle']], ['Solid State Physics', ['crystal structure', 'band theory', 'semiconductors']], ['Electronics', ['diodes', 'transistors', 'op amp']]]],
+  ['chemistry', 'Chemistry', [['Physical Chemistry', ['chemical kinetics', 'thermodynamics', 'electrochemistry', 'quantum chemistry']], ['Organic Chemistry', ['reaction mechanism', 'stereochemistry', 'named reactions', 'aromatic compounds']], ['Inorganic Chemistry', ['coordination chemistry', 'chemical bonding', 'p block', 'd block', 'organometallics']], ['Analytical Chemistry', ['titration', 'chromatography', 'spectroscopy']]]],
+  ['maths', 'Mathematics', [['Calculus', ['limits', 'differentiation', 'integration', 'partial derivatives']], ['Real Analysis', ['sequences and series', 'continuity', 'riemann integration']], ['Abstract Algebra', ['group theory', 'ring theory', 'subgroups']], ['Linear Algebra', ['vector spaces', 'linear transformations', 'eigenvalues']], ['Differential Equations', ['ordinary differential equations', 'partial differential equations']], ['Complex Analysis', ['analytic functions', 'contour integration', 'residue theorem']], ['Probability & Statistics', ['probability', 'random variables', 'distributions']]]],
+  ['cs', 'Computer Science', [['Programming in C', []], ['Data Structures', []], ['DBMS', []], ['Operating System', []], ['Computer Networks', []], ['Python Programming', ['python', 'pandas', 'numpy']]]],
+  ['bio', 'Life Sciences', [['Botany', ['plant physiology', 'plant anatomy', 'taxonomy']], ['Zoology', ['animal physiology', 'invertebrates', 'chordates']], ['Cell Biology', ['cell structure', 'cell division', 'cell organelles']], ['Genetics', ['mendelian genetics', 'linkage', 'mutation']], ['Biochemistry', ['enzymes', 'metabolism', 'proteins']], ['Ecology', ['ecosystem', 'biodiversity', 'population ecology']]]],
+];
+
+const BSC: ExamInfo = {
+  id: 'bsc',
+  group: 'degrees',
+  label: 'B.Sc',
+  covers: 'Physics · Chemistry · Maths · CS · Life sciences',
+  icon: 'atom',
+  emoji: '🔬',
+  name: 'B.Sc',
+  description: 'B.Sc: each of your subjects, split into the papers you study.',
+  searchHint: 'bsc',
+  keywords: ['bsc', 'b.sc', 'b sc', 'bsc lectures', 'bsc 1st year', 'bsc 2nd year', 'bsc 3rd year', '~msc', '~csir net'],
+  topics: [],
+  questions: [
+    {
+      id: 'majors',
+      prompt: 'Which subjects do you study?',
+      help: 'Most B.Sc courses have two or three. Each becomes a subject in your Space, with its papers inside.',
+      multi: true,
+      defaults: ['physics', 'chemistry', 'maths'],
+      options: BSC_MAJORS.map(([id, label, papers]) => opt(id, label, { topics: papers.map(([name, extra]) => subject(label, name, extra)) })),
+    },
+  ],
+  creators: ['Physics Wallah', 'Unacademy CSIR NET', 'NPTEL', 'Neso Academy', 'Dr. Gajendra Purohit'],
+};
+
+const BCOM_YEARS: ByYear = {
+  y1: { label: '1st year', subjects: [['Financial Accounting', ['journal entries', 'ledger', 'trial balance', 'final accounts', 'depreciation']], ['Business Economics', ['microeconomics', 'demand and supply', 'elasticity', 'market structures']], ['Business Law', ['indian contract act', 'sale of goods act', 'partnership act']], ['Business Mathematics & Statistics', ['business mathematics', 'business statistics', 'measures of central tendency', 'correlation and regression']], ['Business Communication', ['business communication', 'report writing']]] },
+  y2: { label: '2nd year', subjects: [['Corporate Accounting', ['issue of shares', 'company final accounts', 'amalgamation']], ['Cost Accounting', ['cost sheet', 'marginal costing', 'standard costing']], ['Company Law', ['companies act 2013', 'memorandum of association']], ['Income Tax', ['income tax', 'heads of income', 'tax computation']], ['Banking & Insurance', ['banking', 'insurance', 'rbi functions']]] },
+  y3: { label: '3rd year', subjects: [['Auditing', ['auditing', 'vouching', 'internal control']], ['Management Accounting', ['ratio analysis', 'fund flow', 'cash flow statement', 'budgetary control']], ['GST', ['gst', 'input tax credit', 'gst returns']], ['Financial Management', ['capital budgeting', 'cost of capital', 'working capital']], ['Marketing Management', ['marketing mix', '4ps of marketing', 'consumer behaviour']]] },
+};
+
+const BCOM: ExamInfo = {
+  id: 'bcom',
+  group: 'degrees',
+  label: 'B.Com',
+  covers: 'Accounts, tax, law and economics, year by year',
+  icon: 'banknote',
+  emoji: '📊',
+  name: 'B.Com',
+  description: 'B.Com: accounting, tax, law and economics for your year.',
+  searchHint: 'bcom',
+  keywords: ['bcom', 'b.com', 'b com', 'bcom lectures', 'bcom 1st year', 'bcom 2nd year', 'bcom 3rd year', '~commerce', '~ca foundation'],
+  topics: [],
+  questions: [yearQuestion(BCOM_YEARS, ['y1'])],
+  creators: ['Commerce Wallah', 'Edu91', 'CA Wallah', 'Study at Home with Neha'],
+};
+
+const MBBS_PHASES: ByYear = {
+  p1: { label: '1st year', subjects: [['Anatomy', ['upper limb', 'lower limb', 'thorax', 'abdomen anatomy', 'head and neck', 'neuroanatomy', 'embryology', 'histology']], ['Physiology', ['cardiovascular physiology', 'respiratory physiology', 'renal physiology', 'nerve muscle physiology', 'endocrine physiology', 'gi physiology']], ['Biochemistry', ['carbohydrate metabolism', 'lipid metabolism', 'enzymes', 'vitamins', 'amino acid metabolism', 'molecular biology']]] },
+  p2: { label: '2nd year', subjects: [['Pathology', ['cell injury', 'inflammation', 'neoplasia', 'hematology', 'general pathology', 'systemic pathology']], ['Pharmacology', ['pharmacokinetics', 'autonomic pharmacology', 'antimicrobials', 'cns pharmacology', 'cardiovascular drugs']], ['Microbiology', ['bacteriology', 'virology', 'mycology', 'parasitology', 'immunology']], ['Forensic Medicine', ['forensic medicine', 'toxicology', 'medical jurisprudence']]] },
+  p3: { label: '3rd year', subjects: [['Community Medicine', ['psm', 'epidemiology', 'biostatistics', 'nutrition', 'national health programmes']], ['ENT', ['ent', 'otology', 'rhinology', 'laryngology']], ['Ophthalmology', ['ophthalmology', 'glaucoma', 'cataract', 'retina', 'cornea']]] },
+  p4: { label: 'Final year', subjects: [['General Medicine', ['cardiology', 'respiratory medicine', 'gastroenterology', 'nephrology', 'neurology', 'endocrinology']], ['General Surgery', ['general surgery', 'trauma surgery', 'hernia', 'breast surgery', 'urology']], ['Obstetrics & Gynaecology', ['obstetrics', 'gynaecology', 'antenatal care', 'labour']], ['Paediatrics', ['paediatrics', 'pediatrics', 'neonatology', 'growth and development', 'immunization']], ['Orthopaedics', ['orthopaedics', 'fractures', 'bone tumors']]] },
+};
+
+const MBBS: ExamInfo = {
+  id: 'mbbs',
+  group: 'degrees',
+  label: 'MBBS',
+  covers: 'Phase by phase · NEET PG alongside',
+  icon: 'stethoscope',
+  emoji: '⚕️',
+  name: 'MBBS',
+  description: 'MBBS: the subjects of your phase, from anatomy to the final-year clinicals.',
+  searchHint: 'mbbs',
+  keywords: ['mbbs', 'mbbs lectures', 'mbbs 1st year', 'mbbs 2nd year', 'mbbs 3rd year', 'mbbs final year', 'neet pg', '~medical lecture', '~fmge'],
+  topics: [],
+  questions: [yearQuestion(MBBS_PHASES, ['p1'])],
+  creators: ['Ninja Nerd', 'Osmosis from Elsevier', 'Armando Hasudungan', 'Dr. Najeeb Lectures', 'Marrow'],
+};
+
+const SCHOOL_SUBJECTS: Record<string, [string, Record<'c11' | 'c12', string[]>][]> = {
+  physics: [['Physics', { c11: ['units and measurements', 'kinematics', 'laws of motion', 'work energy and power', 'rotational motion', 'gravitation', 'thermodynamics', 'oscillations', 'waves'], c12: ['electrostatics', 'current electricity', 'magnetism', 'electromagnetic induction', 'alternating current', 'ray optics', 'wave optics', 'dual nature', 'atoms and nuclei', 'semiconductors'] }]],
+  chemistry: [['Chemistry', { c11: ['some basic concepts of chemistry', 'structure of atom', 'chemical bonding', 'thermodynamics chemistry', 'equilibrium', 'redox reactions', 'organic chemistry basic principles', 'hydrocarbons'], c12: ['solutions', 'electrochemistry', 'chemical kinetics', 'd and f block', 'coordination compounds', 'haloalkanes and haloarenes', 'alcohols phenols ethers', 'aldehydes ketones', 'amines', 'biomolecules'] }]],
+  maths: [['Mathematics', { c11: ['sets', 'relations and functions', 'trigonometry', 'complex numbers', 'permutations and combinations', 'binomial theorem', 'sequence and series', 'straight lines', 'conic sections', 'limits and derivatives', 'statistics', 'probability'], c12: ['matrices', 'determinants', 'continuity and differentiability', 'application of derivatives', 'integrals', 'differential equations', 'vector algebra', 'three dimensional geometry', 'linear programming'] }]],
+  biology: [['Biology', { c11: ['the living world', 'plant kingdom', 'animal kingdom', 'cell the unit of life', 'cell cycle', 'photosynthesis', 'respiration in plants', 'breathing and exchange of gases', 'body fluids and circulation', 'neural control'], c12: ['sexual reproduction in flowering plants', 'human reproduction', 'principles of inheritance', 'molecular basis of inheritance', 'evolution', 'human health and disease', 'biotechnology', 'organisms and populations', 'ecosystem'] }]],
+  accountancy: [['Accountancy', { c11: ['journal entries', 'ledger', 'trial balance', 'bank reconciliation statement', 'depreciation', 'final accounts'], c12: ['partnership accounts', 'admission of partner', 'retirement of partner', 'issue of shares', 'cash flow statement', 'ratio analysis'] }]],
+  business: [['Business Studies', { c11: ['nature and purpose of business', 'forms of business organisation', 'business services', 'social responsibility'], c12: ['principles of management', 'planning', 'organising', 'staffing', 'directing', 'controlling', 'financial markets', 'marketing'] }]],
+  economics: [['Economics', { c11: ['microeconomics', 'consumer equilibrium', 'theory of demand', 'production and costs', 'statistics for economics'], c12: ['macroeconomics', 'national income', 'money and banking', 'government budget', 'balance of payments', 'indian economic development'] }]],
+  history: [['History', { c11: ['themes in world history', 'early societies', 'empires', 'changing traditions'], c12: ['harappan civilisation', 'kings and chronicles', 'bhakti sufi traditions', 'colonialism', 'mahatma gandhi and the nationalist movement', 'framing the constitution'] }]],
+  polsci: [['Political Science', { c11: ['indian constitution at work', 'political theory', 'rights', 'federalism'], c12: ['contemporary world politics', 'politics in india since independence', 'cold war', 'globalisation'] }]],
+  geography: [['Geography', { c11: ['fundamentals of physical geography', 'india physical environment', 'landforms', 'climate'], c12: ['fundamentals of human geography', 'india people and economy', 'population', 'transport and communication'] }]],
+};
+const STREAMS: [string, string, string[]][] = [
+  ['pcm', 'Science · PCM', ['physics', 'chemistry', 'maths']],
+  ['pcb', 'Science · PCB', ['physics', 'chemistry', 'biology']],
+  ['commerce', 'Commerce', ['accountancy', 'business', 'economics']],
+  ['humanities', 'Humanities', ['history', 'polsci', 'geography', 'economics']],
+];
+
+const SCHOOL: ExamInfo = {
+  id: 'school',
+  group: 'degrees',
+  label: 'Class 11–12',
+  covers: 'CBSE & state boards · Science, Commerce, Humanities',
+  icon: 'book-open',
+  emoji: '📚',
+  name: 'Class 11–12',
+  description: 'Classes 11 and 12: your stream’s subjects, NCERT chapter by chapter.',
+  // Not "class 12": every search would carry it, Class 11 ones too ("Class 11 Physics class 12").
+  searchHint: 'ncert',
+  keywords: ['class 11', 'class 12', 'cbse', 'ncert', 'board exam', '~one shot', '~state board'],
+  topics: [],
+  questions: [
+    { id: 'stream', prompt: 'Which stream?', defaults: ['pcm'], options: STREAMS.map(([id, label]) => opt(id, label, { name: `Class 11–12 ${label.replace('Science · ', '')}` })) },
+    { id: 'class', prompt: 'Which class?', help: 'Pick both if you are revising Class 11 too.', multi: true, defaults: ['c11', 'c12'], options: [opt('c11', 'Class 11'), opt('c12', 'Class 12')] },
+  ],
+  creators: ['Physics Wallah', 'Magnet Brains', 'Vedantu', 'Learnohub'],
+};
+
+/** Class 11–12 depends on two answers at once (stream × class), so it is built here, subject by subject. */
+function schoolTopics(answers: ExamAnswers): Topic[] {
+  const stream = STREAMS.find(([id]) => id === answers.stream?.[0]) ?? STREAMS[0];
+  const classes = (answers.class?.length ? answers.class : ['c11', 'c12']).slice().sort() as ('c11' | 'c12')[];
+  return stream[2].flatMap((key) =>
+    (SCHOOL_SUBJECTS[key] ?? []).flatMap(([name, chapters]) => classes.map((c) => t(`Class ${c.slice(1)} ${name}`, [`class ${c.slice(1)} ${name.toLowerCase()}`, ...chapters[c]], name))),
+  );
+}
+
+export const EXAMS: readonly ExamInfo[] = [UPSC, SSC, BANKING, RAILWAYS, STATE_PSC, DEFENCE, TEACHING, JUDICIARY, JEE, NEET, GATE, CAT, BTECH, BCA, BSC, BCOM, MBBS, SCHOOL];
 
 export const EXAM_IDS: ReadonlySet<string> = new Set(EXAMS.map((e) => e.id));
 export const isExamId = (id: unknown): id is ExamId => typeof id === 'string' && EXAM_IDS.has(id);
@@ -680,7 +857,7 @@ export function buildExamMode(id: ExamId, answers: ExamAnswers = {}, now = 0): L
   // Degree subjects first, then skills: the order the topic bar shows them in.
   const skills = picks.flatMap((o) => o.topics ?? []).filter((tp) => tp.group === 'Skills & placements');
   const others = picks.flatMap((o) => o.topics ?? []).filter((tp) => tp.group !== 'Skills & placements');
-  const topics = [...exam.topics, ...others, ...(id === 'btech' ? btechTopics(answers) : []), ...skills];
+  const topics = [...exam.topics, ...others, ...(id === 'btech' ? btechTopics(answers) : []), ...(id === 'school' ? schoolTopics(answers) : []), ...skills];
   const seen = new Set<string>(answers[EXCLUDE] ?? []);
   return {
     id,

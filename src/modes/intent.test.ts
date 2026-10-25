@@ -19,7 +19,9 @@ describe('intent inference', () => {
   it('understands System Design without any configuration', () => {
     const s = infer('System Design');
     expect(s.kind).toBe('learning');
-    expect(names('System Design')).toEqual(expect.arrayContaining(['High Level Design', 'Low Level Design', 'Distributed Systems', 'Scalability', 'Microservices']));
+    expect(names('System Design')).toEqual(expect.arrayContaining(['Scalability Basics', 'Load Balancing', 'Caching', 'Design Patterns', 'LLD Problems', 'System Design Interview']));
+    // A path from HLD to LLD: stages in the order they are learned.
+    expect([...new Set(s.topics.map((t) => t.group))]).toEqual(['1 · Foundations', '2 · HLD building blocks', '3 · HLD case studies', '4 · LLD foundations', '5 · LLD case studies', '6 · Interview']);
     expect(s.searchHint).toBe('system design');
   });
 

@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import type { LearningMode, SpaceKind } from '@/types/domain';
 import { inferModeIntent, modeFromSuggestion, STARTER_INTENTS, type IntentSuggestion } from '@/modes/intent';
-import { addMode, SpaceLimitError } from '@/modes/service';
+import { addMode, SpaceLimitError, updateMode } from '@/modes/service';
+import { EXAMS, type ExamId } from '@/modes/exams';
+import { subjectsOf, withTopic } from '@/modes/groups';
 import { slugify } from '@/learning/text';
 import { updateItem } from '@/storage/storage';
 import { sendMessage } from '@/messaging/runtime';
@@ -21,8 +23,30 @@ const KIND_OPTIONS: { value: SpaceKind; label: string }[] = [
  * "What do you want to focus on?" → FocusSpace infers the space → one click.
  * No keywords, signals or configuration required.
  */
-export function CreateSpace({ modes, onCreated, onCancel }: { modes: LearningMode[]; onCreated: (mode: LearningMode) => void; onCancel: () => void }) {
+export function CreateSpace({
+  modes,
+  onCreated,
+  onCancel,
+  current = null,
+  onExam,
+  onAddedInside,
+}: {
+  modes: LearningMode[];
+  onCreated: (mode: LearningMode) => void;
+  onCancel: () => void;
+  /** The Space the learner is in: "Organic Chemistry" can go inside NEET instead of becoming a Space. */
+  current?: LearningMode | null;
+  /** Exams and courses have their own setup (modes/exams.ts); offered here when the host can open it. */
+  onExam?: (id: ExamId) => void;
+  onAddedInside?: (modeId: string, topicId: string) => void;
+}) {
   const [input, setInput] = useState('');
+  const subjects = current && !current.source ? subjectsOf(current) : [];
+  const [picked, setInside] = useState<string | null>(null);
+  // "Organic spectroscopy" goes under Chemistry: the subject whose topics share a word with what was typed.
+  const words = new Set((input.toLowerCase().match(/[a-z0-9]{4,}/g) ?? []).map((w) => w.replace(/(ic|al|y|s)$/, '')));
+  const guess = subjects.find((sub) => [sub.title, ...sub.topics.flatMap((t) => [t.name, ...t.keywords])].some((text) => (text.toLowerCase().match(/[a-z0-9]{4,}/g) ?? []).some((w) => words.has(w.replace(/(ic|al|y|s)$/, '')))));
+  const inside = picked ?? guess?.name ?? subjects[0]?.name ?? '';
   const [draft, setDraft] = useState<IntentSuggestion | null>(null);
   const [channels, setChannels] = useState<PickedChannel[]>([]);
   const [discovery, setDiscovery] = useState(true);
@@ -68,6 +92,21 @@ export function CreateSpace({ modes, onCreated, onCancel }: { modes: LearningMod
     void create(inferModeIntent(text));
   };
 
+  /** Puts what was typed inside the current Space, under the chosen subject (or as a subject of its own). */
+  const addInside = async () => {
+    const text = input.trim();
+    if (!current || !text) return;
+    setSaving(true);
+    const group = inside === NEW_SUBJECT ? text : inside || undefined;
+    const next = withTopic(current.topics, text, group);
+    await updateMode(current.id, { topics: next.topics });
+    setSaving(false);
+    if (next.id) onAddedInside?.(current.id, next.id);
+  };
+  const owned = new Set(modes.map((m) => m.id));
+  const ownedNames = new Set(modes.map((m) => m.name.toLowerCase()));
+  const exams = onExam ? EXAMS.filter((e) => !owned.has(e.id)) : [];
+
   if (!draft) {
     return (
       <form
@@ -81,12 +120,48 @@ export function CreateSpace({ modes, onCreated, onCancel }: { modes: LearningMod
           What do you want to focus on?
         </label>
         <TextInput id="fs-intent" autoFocus value={input} onChange={(e) => setInput(e.target.value)} placeholder="e.g. System Design, Punjabi music, DSA" maxLength={60} style={{ height: 46, fontSize: 16 }} />
-        <div className="fs-choice-row" aria-label="Examples">
-          {STARTER_INTENTS.map((s) => (
-            <button key={s} type="button" className="fs-choice" aria-pressed={input === s} onClick={() => setInput(s)}>
-              {s}
-            </button>
-          ))}
+        {current && onAddedInside && input.trim() && (
+          <div className="fs-create-inside">
+            <span>
+              Or put <b>{input.trim()}</b> inside <b>{current.name}</b>
+            </span>
+            {subjects.length > 0 && (
+              <select className="fs-input" value={inside} onChange={(e) => setInside(e.target.value)} aria-label={`Where in ${current.name}`}>
+                {subjects.map((sub) => (
+                  <option key={sub.id} value={sub.name}>
+                    under {sub.title}
+                  </option>
+                ))}
+                <option value={NEW_SUBJECT}>as a new subject</option>
+              </select>
+            )}
+            <Button size="sm" variant="secondary" disabled={saving} onClick={() => void addInside()}>
+              Add to {current.name}
+            </Button>
+          </div>
+        )}
+        {exams.length > 0 && (
+          <div className="fs-stack-sm">
+            <span className="fs-eyebrow">Exams & courses</span>
+            <span className="fs-caption">Each is its own Space next to the ones you have, so B.Tech and UPSC, or SSC and banking, can run side by side.</span>
+            <div className="fs-choice-row" aria-label="Exams and courses">
+              {exams.map((e) => (
+                <button key={e.id} type="button" className="fs-choice" title={e.covers} onClick={() => onExam?.(e.id)}>
+                  <SpaceIcon name={e.icon} size={14} /> {e.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="fs-stack-sm">
+          {exams.length > 0 && <span className="fs-eyebrow">Skills & hobbies</span>}
+          <div className="fs-choice-row" aria-label="Examples">
+            {STARTER_INTENTS.filter((x) => !ownedNames.has(x.toLowerCase())).map((x) => (
+              <button key={x} type="button" className="fs-choice" aria-pressed={input === x} onClick={() => setInput(x)}>
+                {x}
+              </button>
+            ))}
+          </div>
         </div>
         {limit && <LimitNotice text={limit} />}
         <div className="fs-row" style={{ justifyContent: 'space-between' }}>
@@ -179,6 +254,8 @@ export function CreateSpace({ modes, onCreated, onCancel }: { modes: LearningMod
     </div>
   );
 }
+
+const NEW_SUBJECT = '__new-subject';
 
 /** The Space allowance, with the way past it right there: a free account (5 Spaces) when signed out. */
 function LimitNotice({ text }: { text: string }) {

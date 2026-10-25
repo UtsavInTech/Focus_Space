@@ -16,6 +16,7 @@ import type {
 import { DEFAULT_MODES } from '@/modes/templates';
 import { iconForEmoji, isSpaceIcon } from '@/modes/icons';
 import { isExamId } from '@/modes/exams';
+import { upgradeTopics } from '@/modes/curricula';
 import type { LayoutHealth } from '@/content/youtube/health';
 import type { ModeCacheSnapshot } from '@/learning/classifier';
 import type { FeedViewStore } from '@/learning/feed-view';
@@ -238,6 +239,7 @@ export const DEFAULT_SETTINGS: Settings = {
   displayName: '',
   onboarded: false,
   exam: null,
+  cinemaDark: true,
   debugRelevance: false,
   shareUsageCounts: true,
   ai: { provider: 'auto', endpointUrl: '', language: 'en' },
@@ -329,9 +331,10 @@ export function normalize<K extends StorageKey>(key: K, raw: unknown): StorageSc
         // Built-in modes the user never edited follow the latest template.
         const template = m.updatedAt === 0 ? DEFAULT_MODES.find((t) => t.id === m.id) : undefined;
         if (template) return structuredClone(template);
+        // Built-in subjects that became a path (System Design: HLD → LLD) catch up, never over the learner's own edits.
+        const topics = m.source && Array.isArray(m.topics) ? m.topics : Array.isArray(m.topics) ? upgradeTopics(m.id ?? '', m.topics, DEFAULT_MODES.find((t) => t.id === m.id)?.topics) : [];
         return {
           description: '',
-          topics: [],
           keywords: [],
           blockedKeywords: [],
           allowedChannels: [],
@@ -344,6 +347,7 @@ export function normalize<K extends StorageKey>(key: K, raw: unknown): StorageSc
           kind: 'learning',
           discovery: true,
           ...m,
+          topics,
           icon: isSpaceIcon(m.icon) ? m.icon : iconForEmoji(m.emoji),
           filterOverride: normalizeFilterConfig(m.filterOverride),
         } as LearningMode;

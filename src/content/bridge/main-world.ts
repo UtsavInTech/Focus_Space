@@ -233,9 +233,33 @@ async function loadCaptions(videoId: string): Promise<string> {
   }
 }
 
+/**
+ * The cinema look (controller.ts) turns YouTube dark for someone whose YouTube is set to light. On every
+ * in-page navigation YouTube compares its page theme with that setting and, finding them different,
+ * reloads the whole page (`themeRefresh=1`). That made every video open a full reload, which is slow
+ * and ends full screen. So while FocusSpace owns the dark theme (`data-fs-own-dark`), it steps aside for
+ * the instant YouTube checks — the start of a navigation — and comes straight back on the next tick.
+ */
+const OWN_DARK = 'data-fs-own-dark';
+function keepThemeThroughNavigation() {
+  document.addEventListener(
+    'yt-navigate',
+    () => {
+      const root = document.documentElement;
+      if (!root.hasAttribute(OWN_DARK) || !root.hasAttribute('dark')) return;
+      root.removeAttribute('dark');
+      window.setTimeout(() => {
+        if (root.hasAttribute(OWN_DARK)) root.setAttribute('dark', 'true');
+      }, 0);
+    },
+    true,
+  );
+}
+
 if (!window.__focusSpaceBridge) {
   window.__focusSpaceBridge = true;
   hookTimedText();
+  keepThemeThroughNavigation();
   document.addEventListener(CAPTIONS_REQUEST, (event) => {
     try {
       const { videoId, requestId } = JSON.parse(String((event as CustomEvent).detail)) as { videoId: string; requestId: number };

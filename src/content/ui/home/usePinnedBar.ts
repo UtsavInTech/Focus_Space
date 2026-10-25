@@ -28,7 +28,9 @@ export function usePinnedBar() {
       frame = requestAnimationFrame(() => {
         const rect = column.getBoundingClientRect();
         const masthead = document.querySelector(MASTHEAD_CONTAINER)?.getBoundingClientRect();
-        const top = masthead && masthead.height > 0 && masthead.bottom < 160 ? masthead.bottom : FALLBACK_TOP;
+        // Full screen hides YouTube's top bar (home/FullScreen.tsx): the bar goes to the very top.
+        const wide = document.documentElement.hasAttribute('data-fs-wide');
+        const top = wide ? 0 : masthead && masthead.height > 0 && masthead.bottom < 160 ? masthead.bottom : FALLBACK_TOP;
         const height = bar.current?.offsetHeight ?? 60;
         // Not laid out (home hidden, tab in the background): keep the bar in the page instead.
         if (rect.width < 200) return setBox(null);
@@ -44,6 +46,7 @@ export function usePinnedBar() {
     const guide = new MutationObserver(measure);
     const app = document.querySelector('ytd-app');
     if (app) guide.observe(app, { attributes: true, attributeFilter: ['guide-persistent-and-visible', 'mini-guide-visible'] });
+    guide.observe(document.documentElement, { attributes: true, attributeFilter: ['data-fs-wide'] });
     return () => {
       cancelAnimationFrame(frame);
       ro.disconnect();

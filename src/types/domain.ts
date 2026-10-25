@@ -139,6 +139,8 @@ export interface Settings {
    * they said they are not preparing for one; `null` while not asked yet (and for installs from before).
    */
   exam: string | null;
+  /** While FocusSpace is on, YouTube is shown in its own dark theme everywhere ("cinema"). */
+  cinemaDark: boolean;
   /** Developer aid: show why each video got its relevance score. */
   debugRelevance: boolean;
   /** Tell FocusSpace, once a day, that this install was used — nothing else (background/activity.ts). */

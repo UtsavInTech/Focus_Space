@@ -1,8 +1,12 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, m, useReducedMotion } from 'motion/react';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, PenLine } from 'lucide-react';
 import { asked, buildExamMode, defaultAnswers, EXAM_GROUPS, EXAMS, EXCLUDE, examCreators, examInfo, type ExamAnswers, type ExamId, type ExamInfo } from '@/modes/exams';
-import { chooseExam, skipExam, SpaceLimitError } from '@/modes/service';
+import { addMode, chooseExam, skipExam, SpaceLimitError } from '@/modes/service';
+import { inferModeIntent, modeFromSuggestion } from '@/modes/intent';
+import { groupTitle, parsePath } from '@/modes/groups';
+import { getItems, updateItem } from '@/storage/storage';
+import type { Topic } from '@/types/domain';
 import { SpaceIcon } from '@/ui/icons';
 import { ChannelPicker, type PickedChannel } from '@/ui/components/ChannelPicker';
 
@@ -17,7 +21,7 @@ import { ChannelPicker, type PickedChannel } from '@/ui/components/ChannelPicker
  * Not preparing for one is an equal answer: it goes on to the general picker.
  */
 
-type Step = { kind: 'pick' } | { kind: 'ask'; exam: ExamInfo } | { kind: 'review'; exam: ExamInfo };
+type Step = { kind: 'pick' } | { kind: 'ask'; exam: ExamInfo } | { kind: 'review'; exam: ExamInfo } | { kind: 'custom' };
 
 const EASE = [0.2, 0, 0, 1] as const;
 
@@ -30,7 +34,8 @@ export function ExamPicker({
 }: {
   /** The goal was confirmed — the setup chat writes "I'm preparing for UPSC" here. */
   onPick?: (id: ExamId, label: string) => void;
-  onChosen?: (id: ExamId) => void;
+  /** Called with the goal's id, or null for a path the learner wrote themselves. */
+  onChosen?: (id: ExamId | null) => void;
   onSkip?: () => void;
   compact?: boolean;
   /** Start straight at this goal's questions (the learner typed or said it). */
@@ -114,6 +119,19 @@ export function ExamPicker({
                 </m.div>
               </div>
             ))}
+            {/* Anything not listed (BBA, CA Inter, B.Des, a career switch) still gets a real path. */}
+            {!compact && (
+              <button type="button" className="fs-exam-card fs-exam-card-custom" onClick={() => setStep({ kind: 'custom' })}>
+                <span className="fs-exam-icon">
+                  <PenLine size={22} aria-hidden />
+                </span>
+                <span className="fs-exam-text">
+                  <b>Another course or career</b>
+                  <small>Not listed? Name it and write your subjects. FocusSpace builds the path from them.</small>
+                </span>
+                <ArrowRight className="fs-exam-go" size={16} aria-hidden />
+              </button>
+            )}
             <button type="button" className="fs-link fs-exam-skip" onClick={() => void skip()}>
               I’m not preparing for an exam
             </button>
@@ -191,8 +209,117 @@ export function ExamPicker({
             </div>
           </m.div>
         )}
+        {step.kind === 'custom' && (
+          <m.div key="custom" className="fs-exam-step" {...motionStep}>
+            <CustomPath onBack={() => setStep({ kind: 'pick' })} onCreated={() => onChosen?.(null)} />
+          </m.div>
+        )}
       </AnimatePresence>
     </div>
+  );
+}
+
+const PATH_EXAMPLE = 'Accounting: journal entries, ledger, final accounts\nEconomics: microeconomics, macroeconomics\nBusiness Law';
+
+/**
+ * "Another course or career": the learner names it and writes its subjects, one per line, with their
+ * parts after a colon. That becomes the same subject → topic hierarchy the built-in goals have, so the
+ * path, the subject pages and the sidebar all work for it. Nothing is guessed.
+ */
+function CustomPath({ onBack, onCreated }: { onBack: () => void; onCreated: () => void }) {
+  const [name, setName] = useState('');
+  const [subjects, setSubjects] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const topics = useMemo(() => parsePath(subjects), [subjects]);
+  const groups = useMemo(() => {
+    const out = new Map<string, Topic[]>();
+    for (const t of topics) out.set(t.group ?? 'Subjects', [...(out.get(t.group ?? 'Subjects') ?? []), t]);
+    return [...out];
+  }, [topics]);
+
+  const create = async () => {
+    const title = name.trim();
+    if (!title || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const understood = inferModeIntent(title);
+      const { modes } = await getItems(['modes']);
+      const base = modeFromSuggestion(
+        understood ?? { name: title, icon: 'graduation-cap', kind: 'learning', description: '', topics: [], keywords: [title.toLowerCase()], searchHint: title.toLowerCase(), understood: [], templateId: null, confidence: 'low' },
+        modes.map((m) => m.id),
+      );
+      // The learner's own subjects win over anything inferred from the name.
+      const mode = { ...base, name: title, kind: 'learning' as const, discovery: true, topics: topics.length ? topics : base.topics };
+      await addMode(mode);
+      await updateItem('settings', (s) => ({ ...s, activeModeId: mode.id, focusEnabled: true, onboarded: true, defaultModeId: s.defaultModeId ?? mode.id }));
+      onCreated();
+    } catch (err) {
+      setError(err instanceof SpaceLimitError ? err.message : 'FocusSpace couldn’t create that Space. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="fs-exam-stephead">
+        <button type="button" className="fs-icon-plain" aria-label="Back" onClick={onBack}>
+          <ArrowLeft size={18} aria-hidden />
+        </button>
+        <span className="fs-exam-icon">
+          <PenLine size={18} aria-hidden />
+        </span>
+        <span className="fs-exam-text">
+          <b>Your own path</b>
+          <small>For any course, exam or career FocusSpace does not list yet</small>
+        </span>
+      </div>
+      <fieldset className="fs-exam-question">
+        <legend>What is it called?</legend>
+        <input className="fs-input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder="e.g. BBA, CA Inter, B.Des, Data Analyst" aria-label="Course or career name" />
+      </fieldset>
+      <fieldset className="fs-exam-question">
+        <legend>Its subjects</legend>
+        <p className="fs-exam-help">One subject per line. Put its chapters or parts after a colon, separated by commas. You can add more later from the Space itself.</p>
+        <textarea className="fs-input fs-path-input" rows={5} value={subjects} onChange={(e) => setSubjects(e.target.value)} placeholder={PATH_EXAMPLE} aria-label="Subjects" />
+      </fieldset>
+      {groups.length > 0 && (
+        <div className="fs-exam-preview">
+          <div className="fs-exam-preview-head">
+            <b>Your {name.trim() || 'new'} path</b>
+            <small>
+              {groups.length} {groups.length === 1 ? 'subject' : 'subjects'} · {topics.length} topics
+            </small>
+          </div>
+          <ol className="fs-exam-tree">
+            {groups.map(([group, list]) => (
+              <li key={group}>
+                <span className="fs-exam-tree-group">{groupTitle(group)}</span>
+                <span className="fs-exam-tree-topics">
+                  {list.map((t) => (
+                    <span key={t.id} className="fs-exam-tree-topic" aria-pressed>
+                      {t.name}
+                    </span>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+      {error && (
+        <p className="fs-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="fs-exam-actions">
+        <button type="button" className="fs-cta fs-cta-primary" disabled={!name.trim() || busy} onClick={() => void create()}>
+          {busy ? 'Setting it up…' : 'Create my Space'} <ArrowRight size={18} aria-hidden />
+        </button>
+      </div>
+    </>
   );
 }
 

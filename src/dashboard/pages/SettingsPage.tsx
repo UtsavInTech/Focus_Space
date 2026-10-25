@@ -436,8 +436,11 @@ export function SettingsPage({ data }: { data: DashboardData }) {
         </details>
       </Section>
 
-      <Section id="appearance" icon={<Palette />} title="Appearance" description="On youtube.com FocusSpace follows YouTube's own theme. These apply to FocusSpace's own pages.">
-        <SettingRow title="Theme">
+      <Section id="appearance" icon={<Palette />} title="Appearance" description="How YouTube and FocusSpace's own pages look.">
+        <SettingRow title="Dark cinema look on YouTube" description="While FocusSpace is on, all of YouTube shows in its dark theme, like a streaming app. Off: YouTube keeps its own theme.">
+          <Switch label="Dark cinema look on YouTube" checked={settings.cinemaDark} onChange={(cinemaDark) => patch({ cinemaDark })} />
+        </SettingRow>
+        <SettingRow title="Theme" description="For FocusSpace's own pages (this one, Library, History).">
           <Segmented
             label="Theme"
             value={settings.theme}

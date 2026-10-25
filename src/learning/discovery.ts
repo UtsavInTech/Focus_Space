@@ -5,6 +5,7 @@ import { getClassifier } from '@/ai/registry';
 import { FEED_MIN_SCORE, TIER_LABEL, type Classification, type Tier } from './classifier';
 import { inTopic } from './library';
 import { normalizeText } from './text';
+import { isGroupId, scopeIds, subtopicsOf } from '@/modes/groups';
 
 /**
  * YouTube discovery: videos from all of YouTube (search results for the
@@ -34,11 +35,24 @@ const MIN_DURATION_SEC = 90;
 
 const unique = (list: string[]) => [...new Set(list.map((q) => q.trim()).filter(Boolean))];
 
-/** Searches that express the space (or one topic of it) on YouTube. */
+/** How many of a topic's subtopics get a search of their own, after the topic's own two. */
+const SUBTOPIC_QUERIES = 14;
+
+/**
+ * Searches that express the space (or one topic of it) on YouTube. A topic searches its own name first,
+ * then each of its subtopics ("photosynthesis neet", "cell cycle neet"…), so a topic page keeps filling
+ * as the learner scrolls instead of stopping after the first couple of result pages.
+ */
 export function discoveryQueriesFor(mode: LearningMode, topic?: Topic | null): string[] {
   const hint = (mode.searchHint || mode.name).trim();
   const scoped = (text: string) => (normalizeText(text).includes(normalizeText(hint)) || normalizeText(hint).includes(normalizeText(text)) ? text : `${text} ${hint}`);
-  if (topic) return unique([scoped(topic.name), mode.kind === 'learning' ? `${topic.name} explained` : topic.name]);
+  if (topic)
+    return unique([
+      scoped(topic.name),
+      mode.kind === 'learning' ? `${topic.name} explained` : topic.name,
+      ...subtopicsOf(topic).slice(0, SUBTOPIC_QUERIES).map(scoped),
+      ...(mode.kind === 'learning' ? [scoped(`${topic.name} one shot`), scoped(`${topic.name} full course`)] : []),
+    ]);
   return unique([
     mode.kind === 'learning' ? `${hint} tutorial` : hint,
     ...mode.topics.slice(0, 8).map((t) => scoped(t.name)),
@@ -81,6 +95,9 @@ export function rankDiscovery(
   const seen = new Set<string>();
   const out: DiscoveredVideo[] = [];
   const topicName = (id: string | null) => mode.topics.find((t) => t.id === id)?.name ?? null;
+  // A subject page ("group:chemistry") keeps what belongs to any of its topics.
+  const scope = topicId ? scopeIds(mode, topicId) : null;
+  const subjectPage = isGroupId(topicId);
 
   for (const { video, query, fromSpaceQuery, topicId: queryTopic } of candidates) {
     if (seen.has(video.id)) continue;
@@ -100,13 +117,14 @@ export function rankDiscovery(
 
     // A topic view keeps videos with evidence for that topic, or found by that topic's own search.
     const assigned = cls.topicId ?? queryTopic;
-    if (topicId && !inTopic(cls, topicId) && !(queryTopic === topicId && !cls.topicId)) continue;
+    if (topicId && scope && !scope.some((id) => inTopic(cls, id)) && !(queryTopic === topicId && !cls.topicId)) continue;
+    const filed = subjectPage ? (cls.topicId && scope?.includes(cls.topicId) ? cls.topicId : null) : topicId ?? assigned;
 
-    const scope = topicName(topicId ?? assigned) ?? mode.name;
-    const reasons = [`${TIER_LABEL[cls.tier]} for ${scope}`];
+    const scopeName = topicName(filed ?? assigned) ?? mode.name;
+    const reasons = [`${TIER_LABEL[cls.tier]} for ${scopeName}`];
     if (mode.kind === 'learning' && cls.learning >= 0.6) reasons.push('Teaches the topic');
     reasons.push('Not from your subscriptions');
-    out.push({ video, cls, topicId: topicId ?? assigned, reasons });
+    out.push({ video, cls, topicId: filed, reasons });
   }
 
   const quality = (v: YtVideo) => Math.log10((v.views ?? 0) + 10);

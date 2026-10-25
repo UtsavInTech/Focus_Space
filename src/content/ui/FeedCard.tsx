@@ -20,6 +20,10 @@ export interface CardData {
   tier: Tier;
   source: CardSource;
   why: string;
+  /** What the video is about, in a sentence (its description, or the subtopics it covers). */
+  about?: string;
+  /** The subtopics it covers, most specific first ("Photosynthesis", "Cell Cycle"). */
+  covers?: string[];
   url?: string;
 }
 

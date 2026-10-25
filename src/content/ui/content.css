@@ -396,6 +396,13 @@ a.fs-path-name:hover { color: var(--fs-text); }
 .fs-guide-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fs-guide-item:hover { background: var(--fs-surface-2); }
 .fs-guide-item[aria-current='true'] { background: var(--fs-surface-2); font-weight: 500; }
+/* The open Space's subjects, nested under it (GuideSpaces.tsx). */
+.fs-guide-subs { display: flex; flex-direction: column; margin: 2px 0 6px 23px; padding-left: 12px; border-left: 1px solid var(--fs-border-strong); }
+.fs-guide-sub { display: flex; align-items: center; gap: 8px; width: 100%; height: 32px; padding: 0 10px; border: none; border-radius: 8px; background: transparent; color: var(--fs-text-2); font-size: 13px; text-align: left; cursor: pointer; }
+.fs-guide-sub span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs-guide-sub small { flex: none; font-size: 11px; color: var(--fs-text-3); }
+.fs-guide-sub:hover { background: var(--fs-surface-2); color: var(--fs-text); }
+.fs-guide-sub[aria-current='true'] { background: var(--fs-surface-2); color: var(--fs-text); font-weight: 600; }
 
 /* Account (sidebar header → panel). Neutral surfaces, one accent-free meter; a menu, not a dashboard. */
 .fs-account { position: relative; display: inline-flex; }
@@ -1086,3 +1093,4 @@ a.fs-path-name:hover { color: var(--fs-text); }
 @media (prefers-reduced-motion: reduce) {
   .fs-welcome, .fs-welcome-msg, .fs-voice-mode, .fs-voice-card, .fs-voice-ring, .fs-voice-orb, .fs-voice-spinner, .fs-welcome-typing span, .fs-pill-button.is-pointed, .fs-cmp-go.is-glowing { animation: none; }
 }
+

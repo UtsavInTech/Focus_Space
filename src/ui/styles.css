@@ -666,6 +666,11 @@ body.fs-popup-body {
 }
 .fs-choice:hover { border-color: var(--fs-border-strong); color: var(--fs-text); }
 .fs-choice[aria-pressed='true'] { background: var(--fs-text); border-color: var(--fs-text); color: var(--fs-bg); }
+.fs-choice { display: inline-flex; align-items: center; gap: 6px; }
+/* "Or put Organic Chemistry inside NEET" (CreateSpace.tsx) */
+.fs-create-inside { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 12px; border-radius: 12px; background: var(--fs-surface-2); font-size: 13px; color: var(--fs-text-2); }
+.fs-create-inside b { color: var(--fs-text); }
+.fs-create-inside select.fs-input { width: auto; height: 32px; padding: 0 8px; font-size: 13px; }
 
 /* ------------------------------------------------------------ tag input */
 

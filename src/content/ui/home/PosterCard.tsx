@@ -32,7 +32,7 @@ export function PosterCard({ card, rank, plain = false }: { card: CardData; rank
   return (
     <m.article
       className={`fs-poster${rank ? ' fs-poster-ranked' : ''}`}
-      title={card.why}
+      title={card.about || card.why}
       whileHover={reduce ? undefined : { y: -6, scale: 1.045 }}
       whileTap={reduce ? undefined : { scale: 0.98 }}
       transition={SPRING}
@@ -65,7 +65,8 @@ export function PosterCard({ card, rank, plain = false }: { card: CardData; rank
           <span className="fs-poster-title">{card.title}</span>
           <span className="fs-poster-meta">{meta}</span>
           {!plain && <span className="fs-poster-tags">
-            <span className={`fs-match${strong ? ' is-strong' : ''}${card.tier === 'excellent' ? ' is-best' : ''}`}>{TIER_LABEL[card.tier]}</span>
+            {/* What it covers ("Photosynthesis") says more than a score does; the score is the fallback. */}
+            <span className={`fs-match${strong ? ' is-strong' : ''}`}>{card.covers?.[0] ?? TIER_LABEL[card.tier]}</span>
             {card.source !== 'discovery' && <span className="fs-poster-src">{SOURCE_LABEL[card.source]}</span>}
           </span>}
         </span>

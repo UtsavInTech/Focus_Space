@@ -160,7 +160,12 @@ describe('YouTube discovery ranking', () => {
     expect(all[0]).toBe('machine learning tutorial');
     expect(all).toContain('LLMs & Transformers machine learning');
     const topic = ai.topics.find((t) => t.id === 'llms')!;
-    expect(discoveryQueriesFor(ai, topic)).toEqual(['LLMs & Transformers machine learning', 'LLMs & Transformers explained']);
+    const forTopic = discoveryQueriesFor(ai, topic);
+    expect(forTopic.slice(0, 2)).toEqual(['LLMs & Transformers machine learning', 'LLMs & Transformers explained']);
+    // Then one search per subtopic, so a topic page keeps loading past the first result pages.
+    const sub = topic.keywords.find((k) => !k.startsWith('~') && k !== topic.name.toLowerCase())!;
+    expect(forTopic.some((q) => q.startsWith(sub))).toBe(true);
+    expect(forTopic.length).toBeGreaterThan(4);
   });
 });
 

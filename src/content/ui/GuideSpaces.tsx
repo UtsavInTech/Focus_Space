@@ -7,6 +7,8 @@ import { sendMessage } from '@/messaging/runtime';
 import { useStorage } from '@/ui/hooks';
 import { spaNavigate } from '../youtube/spa';
 import { welcomeStep } from './welcome-step';
+import { subjectsOf } from '@/modes/groups';
+import { homeNav, useHomeTopic } from './home/nav';
 
 /**
  * A compact "FocusSpace" section in YouTube's own left sidebar.
@@ -18,10 +20,16 @@ import { welcomeStep } from './welcome-step';
  * has it for anyone already signed in.
  */
 export function GuideSpaces({ settings, modes, onCreate }: { settings: Settings; modes: LearningMode[]; onCreate: () => void }) {
-  const choose = async (mode: LearningMode) => {
+  /** A Space opens at its home; a subject ("NEET → Chemistry") opens as its own page there. */
+  const choose = async (mode: LearningMode, topicId: string | null = null) => {
+    homeNav.set({ modeId: mode.id, topicId });
     await selectMode(mode.id);
     spaNavigate('/');
   };
+  const active = modes.find((m) => m.id === settings.activeModeId) ?? null;
+  const [openTopic] = useHomeTopic(active?.id ?? null);
+  // The open Space shows its subjects under it: the hierarchy, where YouTube keeps its own navigation.
+  const subjects = active ? subjectsOf(active) : [];
   // FocusSpace's own Home (Library, History, Spaces) — the marketing site is for people who do not have it yet.
   const openHome = () => void sendMessage('dashboard/open', { route: '/' }).catch(() => undefined);
   // The welcome guide's last step points here, so the heading it names is the one that stands out.
@@ -37,10 +45,22 @@ export function GuideSpaces({ settings, modes, onCreate }: { settings: Settings;
         <ExternalLink size={14} aria-hidden />
       </button>
       {modes.map((m) => (
-        <button key={m.id} type="button" className="fs-guide-item" aria-current={m.id === settings.activeModeId ? 'true' : undefined} onClick={() => void choose(m)} title={m.name}>
-          <SpaceIcon name={m.icon} size={22} />
-          <span>{m.name}</span>
-        </button>
+        <div key={m.id} className="fs-guide-space">
+          <button type="button" className="fs-guide-item" aria-current={m.id === settings.activeModeId ? 'true' : undefined} onClick={() => void choose(m)} title={m.name}>
+            <SpaceIcon name={m.icon} size={22} />
+            <span>{m.name}</span>
+          </button>
+          {m.id === active?.id && subjects.length >= 2 && (
+            <div className="fs-guide-subs" role="group" aria-label={`${m.name} subjects`}>
+              {subjects.map((sub) => (
+                <button key={sub.id} type="button" className="fs-guide-sub" aria-current={openTopic === sub.id || sub.topics.some((t) => t.id === openTopic) ? 'true' : undefined} onClick={() => void choose(m, sub.id)} title={`${sub.title}: ${sub.topics.map((t) => t.name).join(', ')}`}>
+                  <span>{sub.title}</span>
+                  <small>{sub.topics.length}</small>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       ))}
       <button type="button" className="fs-guide-item" onClick={onCreate}>
         <Plus size={22} aria-hidden />

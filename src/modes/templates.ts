@@ -352,8 +352,33 @@ const CORE_MODES: LearningMode[] = [
   }),
 ];
 
+/**
+ * The order each built-in subject is learned in: stage labels for its topics, shown as a path on the
+ * home (content/ui/home/LearningPath.tsx). Topics keep their ids, so this never disturbs a saved Space.
+ */
+const STAGES: Record<string, Record<string, string>> = {
+  dsa: {
+    arrays: '1 · Basics', strings: '1 · Basics', recursion: '1 · Basics', sorting: '1 · Basics', searching: '1 · Basics',
+    'linked-lists': '2 · Core structures', 'stacks-queues': '2 · Core structures', hashing: '2 · Core structures', 'binary-trees': '2 · Core structures', bst: '2 · Core structures', heaps: '2 · Core structures',
+    graphs: '3 · Advanced', greedy: '3 · Advanced', 'dynamic-programming': '3 · Advanced', backtracking: '3 · Advanced',
+  },
+  'web-dev': {
+    'html-css': '1 · Frontend basics', javascript: '1 · Frontend basics', typescript: '2 · Frameworks', react: '2 · Frameworks', nextjs: '2 · Frameworks',
+    node: '3 · Backend', apis: '3 · Backend', databases: '3 · Backend', git: '4 · Ship it', deployment: '4 · Ship it',
+  },
+  'ai-ml': {
+    'ml-math': '1 · Foundations', 'ml-foundations': '1 · Foundations', 'deep-learning': '2 · Deep learning', nlp: '2 · Deep learning', 'computer-vision': '2 · Deep learning',
+    llms: '3 · Modern AI', 'ai-engineering': '3 · Modern AI', rl: '3 · Modern AI', mlops: '4 · Production',
+  },
+};
+
+const staged = (mode: LearningMode): LearningMode => {
+  const stages = STAGES[mode.id];
+  return stages ? { ...mode, topics: mode.topics.map((tp) => (stages[tp.id] ? { ...tp, group: stages[tp.id] } : tp)) } : mode;
+};
+
 /** Every built-in Space: the general catalogue, then the exam Spaces (modes/exams.ts). */
-export const DEFAULT_MODES: LearningMode[] = [...CORE_MODES, ...EXAM_MODES];
+export const DEFAULT_MODES: LearningMode[] = [...CORE_MODES.map(staged), ...EXAM_MODES];
 
 /** A blank mode for "Create mode". */
 export function blankMode(id: string, now: number): LearningMode {

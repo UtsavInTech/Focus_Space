@@ -1,6 +1,7 @@
 import type { LearningMode, SpaceKind, Topic } from '@/types/domain';
 import { keywordPattern, normalizeText, slugify, uniqueId } from '@/learning/text';
 import { DEFAULT_MODES, blankMode } from './templates';
+import { SYSTEM_DESIGN_PATH } from './curricula';
 import type { SpaceIconName } from './icons';
 
 /**
@@ -85,16 +86,9 @@ const CATALOG: CatalogEntry[] = [
     aliases: ['system design', 'hld', 'lld', 'high level design', 'low level design', 'distributed systems', 'software architecture'],
     description: 'Designing scalable, reliable software systems.',
     searchHint: 'system design',
-    keywords: ['system design', 'distributed systems', 'scalability', 'software architecture', 'system design interview'],
-    topics: {
-      'High Level Design': ['hld', 'high level design'],
-      'Low Level Design': ['lld', 'low level design', 'design patterns', 'object oriented design'],
-      'Distributed Systems': ['distributed systems', 'cap theorem', 'consistent hashing', 'replication', 'sharding'],
-      Scalability: ['scalability', 'load balancer', 'load balancing', 'horizontal scaling', 'rate limiter'],
-      Caching: ['caching', 'redis', 'cdn', '~cache'],
-      Microservices: ['microservices', 'api gateway', 'message queue', 'kafka', 'event driven'],
-      'Interview Case Studies': ['design youtube', 'design twitter', 'design uber', 'design whatsapp', 'design instagram', 'url shortener'],
-    },
+    keywords: ['system design', 'distributed systems', 'scalability', 'software architecture', 'system design interview', 'hld', 'lld', 'high level design', 'low level design'],
+    // A path, not a list: Foundations → HLD → HLD case studies → LLD → LLD case studies → Interview.
+    topics: SYSTEM_DESIGN_PATH,
   },
   {
     id: 'python',

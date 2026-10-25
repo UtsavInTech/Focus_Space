@@ -72,3 +72,20 @@ describe('goals build a Space as a hierarchy', () => {
     expect(examFromText('CTET')).toBe('teaching');
   });
 });
+
+import { upgradeTopics } from './curricula';
+describe('learning paths for existing Spaces', () => {
+  it('upgrades an untouched old System Design Space to the HLD → LLD path', () => {
+    const old = ['High Level Design', 'Low Level Design', 'Caching'].map((name) => ({ id: name.toLowerCase().replace(/ /g, '-'), name, keywords: [] }));
+    const upgraded = upgradeTopics('system-design', old);
+    expect(upgraded.map((t) => t.name)).toContain('Design Patterns');
+    expect(upgraded.every((t) => t.group)).toBe(true);
+  });
+  it('never replaces topics a learner added, and labels stages on built-ins by id', () => {
+    const mine = [{ id: 'my-topic', name: 'My Topic', keywords: [] }];
+    expect(upgradeTopics('system-design', mine)).toBe(mine);
+    const dsa = DEFAULT_MODES.find((m) => m.id === 'dsa')!;
+    const stripped = dsa.topics.map(({ group: _g, ...t }) => t);
+    expect(upgradeTopics('dsa', stripped, dsa.topics).find((t) => t.id === 'graphs')?.group).toBe('3 · Advanced');
+  });
+});
