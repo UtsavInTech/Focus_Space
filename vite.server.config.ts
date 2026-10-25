@@ -13,6 +13,8 @@ const resolve = (...parts: string[]) => fileURLToPath(new URL(parts.join('/'), `
  */
 export default defineConfig({
   resolve: { alias: { '@': resolve('src') } },
+  // Docker's runtime contains only dist-server, not node_modules. Bundle the pure-JS PG client too.
+  ssr: { noExternal: ['postgres'] },
   build: {
     ssr: resolve('server/index.ts'),
     outDir: 'dist-server',
