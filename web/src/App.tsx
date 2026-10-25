@@ -4,6 +4,7 @@ import { usePageMotion } from './page-motion';
 import { PageAtmosphere } from './components/PageAtmosphere';
 
 const LightHome = lazy(() => import('./components/LightHome'));
+const InstitutesPage = lazy(() => import('./components/InstitutesPage'));
 import { usePath } from './router';
 import { initialCurrency, rememberCurrency } from './currency';
 import type { CurrencyCode } from './content/plans';
@@ -24,6 +25,7 @@ import { DataSummary } from './components/DataSummary';
 import { DataPage } from './components/DataPage';
 import { LEGAL_DOCS } from './content/legal';
 import { AuthProvider } from './auth';
+import { INSTITUTES } from './content/institutes';
 
 /**
  * Two pages: the home, and a dedicated pricing page. Both share the nav, the
@@ -46,6 +48,8 @@ export function App() {
     document.title =
       path === '/pricing'
         ? 'Pricing · FocusSpace'
+        : path === '/institutes'
+          ? INSTITUTES.title
         : path === '/signin' || path === '/signup' || path === '/reset'
           ? 'Sign in · FocusSpace'
           : path === '/connect'
@@ -60,6 +64,7 @@ export function App() {
   }, [path]);
 
   const isPricing = path === '/pricing';
+  const isInstitutes = path === '/institutes';
   const isAuth = path === '/signin' || path === '/signup' || path === '/reset';
   // Where the extension sends someone to finish signing in — see web/src/connect.ts.
   const isConnect = path === '/connect';
@@ -82,6 +87,8 @@ export function App() {
           <DataPage />
         ) : isAccount ? (
           <AccountPage />
+        ) : isInstitutes ? (
+          <Suspense fallback={<div className="fsl-loading" role="status">Opening the institutes page…</div>}><InstitutesPage /></Suspense>
         ) : isPricing ? (
           <>
             <header className="fsw-page-head">
