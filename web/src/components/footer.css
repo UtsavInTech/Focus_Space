@@ -1,0 +1,44 @@
+/* The page's last word: dark in both appearances, so the lit wordmark at the bottom has a night to glow in. */
+.fsw-foot {
+  --foot-bg: #0d0b0c; --foot-ink: #f0ece4; --foot-muted: #a6a29a; --foot-line: #ffffff19; --foot-red: #eb5b54;
+  background: var(--foot-bg); color: var(--foot-ink);
+  padding: 0 max(32px, calc((100vw - 1200px) / 2));
+  border-top: 1px solid var(--foot-line);
+}
+
+.fsw-foot-cta { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; padding: 72px 0 56px; border-bottom: 1px solid var(--foot-line); }
+.fsw-foot-eyebrow { display: flex; align-items: center; gap: 9px; margin: 0 0 18px; font-size: 10px; font-weight: 550; letter-spacing: .14em; color: var(--foot-muted); }
+.fsw-foot-eyebrow i { width: 5px; height: 5px; border-radius: 50%; background: var(--foot-red); }
+.fsw-foot-cta h2 { margin: 0; font-size: clamp(32px, 4.2vw, 54px); font-weight: 500; line-height: 1.04; letter-spacing: -.055em; color: var(--foot-ink); }
+.fsw-foot-cta h2 span { color: var(--foot-red); }
+.fsw-foot-cta .fsw-install-note { color: var(--foot-muted); }
+
+.fsw-foot-main { display: grid; grid-template-columns: minmax(0, 1.7fr) repeat(3, minmax(0, 1fr)); gap: 40px; padding: 56px 0 48px; }
+.fsw-foot-brand p { max-width: 300px; margin: 16px 0 18px; font-size: 14px; line-height: 1.65; color: var(--foot-muted); }
+.fsw-foot-mail { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; font-size: 13px; color: var(--foot-ink); border-bottom: 1px solid var(--foot-line); }
+.fsw-foot-mail:hover { border-color: var(--foot-red); }
+.fsw-foot nav { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fsw-foot nav h2 { margin: 0 0 10px; font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--foot-muted); }
+.fsw-foot nav a { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; font-size: 14px; color: var(--foot-ink); opacity: .82; transition: opacity 160ms ease, color 160ms ease; }
+.fsw-foot nav a:hover { opacity: 1; color: var(--foot-red); }
+
+.fsw-foot-base { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; padding: 18px 76px 28px 0; font-size: 12px; color: var(--foot-muted); }
+.fsw-foot-base > span:nth-child(2) { flex: 1; }
+.fsw-foot-base a { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; color: var(--foot-muted); }
+.fsw-foot-base a:hover { color: var(--foot-ink); }
+.fsw-foot :is(a, button):focus-visible { outline: 2px solid var(--foot-red); outline-offset: 4px; border-radius: 4px; }
+
+@media (max-width: 900px) {
+  .fsw-foot-main { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .fsw-foot-brand { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .fsw-foot { padding: 0 24px; }
+  .fsw-foot-cta { flex-direction: column; align-items: stretch; gap: 24px; padding: 52px 0 40px; }
+  .fsw-foot-main { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 20px; padding: 40px 0 32px; }
+  .fsw-foot nav a { min-height: 44px; }
+  .fsw-foot-base { flex-direction: column; align-items: flex-start; gap: 4px; padding-right: 0; padding-bottom: 88px; } /* clear of the assistant button */
+}
+/* The footer is dark in both appearances: keep its brand mark light even on the Light site. */
+html[data-theme] .fsw-foot .fsw-brand, html[data-theme] .fsw-foot .fsw-wordmark-name { color: var(--foot-ink); }
+html[data-theme] .fsw-foot .fsw-wordmark-tagline { color: var(--foot-muted); }

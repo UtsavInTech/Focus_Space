@@ -22,7 +22,6 @@ html[data-theme='light'] .fsw-btn-primary { background: #cf352d; box-shadow: non
 html[data-theme='light'] .fsw-btn-primary:hover { background: #b92c25; }
 html[data-theme='light'] .fsw-appearance button[aria-pressed='true'] { background: #fff; box-shadow: 0 1px 5px #0000000d; }
 html[data-theme='light'] .fsw-appearance { background: #eeede8; border-color: transparent; }
-html[data-theme='light'] .fsw-footer { background: #f5f5f7; }
 html[data-theme='light'] .fsw-grad { background: none; color: var(--fs-text); -webkit-text-fill-color: currentColor; }
 .fsl-home { --fsl-red: #c9342d; --fsl-muted: #72746d; font-size: 16px; line-height: 1.6; }
 .fsl-home h1, .fsl-home h2, .fsl-home h3 { font-weight: 600; letter-spacing: -.055em; }

@@ -119,8 +119,6 @@
   .fsl-home .fsl-lightbox { padding: 64px 12px 24px; }
   .fsw-auth-card { padding: 24px; }
   .fsw-auth-form input, .fsw-profile input, .fsw-assistant-input input { font-size: 16px; }
-  .fsw-footer-inner { gap: 30px; }
-  .fsw-footer nav a { min-height: 44px; display: flex; align-items: center; }
 }
 
 @media (max-width: 420px) {

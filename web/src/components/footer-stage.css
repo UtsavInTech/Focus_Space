@@ -1,0 +1,42 @@
+/* The footer's lit stage (FooterStage.tsx): a red lamp on a thread, the wordmark lit from it. */
+.fsw-stage {
+  --lamp-x: 50%; --lamp-y: 200px; --word-size: 200px;
+  position: relative; isolation: isolate; overflow: hidden; user-select: none;
+  height: clamp(380px, 54vw, 760px); margin: 0 calc(-1 * max(32px, (100vw - 1200px) / 2));
+  /* The wall the letters stand against, lit red from the lamp so their shadows have something to fall on. */
+  background:
+    radial-gradient(ellipse 62% 46% at var(--lamp-x) 74%, #8c1f24 0%, #5c1519 26%, #2e0e10 52%, transparent 78%),
+    radial-gradient(ellipse 95% 70% at var(--lamp-x) 100%, #3a1013 0%, #1a0a0b 45%, transparent 75%),
+    radial-gradient(ellipse 50% 55% at var(--lamp-x) 38%, #2a0c0e 0%, transparent 70%);
+  /* No seam with the links above: the stage fades in from the footer's own dark. */
+  mask-image: linear-gradient(to bottom, transparent, #000 90px, #000 calc(100% - 48px), transparent);
+}
+/* Fine grain over the light: hides the banding a soft red gradient shows on most screens. */
+.fsw-stage::after { content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none; opacity: .06; mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+/* Red light around the lamp: three soft blobs, slightly out of step, so the glow has depth. */
+.fsw-stage-glow { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.fsw-stage-glow span { position: absolute; left: 0; top: 0; border-radius: 50%; filter: blur(60px);
+  transform: translate(var(--lamp-x), var(--lamp-y)) translate(-50%, -42%); }
+.fsw-stage-glow span:nth-child(1) { width: 60vw; height: 44vw; max-width: 880px; max-height: 620px; background: radial-gradient(closest-side, #da202433, #da202414 55%, transparent); }
+.fsw-stage-glow span:nth-child(2) { width: 34vw; height: 30vw; max-width: 520px; max-height: 440px; background: radial-gradient(closest-side, #ef3b3a40, #da202418 60%, transparent); }
+.fsw-stage-glow span:nth-child(3) { width: 14vw; height: 14vw; max-width: 220px; max-height: 220px; filter: blur(30px); background: radial-gradient(closest-side, #ff6b5f55, transparent); }
+.fsw-stage-thread { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.fsw-stage-thread line { stroke: #f5f1ea66; stroke-width: 1; }
+.fsw-stage-lamp { position: absolute; left: 0; top: 0; z-index: 4; display: grid; place-items: center; width: clamp(58px, 7vw, 104px); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: transparent;
+  color: #e3363b; cursor: grab; touch-action: none; filter: drop-shadow(0 0 22px #da2024b3) drop-shadow(0 6px 10px #0009); }
+.fsw-stage-lamp svg { width: 100%; height: 100%; }
+.fsw-stage.is-dragging .fsw-stage-lamp { cursor: grabbing; }
+/* The wordmark: a shadow layer (faces transparent, long shadows) under a lit layer (faces only). */
+.fsw-stage-word { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.fsw-stage-shadows, .fsw-stage-lit { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: calc(var(--word-size) * .62);
+  font-size: clamp(64px, 16.5vw, 236px); font-weight: 700; line-height: .8; letter-spacing: -.07em; white-space: nowrap; }
+.fsw-stage-shadows span { color: transparent; }
+.fsw-stage-lit { color: transparent; -webkit-background-clip: text; background-clip: text;
+  /* Lit from the lamp: near letters glow pale, far ones fade towards a faint, translucent white. */
+  background-image: radial-gradient(calc(var(--word-size) * 3.6) calc(var(--word-size) * 2.5) at var(--lamp-x) var(--light-y, 0px),
+    #ffe9e3 0%, #ffbcb1 10%, #f46054d9 26%, #d64640a6 44%, #b8363577 68%, #8f2a2a55 100%); }
+@media (max-width: 760px) {
+  .fsw-stage { height: clamp(320px, 96vw, 420px); margin: 0 -24px; }
+  .fsw-stage-shadows, .fsw-stage-lit { font-size: 17.2vw; padding-bottom: calc(var(--word-size) * 1.15); }
+}

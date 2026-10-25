@@ -118,8 +118,9 @@ export function App() {
           </>
         )}
       </main>
-      {!isAuth && !isConnect && <Footer />}
       {path === '/' && <BrandFinale />}
+      {/* Tools and course pages are for people who already have FocusSpace: no install pitch there. */}
+      {!isAuth && !isConnect && <Footer withCta={isPricing || isInstitutes || isData || !!legal} />}
       {appearance === 'deep' && <CursorSparkle />}
       <ChatLauncher />
     </AuthProvider>
