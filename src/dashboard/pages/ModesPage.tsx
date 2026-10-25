@@ -1,4 +1,5 @@
 import { InstituteManage, InstituteJoinControl } from '@/content/ui/institute/InstituteControls';
+import { isReadOnlySpace } from '@/institutes/home';
 import { useEffect, useState } from 'react';
 import { Check, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { LearningMode } from '@/types/domain';
@@ -94,11 +95,11 @@ export function ModesPage({ data, openCreate }: { data: DashboardData; openCreat
                 >
                   {active ? 'Open on YouTube' : 'Use this space'}
                 </Button>
-                {!mode.source&&<Button size="sm" variant="ghost" icon={<Pencil />} onClick={() => navigate(`/modes/${mode.id}`)}>
+                {!isReadOnlySpace(mode) && <Button size="sm" variant="ghost" icon={<Pencil />} onClick={() => navigate(`/modes/${mode.id}`)}>
                   Edit
                 </Button>}
                 <span className="fs-grow" />
-                {mode.source?<InstituteManage mode={mode}/>:<IconButton size="sm" label={`Delete ${mode.name}`} icon={<Trash2 />} disabled={modes.length <= 1} onClick={() => setDeleting(mode)} />}
+                {isReadOnlySpace(mode) ? <InstituteManage mode={mode} /> : <IconButton size="sm" label={`Delete ${mode.name}`} icon={<Trash2 />} disabled={modes.length <= 1} onClick={() => setDeleting(mode)} />}
               </div>
             </article>
           );

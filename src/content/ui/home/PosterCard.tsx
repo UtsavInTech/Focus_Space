@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { m, useReducedMotion } from 'motion/react';
 import { Play, Sparkles } from 'lucide-react';
 import { TIER_LABEL } from '@/learning/classifier';
@@ -21,8 +21,12 @@ export function thumbnailUrl(id: string, size: 'maxres' | 'sd' | 'hq' | 'mq' = '
   return `https://i.ytimg.com/vi/${id}/${size}default.jpg`;
 }
 
-/** `plain`: no match label (a history item is shown because you watched it, not because it matched). */
-export function PosterCard({ card, rank, plain = false }: { card: CardData; rank?: number; plain?: boolean }) {
+/**
+ * `plain`: no match label (a history item is shown because you watched it, not because it matched).
+ * `badge`: a mark on the art ("Completed"). `footer`: controls under the card, outside its link — a
+ * button can't sit inside a link.
+ */
+export function PosterCard({ card, rank, plain = false, badge, footer }: { card: CardData; rank?: number; plain?: boolean; badge?: ReactNode; footer?: ReactNode }) {
   const reduce = useReducedMotion();
   const url = card.url ?? watchUrl(card.id);
   const duration = formatDuration(card.durationSec);
@@ -54,6 +58,7 @@ export function PosterCard({ card, rank, plain = false }: { card: CardData; rank
               <Sparkles size={11} aria-hidden /> {SOURCE_LABEL.discovery}
             </span>
           )}
+          {badge}
           {duration && <span className="fs-poster-duration">{duration}</span>}
           {card.progress !== null && card.progress > 0.02 && (
             <span className="fs-poster-progress" aria-label={`${Math.round(card.progress * 100)}% watched`}>
@@ -71,6 +76,7 @@ export function PosterCard({ card, rank, plain = false }: { card: CardData; rank
           </span>}
         </span>
       </YtLink>
+      {footer}
     </m.article>
   );
 }

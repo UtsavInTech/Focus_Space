@@ -1,4 +1,5 @@
 import { InstituteHome } from './InstituteHome';
+import { isReadOnlySpace } from '@/institutes/home';
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, Check, ChevronDown, ChevronRight, History, Pencil, Plus, Power, RefreshCw, Search, Sparkles, Trophy, Users, X } from 'lucide-react';
 import type { LearningMode, Settings, Topic } from '@/types/domain';
@@ -55,7 +56,7 @@ export function SpaceHome({ settings, modes, onCreateSpace }: { settings: Settin
     <div className="fs-home">
       <SpaceBar mode={mode} modes={modes} topicId={topicId} onTopic={setTopicId} onCreate={onCreateSpace} full={full} />
       {!topicId && <FullScreenOffer wide={full.wide} onAccept={full.toggle} />}
-      {mode.source?<InstituteHome mode={mode} topicId={topicId}/>:<SpaceFeed key={mode.id} mode={mode} topicId={topicId} onTopic={setTopicId} />}
+      {mode.source ? <InstituteHome mode={mode} topicId={topicId} onTopic={setTopicId} /> : <SpaceFeed key={mode.id} mode={mode} topicId={topicId} onTopic={setTopicId} />}
     </div>
   );
 }
@@ -279,7 +280,7 @@ function SpaceBar({
               <span>New space</span>
             </button>
             <div className="fs-menu-sep" />
-            {!mode.source&&<button type="button" role="menuitem" className="fs-menu-item" onClick={run(() => void sendMessage('dashboard/open', { route: `/modes/${mode.id}` }))}>
+            {!isReadOnlySpace(mode) && <button type="button" role="menuitem" className="fs-menu-item" onClick={run(() => void sendMessage('dashboard/open', { route: `/modes/${mode.id}` }))}>
               <Pencil size={18} aria-hidden />
               <span>Edit {mode.name}</span>
             </button>}

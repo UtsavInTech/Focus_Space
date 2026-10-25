@@ -17,7 +17,8 @@ export interface Stage {
   topics: Topic[];
 }
 
-export function stagesOf(mode: LearningMode): Stage[] {
+/** A Space with fewer than `minStages` stages has no path (a personal Space needs two to be worth drawing). */
+export function stagesOf(mode: LearningMode, minStages = 2): Stage[] {
   const out: Stage[] = [];
   for (const t of mode.topics) {
     if (!t.group) continue;
@@ -25,7 +26,7 @@ export function stagesOf(mode: LearningMode): Stage[] {
     if (last?.name === t.group) last.topics.push(t);
     else out.push({ name: t.group, topics: [t] });
   }
-  return out.length >= 2 ? out : [];
+  return out.length >= minStages ? out : [];
 }
 
 const subtopicCount = (t: Topic) => t.keywords.filter((k) => !k.startsWith('~') && k !== t.name.toLowerCase()).length;
@@ -51,13 +52,28 @@ export function useTopicProgress(modeId: string): Map<string, number> {
 /** A topic counts as covered after two finished lessons in it. */
 export const COVERED_AFTER = 2;
 
-export function LearningPath({ mode, onTopic }: { mode: LearningMode; onTopic: (id: string) => void }) {
+/**
+ * The optional props let an institute course draw the same path from its own rules: progress counted by
+ * the course's lessons, a topic covered when all of its lessons are done, a single subject allowed.
+ * Without them, a personal Space behaves exactly as before.
+ */
+interface PathOptions {
+  /** Finished lessons per topic, when the caller measures it differently from `useTopicProgress`. */
+  progress?: Map<string, number>;
+  isCovered?: (topic: Topic, done: number) => boolean;
+  /** The line under each topic; subtopic count by default. */
+  detail?: (topic: Topic) => string;
+  minStages?: number;
+}
+
+export function LearningPath({ mode, onTopic, progress: given, isCovered, detail, minStages = 2 }: { mode: LearningMode; onTopic: (id: string) => void } & PathOptions) {
   const reduce = useReducedMotion();
-  const stages = useMemo(() => stagesOf(mode), [mode]);
-  const progress = useTopicProgress(mode.id);
+  const stages = useMemo(() => stagesOf(mode, minStages), [mode, minStages]);
+  const own = useTopicProgress(mode.id);
+  const progress = given ?? own;
   if (!stages.length) return null;
 
-  const covered = (t: Topic) => (progress.get(t.id) ?? 0) >= COVERED_AFTER;
+  const covered = (t: Topic) => (isCovered ? isCovered(t, progress.get(t.id) ?? 0) : (progress.get(t.id) ?? 0) >= COVERED_AFTER);
   const stageDone = (s: Stage) => s.topics.every(covered);
   const here = Math.max(0, stages.findIndex((s) => !stageDone(s)));
   const nextTopic = stages[here].topics.find((t) => !covered(t)) ?? stages[here].topics[0];
@@ -107,7 +123,7 @@ export function LearningPath({ mode, onTopic }: { mode: LearningMode; onTopic: (
                     <button type="button" className={`fs-path-topic${covered(t) ? ' is-covered' : ''}`} onClick={() => onTopic(t.id)}>
                       {covered(t) && <Check size={12} aria-hidden />}
                       <span>{t.name}</span>
-                      <small>{subtopicCount(t)} subtopics</small>
+                      <small>{detail ? detail(t) : `${subtopicCount(t)} subtopics`}</small>
                     </button>
                   </li>
                 ))}
