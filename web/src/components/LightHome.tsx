@@ -5,13 +5,15 @@ import { InstallCta } from './InstallCta';
 import { ProductFilm } from './ProductFilm';
 import { HeroWalls } from './HeroWalls';
 import { SpaceGallery } from './SpaceGallery';
+import { EXAM_STORY, LIGHT_SPACE_COPY, QUIZ_COPY } from '../content/home';
 import './cinema.css';
+import './exam-story.css';
 
 const SHOTS = [
   { id: 'ask', label: 'Ask anything', icon: MessageCircle, title: 'Stay curious. Stay in the video.', text: 'A concept didn’t click? Ask FocusSpace AI for an explanation or an example, right beside the lesson.' },
   { id: 'notes', label: 'Make notes', icon: BookOpen, title: 'Less pausing. More understanding.', text: 'Turn the current section, what you’ve watched, or the full video into notes. Choose English, Hindi, or Hinglish.' },
   { id: 'mindmap', label: 'Connect ideas', icon: Network, title: 'See the bigger picture.', text: 'Give a whole lesson a little structure. Explore an expandable mind map, open up a topic, and download it as SVG.' },
-  { id: 'quiz', label: 'Quiz yourself', icon: Check, title: 'Make it stick.', text: 'Move from “I watched it” to “I understand it.” Test yourself with questions and feedback from the video.' },
+  { id: 'quiz', label: 'Quiz yourself', icon: Check, title: 'Make it stick.', text: QUIZ_COPY },
 ];
 
 function ProductImage({ name, alt, eager = false }: { name: string; alt: string; eager?: boolean }) {
@@ -87,9 +89,14 @@ export default function LightHome() {
     </section>
 
     <section className="fsl-spaces" id="spaces">
-      <div className="fsl-section-head"><div><p className="fsl-eyebrow">01 / FIND YOUR FOCUS</p><h2>A space for your<br />next big thing.</h2></div><p>System design today. Spanish tomorrow.<br />Create a Space around your intention.<br />Give your curiosity a direction.</p></div>
+      <div className="fsl-section-head"><div><p className="fsl-eyebrow">01 / FIND YOUR FOCUS</p><h2>A space for your<br />next big thing.</h2></div><p>{LIGHT_SPACE_COPY.intro}</p></div>
       <SpaceGallery />
-      <div className="fsl-feature-details"><div><h3>Your subscriptions, with intention.</h3><p>Videos from channels you follow, ranked around what you’re learning.</p></div><div><h3>A little discovery. A lot of relevance.</h3><p>The best matches from wider YouTube, woven into your focused feed.</p></div><div><h3>Attention, well spent.</h3><p>Fewer attention traps. More room for the thing you opened YouTube for.</p></div></div>
+      <div className="fsl-feature-details">{LIGHT_SPACE_COPY.details.map(item => <div key={item.title}><h3>{item.title}</h3><p>{item.text}</p></div>)}</div>
+      <div className="fsl-exam-story">
+        <div className="fsl-exam-intro"><p className="fsl-eyebrow">{EXAM_STORY.eyebrow}</p><h3>{EXAM_STORY.title}</h3><p>{EXAM_STORY.intro}</p></div>
+        <ol className="fsl-exam-steps">{EXAM_STORY.steps.map((step, index) => <li key={step.title}><span aria-hidden="true">0{index + 1}</span><div><h4>{step.title}</h4><p>{step.text}</p></div></li>)}</ol>
+        <p className="fsl-exam-note">{EXAM_STORY.note}</p>
+      </div>
     </section>
 
     <section className="fsl-learn" id="learn">

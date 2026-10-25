@@ -1,0 +1,30 @@
+/* Light home's first chapter. Editorial learning-map examples, never imitation screenshots. */
+.fsl-gallery-context { min-height: 128px; padding: 8px 0 24px; }
+.fsl-gallery-context > p { max-width: 620px; font-size: 17px; line-height: 1.65; color: var(--fs-text-2); }
+.fsl-gallery-context ol { display: flex; flex-wrap: wrap; gap: 8px 0; list-style: none; padding: 0; margin: 18px 0 0; }
+.fsl-gallery-context li { display: flex; align-items: center; font-size: 12px; color: var(--fs-text); }
+.fsl-gallery-context li + li::before { content: '›'; padding: 0 12px; color: var(--fs-text-2); }
+.fsl-gallery-image-label { font-size: 11px; color: var(--fs-text-2); margin: 0 0 12px; }
+.fsl-home .fsl-space-topics button { min-height: 44px; color: #515a49; }
+.fsl-home .fsl-space-topics button[aria-selected='true'] { color: #fff; }
+.fsl-home :is(.fsl-space-topics,.fsl-tool-tabs) button:focus-visible { outline: 2px solid var(--fsl-red); outline-offset: 4px; }
+.fsl-exam-story { margin-top: 76px; padding-top: 50px; border-top: 1px solid var(--fs-border-strong); display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px 70px; }
+.fsl-exam-intro .fsl-eyebrow { color: var(--fs-text-2); margin-bottom: 18px; }
+.fsl-exam-intro h3 { font-size: clamp(30px,3vw,42px); line-height: 1.12; max-width: 400px; }
+.fsl-exam-intro > p:last-child { font-size: 15px; line-height: 1.75; color: var(--fs-text-2); margin-top: 22px; max-width: 410px; }
+.fsl-exam-steps { list-style: none; padding: 0; margin: 0; }
+.fsl-exam-steps li { display: flex; gap: 20px; padding: 0 0 24px; }
+.fsl-exam-steps li + li { border-top: 1px solid var(--fs-border); padding-top: 24px; }
+.fsl-exam-steps li > span { color: var(--fs-text-2); font-size: 11px; padding-top: 3px; }
+.fsl-exam-steps h4 { font-size: 16px; font-weight: 600; letter-spacing: -.025em; }
+.fsl-exam-steps p { font-size: 14px; line-height: 1.7; color: var(--fs-text-2); margin-top: 8px; }
+.fsl-exam-note { grid-column: 1 / -1; font-size: 12px; line-height: 1.65; color: var(--fs-text-2); max-width: 780px; }
+@media (max-width:760px) {
+  .fsl-gallery-context { min-height: 175px; }
+  .fsl-gallery-context > p { font-size: 15px; }
+  .fsl-gallery-context li { font-size: 12px; }
+  .fsl-exam-story { grid-template-columns: minmax(0,1fr); margin-top: 44px; padding-top: 32px; gap: 28px; }
+  .fsl-exam-intro h3 { font-size: 32px; }
+  .fsl-exam-intro > p:last-child { margin-top: 18px; }
+  .fsl-exam-note { font-size: 12px; }
+}
