@@ -107,6 +107,8 @@ export function summarise(lessons: Lesson[]): Summary {
 export type StudentFilter = 'all' | 'priority' | 'sharing' | 'talent' | 'toppers' | 'help' | 'quiet' | 'private';
 
 export type Place =
+  | { room: 'ask'; threadId?:string }
+  | { room:'playbooks'|'results'|'context' }
   | { room: 'lobby' } // the overview
   | { room: 'courses' }
   | { room: 'students'; filter?: StudentFilter }
@@ -121,6 +123,8 @@ export function parsePlace(hash: string): Place {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
   if (parts[0] === 'students') return FILTERS.includes(parts[1] as StudentFilter) && parts[1] !== 'all' ? { room: 'students', filter: parts[1] as StudentFilter } : { room: 'students' };
   if (parts[0] === 'student' && parts[1]) return { room: 'student', id: parts[1] };
+  if(parts[0]==='ask')return {room:'ask',...(parts[1]?{threadId:parts[1]}:{})};
+  if (['playbooks','results','context'].includes(parts[0])) return {room:parts[0] as 'ask'|'playbooks'|'results'|'context'};
   if (parts[0] === 'requests') return { room: 'requests' };
   if (parts[0] === 'brief') return { room: 'brief' };
   if (parts[0] === 'courses') return { room: 'courses' };
@@ -129,6 +133,7 @@ export function parsePlace(hash: string): Place {
 }
 
 export function placeHash(place: Place): string {
+  if (place.room === 'ask') return `#/ask${place.threadId?'/'+encodeURIComponent(place.threadId):''}`;
   if (place.room === 'course') return `#/course/${place.path.map(encodeURIComponent).join('/')}`;
   if (place.room === 'student') return `#/student/${encodeURIComponent(place.id)}`;
   if (place.room === 'students') return place.filter && place.filter !== 'all' ? `#/students/${place.filter}` : '#/students';

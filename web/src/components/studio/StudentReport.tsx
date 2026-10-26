@@ -1,3 +1,4 @@
+import { OutcomeButton } from './ResultsPage';
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Lock, MessageCircle, Phone, PlayCircle } from 'lucide-react';
@@ -67,7 +68,7 @@ export function StudentReport({ org, id, sections, call, go, now }: { org: strin
           </div>
           {openRequest?.note && <p className="fss-note">“{openRequest.note}”</p>}
         </div>
-        <div className="fss-person-actions">
+        <div className="fss-person-actions"><OutcomeButton org={org} call={call} userId={id}/>
           <a className="fss-cta" href={telLink(data.student.phone)}><Phone size={16} aria-hidden="true" /> Call {first}</a>
           <a className="fss-ghost" href={whatsappLink(data.student.phone, `Hello ${first}, this is your institute.`)} target="_blank" rel="noreferrer"><MessageCircle size={15} aria-hidden="true" /> WhatsApp</a>
         </div>

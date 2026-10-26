@@ -1,3 +1,6 @@
+import {MetricHelp} from './NavigationTools';
+import { OutcomeButton } from './ResultsPage';
+import type { Call } from '../institute-tools/shared';
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowUpRight, Check, Copy, Download, MessageCircle, Phone, Search, Send } from 'lucide-react';
@@ -37,7 +40,7 @@ export function Overview({ orgName, story, actions, series, week: w, members, op
     <motion.div variants={stagger} initial="hidden" animate="shown">
       <motion.header variants={rise} className="fss-edition">
         <p className="fss-eyebrow">{new Date(now).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {orgName}</p>
-        <h1 className="fss-story">{story}</h1>
+        <h2 className="fss-story">{story}</h2>
       </motion.header>
 
       <motion.section variants={rise} className="fss-section is-tight">
@@ -113,7 +116,8 @@ export function matches(filter: StudentFilter, m: Member, now: number): boolean 
   }
 }
 
-export function StudentsPage({ members, filter, go, onExport, now }: {
+export function StudentsPage({ org, call, members, filter, go, onExport, now }: {
+  org:string;call:Call;
   members: Member[];
   filter: StudentFilter;
   go: (p: Place) => void;
@@ -188,22 +192,22 @@ export function StudentsPage({ members, filter, go, onExport, now }: {
       <motion.section variants={rise} className="fss-panel is-flush">
         <div className="fss-table" role="table" aria-label="Students">
           <div className="fss-tr is-head" role="row">
-            <span role="columnheader">Student</span><span role="columnheader">Number</span><span role="columnheader">Lectures</span><span role="columnheader">Quiz</span><span role="columnheader">Time</span><span role="columnheader">Last active</span>
+            <span role="columnheader">Student</span><span role="columnheader">Number</span><span role="columnheader">Lectures<MetricHelp name="completion"/></span><span role="columnheader">Quiz<MetricHelp name="quiz"/></span><span role="columnheader">Time<MetricHelp name="time"/></span><span role="columnheader">Last active<MetricHelp name="activity"/></span>
           </div>
           {list.slice(0, shown).map((m) => (
-            <a key={m.id} role="row" className="fss-tr" href={placeHash({ room: 'student', id: m.id })} onClick={(e) => { e.preventDefault(); go({ room: 'student', id: m.id }); }}>
+            <div key={m.id} role="row" className="fss-tr">
               <span role="cell" className="fss-who">
                 <span className="fss-avatar" aria-hidden="true">{initials(m.name)}</span>
-                <span><b>{m.name}</b>{(m.openRequest || m.wantsContact) && <em className="fss-badge is-priority">{m.openRequest ? 'Waiting for a call' : 'Asked to talk'}</em>}</span>
+                <span><a href={placeHash({room:'student',id:m.id})}><b>{m.name}</b></a>{(m.openRequest || m.wantsContact) && <em className="fss-badge is-priority">{m.openRequest ? 'Waiting for a call' : 'Asked to talk'}</em>}</span>
               </span>
               <span role="cell" className="fss-mono">{phoneText(m.phone)}</span>
               <span role="cell">{m.sharing ? <span className="fss-mini"><span className="fss-meter"><i style={{ width: `${m.completion ?? 0}%` }} /></span>{m.completion ?? 0}%</span> : <em className="fss-private">Private</em>}</span>
               <span role="cell">{m.sharing && m.quiz !== null ? `${m.quiz}%` : '—'}</span>
               <span role="cell">{m.sharing && m.watchSeconds ? hoursAndMinutes(m.watchSeconds) : '—'}</span>
-              <span role="cell">{m.sharing ? ago(m.lastActive, now) : '—'}</span>
-            </a>
+              <span role="cell">{m.sharing ? ago(m.lastActive, now) : '—'}<OutcomeButton org={org} call={call} userId={m.id}/></span>
+            </div>
           ))}
-          {!list.length && <p className="fss-empty">No students match.</p>}
+          {!list.length && <p className="fss-empty">No students match. Clear the search or choose All students to broaden the list.</p>}
         </div>
         {list.length > shown && <button type="button" className="fss-more" onClick={() => setShown((n) => n + 80)}>Show {Math.min(80, list.length - shown)} more of {list.length}</button>}
       </motion.section>
@@ -219,7 +223,8 @@ const SOURCE: Record<Request['source'], string> = {
   button: 'Pressed “Talk to your faculty”',
 };
 
-export function RequestsPage({ requests, members, onHandled, go, now }: {
+export function RequestsPage({ org, call, requests, members, onHandled, go, now }: {
+  org:string;call:Call;
   requests: Request[];
   members: Member[];
   onHandled: (id: string) => void;
@@ -249,7 +254,7 @@ export function RequestsPage({ requests, members, onHandled, go, now }: {
           return (
             <li key={r.id} className={r.handledAt ? 'is-done' : undefined}>
               <span className="fss-avatar is-large" aria-hidden="true">{initials(r.name)}</span>
-              <div className="fss-request-body">
+              <div className="fss-request-body"><OutcomeButton org={org} call={call} userId={r.userId}/>
                 <div className="fss-request-top">
                   <b>{r.name}</b>
                   <span className="fss-mono">{phoneText(r.phone)}</span>

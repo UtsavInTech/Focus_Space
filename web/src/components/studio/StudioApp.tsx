@@ -1,3 +1,10 @@
+import { AskPage } from './AskPage';
+import { PlaybooksPage } from './PlaybooksPage';
+import { ResultsPage, resultsSentence, type Results } from './ResultsPage';
+import type { StudentRules } from '../../../../server/institutes/studio-types';
+import { ContextPage } from './ContextPage';
+import { SetupChecklist } from './SetupChecklist';
+import { HomeAsk, PagePurpose, SearchPalette, type Recent } from './NavigationTools';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ArrowLeft, BookOpen, ChevronRight, Inbox, LayoutDashboard, LogOut, Moon, Newspaper, Sun, Users } from 'lucide-react';
@@ -37,6 +44,16 @@ export function StudioApp({ orgs, org, onOrg, courses, call, token, appearance, 
   const reduced = useReducedMotion();
   const toTop = useSmoothScroll();
   const [place, setPlace] = useState<Place>(() => parsePlace(location.hash));
+  const [question,setQuestion]=useState('');
+  const [savedList,setSavedList]=useState<string>();
+  const [threads,setThreads]=useState<{id:string;title:string;pinned:boolean}[]>([]);
+  const [playbookRules,setPlaybookRules]=useState<StudentRules>();
+  const [results,setResults]=useState<Results|null>(null);
+  const [assistant,setAssistant]=useState<{mode:string;usage:{tokens:number;calls:number}|null}|null>(null);
+  const [pins,setPins]=useState<{id:string;title:string}[]>([]);
+  const [savedLists,setSavedLists]=useState<{id:string;name:string;rules:StudentRules}[]>([]);
+  const [recents,setRecents]=useState<Recent[]>([]);
+  const [showSaved,setShowSaved]=useState(false);
   const [direction, setDirection] = useState(1);
   const [views, setViews] = useState<CourseView[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -96,10 +113,10 @@ export function StudioApp({ orgs, org, onOrg, courses, call, token, appearance, 
           };
         }),
       );
-      // Everyone enrolled, a few pages at most: this is for reading; exports go page by page.
+      // Read all pages so institute totals never silently stop at the first 3,000 students.
       const rows: Row[] = [];
       let after: string | null = null;
-      for (let page = 0; page < 6; page += 1) {
+      for (;;) {
         const result: { items: Row[]; next: string | null } = await call(`/v1/studio/${org}/students?limit=500${after ? `&after=${after}` : ''}`);
         rows.push(...result.items);
         after = result.next;
@@ -118,6 +135,9 @@ export function StudioApp({ orgs, org, onOrg, courses, call, token, appearance, 
     };
   }, [org, courses, call, refresh]);
 
+  useEffect(()=>{if(place.room==='student'||place.room==='course'||(place.room==='ask'&&place.threadId)){const label=place.room==='ask'?(threads.find(t=>t.id===place.threadId)?.title??'Conversation'):place.room==='student'?(members.find(m=>m.id===place.id)?.name??'Student'):(views.find(v=>v.id===place.path[0])?.title??'Course');setRecents(old=>[{label,place},...old.filter(r=>placeHash(r.place)!==placeHash(place))].slice(0,8));}},[place]);
+  useEffect(()=>{setRecents([]);setSavedList(undefined);setQuestion('');setPlaybookRules(undefined);},[org]);
+  useEffect(()=>{let live=true;void Promise.all([call<Results>(`/v1/studio/${org}/results`),call<NonNullable<typeof assistant>>(`/v1/studio/${org}/assistant`),call<{threads:{id:string;title:string;pinned:boolean}[]}>(`/v1/studio/${org}/threads`),call<{lists:typeof savedLists}>(`/v1/studio/${org}/lists`)]).then(([r,a,t,l])=>{if(live){setResults(r);setAssistant(a);setThreads(t.threads);setPins(t.threads.filter(t=>t.pinned));setSavedLists(l.lists);}}).catch(e=>live&&setError(e.message));return()=>{live=false;};},[org,place,refresh,call]);
   const sections = views.flatMap((v) => (v.section ? [v.section] : []));
   const series = useMemo(() => dailySeries(activity, now), [activity, now]);
   const thisWeek = useMemo(() => weekOf(series), [series]);
@@ -158,16 +178,20 @@ export function StudioApp({ orgs, org, onOrg, courses, call, token, appearance, 
   const room = () => {
     if (loading) return <Loading />;
     switch (place.room) {
+      case 'ask': return <AskPage key={`${org}:${place.threadId??savedList??'new'}`} org={org} call={call} initial={question} savedList={place.threadId?undefined:savedList} thread={place.threadId} go={go} onPlaybook={rules=>{setPlaybookRules(rules);go({room:'playbooks'});}}/>;
+      case 'context': return <ContextPage key={org} org={org} call={call}/>;
+      case 'playbooks': return <PlaybooksPage key={org} org={org} call={call} initialRules={playbookRules}/>;
+      case 'results': return <ResultsPage key={org} org={org} call={call}/>;
       case 'courses':
         return <CoursesPage courses={views} go={go} />;
       case 'students':
-        return <StudentsPage members={members} filter={place.filter ?? 'all'} go={go} onExport={exportList} now={now} />;
+        return <StudentsPage org={org} call={call} members={members} filter={place.filter ?? 'all'} go={go} onExport={exportList} now={now} />;
       case 'student':
         return <StudentReport org={org} id={place.id} sections={sections} call={call} go={go} now={now} />;
       case 'requests':
-        return <RequestsPage requests={requests} members={members} onHandled={markHandled} go={go} now={now} />;
+        return <RequestsPage org={org} call={call} requests={requests} members={members} onHandled={markHandled} go={go} now={now} />;
       case 'brief':
-        return <BriefPage text={brief({ orgName, week: thisWeek, yesterday: series.at(-2), actions: todo, quietNames: members.filter((m) => quiet(m, now)).map((m) => m.name), link: `${location.origin}/studio` })} />;
+        return <BriefPage text={(results?resultsSentence(results)+'\n\n':'')+brief({ orgName, week: thisWeek, yesterday: series.at(-2), actions: todo, quietNames: members.filter((m) => quiet(m, now)).map((m) => m.name), link: `${location.origin}/studio` })} />;
       case 'course': {
         const view = views.find((v) => v.id === place.path[0]);
         if (!view?.section) return <CoursesPage courses={views} go={go} />;
@@ -177,7 +201,7 @@ export function StudioApp({ orgs, org, onOrg, courses, call, token, appearance, 
         return <SectionRoom course={view} trail={ids} go={go} onApprove={canApprove ? approve(view.id) : undefined} />;
       }
       default:
-        return <Overview orgName={orgName} story={tell({ orgName, members, week: thisWeek, open, actions: todo.length, now })} actions={todo} series={series} week={thisWeek} members={members} open={open} go={go} now={now} />;
+        return <><HomeAsk ask={text=>{setSavedList(undefined);setQuestion(text);go({room:'ask'});}}/><SetupChecklist org={org} call={call}/>{results&&<p><a href="#/results">{resultsSentence(results)}</a></p>}<Overview orgName={orgName} story={tell({ orgName, members, week: thisWeek, open, actions: todo.length, now })} actions={todo} series={series} week={thisWeek} members={members} open={open} go={go} now={now} /><section><h2>Jump back in</h2>{recents.length?recents.map((r,i)=><p key={i}><a href={placeHash(r.place)}>{r.label}</a></p>):<p>Open a student or lecture. It will appear here for your next visit.</p>}</section></>;
     }
   };
 
@@ -190,10 +214,14 @@ export function StudioApp({ orgs, org, onOrg, courses, call, token, appearance, 
   };
   const section = place.room === 'course' ? 'courses' : place.room === 'student' ? 'students' : place.room;
   const nav: { room: Place['room']; label: string; icon: typeof Users; badge?: number }[] = [
-    { room: 'lobby', label: 'Overview', icon: LayoutDashboard },
+    { room: 'lobby', label: 'Home', icon: LayoutDashboard },
+    { room: 'ask', label: 'Ask', icon: Newspaper },
     { room: 'requests', label: 'Requests', icon: Inbox, badge: open },
     { room: 'students', label: 'Students', icon: Users },
+    { room: 'playbooks', label: 'Playbooks', icon: Inbox },
+    { room: 'results', label: 'Results', icon: LayoutDashboard },
     { room: 'courses', label: 'Courses', icon: BookOpen },
+    { room: 'context', label: 'Context', icon: BookOpen },
     { room: 'brief', label: 'Morning brief', icon: Newspaper },
   ];
   const userName = auth.user?.name ?? auth.user?.email ?? auth.user?.phone ?? 'Signed in';
@@ -215,7 +243,7 @@ export function StudioApp({ orgs, org, onOrg, courses, call, token, appearance, 
             )}
           </span>
         </div>
-        <nav className="fss-nav" aria-label="Dashboard">
+        <SearchPalette org={org} call={call} threads={threads} members={members} sections={sections} go={go} recents={recents}/><nav className="fss-nav" aria-label="Dashboard">
           {nav.map(({ room: r, label, icon: Icon, badge }) => (
             <a key={r} href={placeHash({ room: r } as Place)} aria-current={section === r ? 'page' : undefined} onClick={(e) => { e.preventDefault(); go({ room: r } as Place); }}>
               {section === r && <motion.span layoutId="fss-nav-on" className="fss-nav-on" transition={{ type: 'spring', stiffness: 420, damping: 36 }} />}
@@ -225,7 +253,7 @@ export function StudioApp({ orgs, org, onOrg, courses, call, token, appearance, 
             </a>
           ))}
         </nav>
-        <div className="fss-me">
+        <button className="fss-saved-toggle" aria-expanded={showSaved} aria-controls="studio-saved" onClick={()=>setShowSaved(v=>!v)}>Saved</button><section id="studio-saved" className={`fss-recent${showSaved?' is-open':''}`}><h2>Recent</h2>{recents.length?recents.map((r,i)=><a key={i} href={placeHash(r.place)}>{r.label}</a>):<p>Students and lectures you open appear here.</p>}<h2>Pinned</h2>{pins.map(t=><a key={t.id} href={placeHash({room:'ask',threadId:t.id})}>{t.title}</a>)}{savedLists.map(l=><button key={l.id} onClick={()=>{setSavedList(l.id);go({room:'ask'});}}>{l.name}</button>)}{!pins.length&&!savedLists.length&&<p>Save a student list or question to keep it here.</p>}</section><div className="fss-me">
           <div className="fss-me-row">
             <span className="fss-avatar" aria-hidden="true">{initials(userName)}</span>
             <span><b>{userName}</b><small>{current?.role ? `${current.role[0].toUpperCase()}${current.role.slice(1)}` : 'Staff'}</small></span>
@@ -252,11 +280,11 @@ export function StudioApp({ orgs, org, onOrg, courses, call, token, appearance, 
           </nav>
         )}
         {error && <p role="alert" className="fss-error">{error}</p>}
-        <main className="fss-stage">
+        <main className="fss-stage">{assistant&&<p className="fss-assistant-status">{assistant.mode==='demo'?'Demo assistant · fictional data and simulated responses':assistant.mode==='live'?'Institute assistant · live AI':'Assistant not configured'}{assistant.usage&&` · ${assistant.usage.tokens} tokens charged or reserved this month`}</p>}
           <AnimatePresence mode="wait" custom={direction} initial={false}>
             <motion.div key={`${org}:${placeHash(place)}:${loading}`} custom={direction} variants={variants} initial="enter" animate="center" exit="exit"
               transition={{ duration: reduced ? 0.15 : 0.5, ease: [0.22, 1, 0.36, 1] }}>
-              {room()}
+              <PagePurpose place={place}/>{room()}
             </motion.div>
           </AnimatePresence>
         </main>
