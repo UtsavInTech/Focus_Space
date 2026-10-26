@@ -1,3 +1,4 @@
+import {studioAi} from './usage/studio';
 // FocusSpace API (Layer 2A) — the extension's real backend, replacing "extension
 // → OpenRouter directly" with "extension → FocusSpace API → AI Orchestrator →
 // OpenAI". The key lives only in this process's environment.
@@ -248,6 +249,8 @@ if (razorpay) {
 }
 
 const handleInstitutes = instituteRoutes({
+  ai:(org,prompt,maxTokens)=>studioAi(getUsageDb(),{...config,model:process.env.STUDIO_MODEL??SETUP_MODEL},Number(process.env.STUDIO_AI_MONTHLY_LIMIT??200000))(org,prompt,maxTokens),
+  usage:org=>getUsageDb().studioUsage(org),aiMode:'live',
   database: () => {
     if (!authConfig) throw new ApiError(503, 'internal_error', 'Institute accounts are not configured.');
     return configuredInstitutes(authConfig.tokenSecret);

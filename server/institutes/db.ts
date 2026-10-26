@@ -1,3 +1,4 @@
+import {EMPTY_CONTEXT,type StudioContext,type StudentRules,type PlaybookInput,type Outcome} from './studio-types';
 import postgres from 'postgres';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { ApiError } from '../http';
@@ -188,6 +189,24 @@ function withDropOff(row: Row) {
   return { ...row, drop_off: Math.max(0, started - done), completion_percent: started ? Math.round((done * 100) / started) : 0 };
 }
 
+const STUDIO_SCHEMA = `
+CREATE TABLE IF NOT EXISTS institutes.studio_study_days(org_id text NOT NULL REFERENCES institutes.orgs(id),user_id text NOT NULL,course_id text NOT NULL,day integer NOT NULL,PRIMARY KEY(org_id,user_id,course_id,day));
+CREATE TABLE IF NOT EXISTS institutes.studio_context(org_id text NOT NULL REFERENCES institutes.orgs(id),version integer NOT NULL,data jsonb NOT NULL,actor text NOT NULL,created_at bigint NOT NULL,PRIMARY KEY(org_id,version));
+CREATE TABLE IF NOT EXISTS institutes.studio_edits(id text PRIMARY KEY,org_id text NOT NULL REFERENCES institutes.orgs(id),user_id text NOT NULL,before_text text NOT NULL,after_text text NOT NULL,actor text NOT NULL,created_at bigint NOT NULL);
+CREATE TABLE IF NOT EXISTS institutes.studio_threads(id text PRIMARY KEY,org_id text NOT NULL REFERENCES institutes.orgs(id),title text NOT NULL,pinned boolean NOT NULL DEFAULT false,created_at bigint NOT NULL,updated_at bigint NOT NULL,UNIQUE(org_id,id));
+CREATE TABLE IF NOT EXISTS institutes.studio_messages(id text PRIMARY KEY,org_id text NOT NULL,thread_id text NOT NULL,question text NOT NULL,plan jsonb NOT NULL,created_at bigint NOT NULL,FOREIGN KEY(org_id,thread_id) REFERENCES institutes.studio_threads(org_id,id));
+CREATE TABLE IF NOT EXISTS institutes.studio_lists(id text PRIMARY KEY,org_id text NOT NULL REFERENCES institutes.orgs(id),name text NOT NULL,rules jsonb NOT NULL,created_at bigint NOT NULL);
+CREATE TABLE IF NOT EXISTS institutes.playbooks(id text PRIMARY KEY,org_id text NOT NULL REFERENCES institutes.orgs(id),name text NOT NULL,rules jsonb NOT NULL,template text NOT NULL,channel text NOT NULL,personalize boolean NOT NULL,reviewed_at bigint,created_at bigint NOT NULL,UNIQUE(org_id,id));
+CREATE TABLE IF NOT EXISTS institutes.playbook_sends(id text PRIMARY KEY,org_id text NOT NULL,playbook_id text NOT NULL,user_id text NOT NULL,status text NOT NULL CHECK(status IN ('open','sent','skipped')),draft text NOT NULL DEFAULT '',why jsonb NOT NULL DEFAULT '[]',created_at bigint NOT NULL,sent_at bigint,FOREIGN KEY(org_id,playbook_id) REFERENCES institutes.playbooks(org_id,id),UNIQUE(org_id,id));
+CREATE UNIQUE INDEX IF NOT EXISTS studio_one_open ON institutes.playbook_sends(org_id,user_id) WHERE status='open';
+CREATE TABLE IF NOT EXISTS institutes.studio_outcomes(id text PRIMARY KEY,org_id text NOT NULL REFERENCES institutes.orgs(id),user_id text NOT NULL,playbook_id text,kind text NOT NULL,course text,fee integer NOT NULL DEFAULT 0 CHECK(fee>=0),actor text NOT NULL,created_at bigint NOT NULL,FOREIGN KEY(org_id,playbook_id) REFERENCES institutes.playbooks(org_id,id));
+CREATE UNIQUE INDEX IF NOT EXISTS studio_one_enrolment ON institutes.studio_outcomes(org_id,user_id,LOWER(TRIM(course))) WHERE kind='enrolled';
+CREATE INDEX IF NOT EXISTS studio_results_period ON institutes.studio_outcomes(org_id,created_at);
+CREATE INDEX IF NOT EXISTS studio_send_student ON institutes.playbook_sends(org_id,user_id,playbook_id);
+CREATE INDEX IF NOT EXISTS studio_thread_recent ON institutes.studio_threads(org_id,updated_at DESC);
+INSERT INTO institutes.migrations(version,applied_at) VALUES(5,0) ON CONFLICT DO NOTHING;
+`;
+
 export class InstitutesDb {
   constructor(
     readonly driver: Driver,
@@ -207,6 +226,7 @@ export class InstitutesDb {
       }
       await tx.exec(MIGRATIONS_2_AND_3);
       await tx.exec(MIGRATION_4);
+      await tx.exec(STUDIO_SCHEMA);
     });
   }
 
@@ -544,6 +564,9 @@ export class InstitutesDb {
       }
       await tx.query('UPDATE institutes.consents SET withdrawn_at=$4 WHERE org_id=$1 AND user_id=$2 AND purpose=$3 AND withdrawn_at IS NULL', [orgId, userId, purpose, Date.now()]);
       if (purpose === 'progress') {
+        await tx.query('DELETE FROM institutes.studio_study_days WHERE org_id=$1 AND user_id=$2',[orgId,userId]);
+        await tx.query('DELETE FROM institutes.studio_edits WHERE org_id=$1 AND user_id=$2',[orgId,userId]);
+        await tx.query("UPDATE institutes.playbook_sends SET draft='',why='[]',status=CASE WHEN status='open' THEN 'skipped' ELSE status END WHERE org_id=$1 AND user_id=$2",[orgId,userId]);
         await tx.query('DELETE FROM institutes.progress WHERE org_id=$1 AND user_id=$2', [orgId, userId]);
         await tx.query('DELETE FROM institutes.quiz_attempts WHERE org_id=$1 AND user_id=$2', [orgId, userId]);
         await tx.query('DELETE FROM institutes.quizme_scores WHERE org_id=$1 AND user_id=$2', [orgId, userId]);
@@ -639,11 +662,14 @@ export class InstitutesDb {
       await this.lockStudent(tx, userId);
       await tx.query('UPDATE institutes.enrollments SET left_at=$4 WHERE org_id=$1 AND course_id=$2 AND user_id=$3 AND left_at IS NULL', [orgId, courseId, userId, Date.now()]);
       await tx.query('DELETE FROM institutes.progress WHERE org_id=$1 AND course_id=$2 AND user_id=$3', [orgId, courseId, userId]);
+      await tx.query('DELETE FROM institutes.studio_study_days WHERE org_id=$1 AND course_id=$2 AND user_id=$3',[orgId,courseId,userId]);
       await tx.query(
         'DELETE FROM institutes.quiz_attempts a USING institutes.quizzes q WHERE a.org_id=$1 AND a.user_id=$3 AND (q.org_id,q.id)=(a.org_id,a.quiz_id) AND q.course_id=$2',
         [orgId, courseId, userId],
       );
       await tx.query('DELETE FROM institutes.quizme_scores WHERE org_id=$1 AND course_id=$2 AND user_id=$3', [orgId, courseId, userId]);
+      await tx.query('DELETE FROM institutes.studio_edits WHERE org_id=$1 AND user_id=$2',[orgId,userId]);
+      await tx.query("UPDATE institutes.playbook_sends SET draft='',why='[]',status=CASE WHEN status='open' THEN 'skipped' ELSE status END WHERE org_id=$1 AND user_id=$2",[orgId,userId]);
       const [other] = await tx.query('SELECT id FROM institutes.enrollments WHERE org_id=$1 AND user_id=$2 AND left_at IS NULL LIMIT 1', [orgId, userId]);
       if (!other) await this.setSharing(tx, orgId, userId, { textVersion: 'leave', progress: false, contact: false });
     });
@@ -703,6 +729,7 @@ export class InstitutesDb {
     );
 
     if (!(await this.consent(tx, orgId, userId, 'progress'))) return;
+    await tx.query('INSERT INTO institutes.studio_study_days VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[orgId,userId,courseId,Math.floor(Date.now()/86400000)]);
     // Max rank and seconds are monotonic, including late/out-of-order events.
     const [prior] = await tx.query('SELECT stage FROM institutes.progress WHERE org_id=$1 AND user_id=$2 AND course_id=$3 AND video_id=$4', [orgId, userId, courseId, videoId]);
     const chosen = prior && STAGE_RANK[prior.stage as Milestone] > rank ? prior.stage : stage;
@@ -823,6 +850,54 @@ export class InstitutesDb {
 
   /* ─── Studio reads ─────────────────────────────────────────────────────────── */
 
+  async studioContext(orgId:string){const [row]=await this.driver.query('SELECT version,data FROM institutes.studio_context WHERE org_id=$1 ORDER BY version DESC LIMIT 1',[orgId]);return {version:Number(row?.version??0),data:(row?.data??structuredClone(EMPTY_CONTEXT)) as StudioContext};}
+  async saveStudioContext(orgId:string,actor:string,data:StudioContext,expectedVersion:number){return this.tx(async tx=>{
+    await tx.query('SELECT id FROM institutes.orgs WHERE id=$1 FOR UPDATE',[orgId]);
+    const [last]=await tx.query('SELECT COALESCE(MAX(version),0)::int AS version FROM institutes.studio_context WHERE org_id=$1',[orgId]);
+    if(Number(last.version)!==expectedVersion)return conflict('Context changed. Reload before saving your edits.');
+    const version=expectedVersion+1;await tx.query('INSERT INTO institutes.studio_context VALUES($1,$2,$3::jsonb,$4,$5)',[orgId,version,JSON.stringify(data),actor,Date.now()]);await this.audit(tx,orgId,actor,'studio.context',String(version));return {version,data};
+  });}
+  async studioEdits(orgId:string){return this.driver.query('SELECT e.id,e.before_text,e.after_text,s.name FROM institutes.studio_edits e JOIN institutes.students s ON s.user_id=e.user_id WHERE e.org_id=$1 ORDER BY e.created_at DESC LIMIT 30',[orgId]);}
+
+
+  async studioQuestionIdentities(orgId:string,question:string){return this.driver.query("SELECT s.user_id,s.name,s.phone FROM institutes.students s WHERE EXISTS(SELECT 1 FROM institutes.enrollments e WHERE e.org_id=$1 AND e.user_id=s.user_id AND e.left_at IS NULL) AND (POSITION(LOWER(s.name) IN LOWER($2))>0 OR POSITION(LOWER(SPLIT_PART(s.name,' ',1)) IN LOWER($2))>0 OR POSITION(s.phone IN $2)>0) ORDER BY s.user_id LIMIT 50",[orgId,question]);}
+  async studioStudents(orgId:string,rules:StudentRules & {after?:string;onlyUserId?:string;playbookId?:string;search?:string}){return this.students(orgId,{...rules,minQuizScore:rules.minQuiz,limit:rules.limit??100});}
+  async studioThreads(orgId:string){return this.driver.query('SELECT id,title,pinned,updated_at FROM institutes.studio_threads WHERE org_id=$1 ORDER BY updated_at DESC LIMIT 50',[orgId]);}
+  async studioThread(orgId:string,id:string){const [thread]=await this.driver.query('SELECT * FROM institutes.studio_threads WHERE org_id=$1 AND id=$2',[orgId,id]);if(!thread)return missing();const messages=await this.driver.query('SELECT question,plan,created_at FROM institutes.studio_messages WHERE org_id=$1 AND thread_id=$2 ORDER BY created_at LIMIT 100',[orgId,id]);return {thread,messages};}
+  async saveStudioQuestion(orgId:string,actor:string,question:string,plan:unknown,threadId?:string){return this.tx(async tx=>{const id=threadId??randomUUID(),at=Date.now();if(threadId){const [row]=await tx.query('SELECT id FROM institutes.studio_threads WHERE org_id=$1 AND id=$2',[orgId,id]);if(!row)return missing();}else await tx.query('INSERT INTO institutes.studio_threads(id,org_id,title,created_at,updated_at) VALUES($1,$2,$3,$4,$4)',[id,orgId,question.slice(0,120),at]);await tx.query('INSERT INTO institutes.studio_messages VALUES($1,$2,$3,$4,$5::jsonb,$6)',[randomUUID(),orgId,id,question,JSON.stringify(plan),at]);await tx.query('UPDATE institutes.studio_threads SET updated_at=$3 WHERE org_id=$1 AND id=$2',[orgId,id,at]);await this.audit(tx,orgId,actor,'studio.ask',id);return id;});}
+  async pinStudioThread(orgId:string,id:string,pinned:boolean,actor='staff'){const rows=await this.driver.query('UPDATE institutes.studio_threads SET pinned=$3 WHERE org_id=$1 AND id=$2 RETURNING id',[orgId,id,pinned]);if(!rows.length)return missing();await this.audit(this.driver,orgId,actor,'studio.pin',id);}
+  async studioLists(orgId:string){return this.driver.query('SELECT id,name,rules FROM institutes.studio_lists WHERE org_id=$1 ORDER BY created_at DESC LIMIT 100',[orgId]);}
+  async saveStudioList(orgId:string,actor:string,name:string,rules:StudentRules){return this.tx(async tx=>{const id=randomUUID();await tx.query('INSERT INTO institutes.studio_lists VALUES($1,$2,$3,$4::jsonb,$5)',[id,orgId,name,JSON.stringify(rules),Date.now()]);await this.audit(tx,orgId,actor,'studio.list',id);return {id};});}
+  async playbooks(orgId:string){return this.driver.query('SELECT * FROM institutes.playbooks WHERE org_id=$1 ORDER BY created_at,id',[orgId]);}
+  async savePlaybook(orgId:string,actor:string,input:PlaybookInput,id?:string){return this.tx(async tx=>{const key=id??randomUUID();if(id){const rows=await tx.query('UPDATE institutes.playbooks SET name=$3,rules=$4::jsonb,template=$5,channel=$6,personalize=$7,reviewed_at=$8 WHERE org_id=$1 AND id=$2 RETURNING id',[orgId,id,input.name,JSON.stringify(input.rules),input.template,input.channel,input.personalize,Date.now()]);if(!rows.length)return missing();await tx.query("UPDATE institutes.playbook_sends SET status='skipped',draft='',why='[]' WHERE org_id=$1 AND playbook_id=$2 AND status='open'",[orgId,id]);}else await tx.query('INSERT INTO institutes.playbooks VALUES($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$8)',[key,orgId,input.name,JSON.stringify(input.rules),input.template,input.channel,input.personalize,Date.now()]);await this.audit(tx,orgId,actor,'studio.playbook',key);return {id:key};});}
+  async playbookMatches(orgId:string,id:string,options:{after?:string;userId?:string}={}){const [p]=await this.driver.query('SELECT * FROM institutes.playbooks WHERE org_id=$1 AND id=$2',[orgId,id]);if(!p)return missing();const result=await this.studioStudents(orgId,{...p.rules as StudentRules,after:options.after,onlyUserId:options.userId,playbookId:id});return {playbook:p,...result};}
+  async claimPlaybook(orgId:string,id:string,userId:string,actor='queue'){const matches=await this.playbookMatches(orgId,id,{userId});if(!matches.items.some(row=>row.user_id===userId))return denied();return this.tx(async tx=>{await this.lockStudent(tx,userId);if(Object.keys(matches.playbook.rules as object).some(k=>['minLessons','minQuiz','maxQuiz','quietDays','returnedDays'].includes(k))&&!await this.consent(tx,orgId,userId,'progress'))return denied();await tx.query("INSERT INTO institutes.playbook_sends(id,org_id,playbook_id,user_id,status,created_at) VALUES($1,$2,$3,$4,'open',$5) ON CONFLICT DO NOTHING",[randomUUID(),orgId,id,userId,Date.now()]);const [row]=await tx.query("SELECT * FROM institutes.playbook_sends WHERE org_id=$1 AND playbook_id=$2 AND user_id=$3 AND status='open'",[orgId,id,userId]);if(!row)return conflict('This student is already waiting in another playbook.');await this.audit(tx,orgId,actor,'studio.queue',String(row.id));return row;});}
+  async savePlaybookDraft(orgId:string,id:string,actor:string,draft:string,why:unknown){const rows=await this.driver.query("UPDATE institutes.playbook_sends SET draft=$3,why=$4::jsonb WHERE org_id=$1 AND id=$2 AND status='open' RETURNING id",[orgId,id,draft,JSON.stringify(why)]);if(!rows.length)return conflict('This draft is no longer open.');await this.audit(this.driver,orgId,actor,'studio.draft',id);}
+  async finishPlaybookSend(orgId:string,id:string,actor:string,state:'sent'|'skipped',draft:string){const [send]=await this.driver.query("SELECT * FROM institutes.playbook_sends WHERE org_id=$1 AND id=$2 AND status='open'",[orgId,id]);if(!send)return missing();const matches=await this.playbookMatches(orgId,String(send.playbook_id),{userId:String(send.user_id)});if(!matches.items.some(row=>row.user_id===send.user_id))return denied();return this.tx(async tx=>{await this.lockStudent(tx,String(send.user_id));const progressRules=Object.keys(matches.playbook.rules as object).some(k=>['minLessons','minQuiz','maxQuiz','quietDays','returnedDays'].includes(k));if(progressRules&&!await this.consent(tx,orgId,String(send.user_id),'progress'))return denied();const rows=await tx.query("UPDATE institutes.playbook_sends SET status=$3,draft=$4,sent_at=$5 WHERE org_id=$1 AND id=$2 AND status='open' RETURNING id",[orgId,id,state,draft,state==='sent'?Date.now():null]);if(!rows.length)return conflict('This message was already reviewed.');if(state==='sent'&&matches.playbook.personalize&&draft!==send.draft)await tx.query('INSERT INTO institutes.studio_edits VALUES($1,$2,$3,$4,$5,$6,$7)',[randomUUID(),orgId,send.user_id,send.draft,draft,actor,Date.now()]);await this.audit(tx,orgId,actor,'studio.'+state,id);return {id};});}
+  async recordOutcome(orgId:string,actor:string,input:{userId:string;kind:Outcome;course?:string;fee?:number;playbookId?:string}){await this.studentReport(orgId,input.userId,actor);return this.tx(async tx=>{if(input.playbookId){const [sent]=await tx.query("SELECT id FROM institutes.playbook_sends WHERE org_id=$1 AND playbook_id=$2 AND user_id=$3 AND status='sent' LIMIT 1",[orgId,input.playbookId,input.userId]);if(!sent)return denied();}const id=randomUUID();await tx.query('INSERT INTO institutes.studio_outcomes VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',[id,orgId,input.userId,input.playbookId??null,input.kind,input.kind==='enrolled'?input.course:null,input.kind==='enrolled'?input.fee:0,actor,Date.now()]);await this.audit(tx,orgId,actor,'studio.outcome',id);return {id};});}
+  async studioResults(orgId:string,from:number,to:number,playbookId?:string){const rows=await this.driver.query(`SELECT o.id,o.user_id,CASE WHEN EXISTS(SELECT 1 FROM institutes.enrollments e WHERE e.org_id=o.org_id AND e.user_id=o.user_id AND e.left_at IS NULL) THEN s.name ELSE 'Former student' END AS name,o.playbook_id,p.name AS playbook,o.kind,o.course,o.fee,o.created_at FROM institutes.studio_outcomes o JOIN institutes.students s ON s.user_id=o.user_id LEFT JOIN institutes.playbooks p ON (p.org_id,p.id)=(o.org_id,o.playbook_id) WHERE o.org_id=$1 AND o.created_at>=$2 AND o.created_at<$3 AND ($4::text IS NULL OR o.playbook_id=$4) ORDER BY o.created_at DESC`,[orgId,from,to,playbookId??null]);const sends=await this.driver.query("SELECT playbook_id,COUNT(*)::int AS matched,COUNT(*) FILTER(WHERE status='sent')::int AS contacted FROM institutes.playbook_sends WHERE org_id=$1 AND created_at>=$2 AND created_at<$3 AND ($4::text IS NULL OR playbook_id=$4) GROUP BY playbook_id",[orgId,from,to,playbookId??null]);const bestMessages=await this.driver.query(`SELECT * FROM (SELECT ps.playbook_id,ps.draft,COUNT(DISTINCT o.user_id)::int AS enrolled,SUM(o.fee)::bigint AS fees,ROW_NUMBER() OVER(PARTITION BY ps.playbook_id ORDER BY COUNT(DISTINCT o.user_id) DESC,SUM(o.fee) DESC,ps.draft) AS rank FROM institutes.playbook_sends ps JOIN institutes.studio_outcomes o ON (o.org_id,o.playbook_id,o.user_id)=(ps.org_id,ps.playbook_id,ps.user_id) WHERE ps.org_id=$1 AND ps.status='sent' AND ps.draft<>'' AND o.kind='enrolled' AND o.created_at>=$2 AND o.created_at<$3 AND ($4::text IS NULL OR ps.playbook_id=$4) GROUP BY ps.playbook_id,ps.draft) ranked WHERE rank=1`,[orgId,from,to,playbookId??null]);return {rows,sends,bestMessages,enrolled:rows.filter(r=>r.kind==='enrolled').length,fees:rows.filter(r=>r.kind==='enrolled').reduce((sum,r)=>sum+Number(r.fee),0)};}
+
+  async setupChecklist(orgId: string) {
+    const [state] = await this.driver.query(`SELECT
+      EXISTS(SELECT 1 FROM institutes.courses c JOIN institutes.import_cache i ON (i.org_id,i.course_id)=(c.org_id,c.id) WHERE c.org_id=$1 AND c.status='published' AND i.payload_json IS NOT NULL) AS course,
+      EXISTS(SELECT 1 FROM institutes.enrollments WHERE org_id=$1 AND batch_id IS NOT NULL AND left_at IS NULL) AS batch,
+      EXISTS(SELECT 1 FROM institutes.quizzes WHERE org_id=$1 AND status='published') AS quiz,
+      EXISTS(SELECT 1 FROM institutes.assignments WHERE org_id=$1 AND kind='today') AS today,
+      EXISTS(SELECT 1 FROM institutes.org_members WHERE org_id=$1 AND role='faculty') AS faculty`, [orgId]);
+    const context=await this.studioContext(orgId);
+    const [review]=await this.driver.query('SELECT COUNT(*)::int AS n FROM institutes.playbooks WHERE org_id=$1 AND reviewed_at IS NOT NULL',[orgId]);
+    const items = [
+      {id:'course',label:'Publish your first imported course',done:!!state.course,href:'/admin'},
+      {id:'batch',label:'Share a batch code and welcome its first student',done:!!state.batch,href:'/admin'},
+      {id:'quiz',label:'Publish an institute quiz',done:!!state.quiz,href:'/admin'},
+      {id:'today',label:'Choose today’s class',done:!!state.today,href:'/admin'},
+      {id:'context',label:'Tell the assistant about your institute',done:!!context.data.about&&context.data.examples.filter(e=>e.trim()).length>=3&&context.data.products.some(p=>p.name.trim()),href:'#/context'},
+      {id:'faculty',label:'Give a faculty member access',done:!!state.faculty,href:'/admin'},
+      {id:'playbook',label:'Review your first playbook',done:Number(review.n)>0,href:'#/playbooks'},
+    ];
+    return {items,completed:items.filter(item=>item.done).length,total:items.length};
+  }
+
   async funnel(orgId: string, courseId?: string) {
     const [totals] = await this.driver.query(`SELECT
       (SELECT COUNT(DISTINCT (user_id,course_id))::int FROM institutes.enrollments WHERE org_id=$1 AND ($2::text IS NULL OR course_id=$2)) AS joined,
@@ -843,11 +918,11 @@ export class InstitutesDb {
    * Everyone enrolled with this institute. Name and verified number for every member (they agreed to that
    * when joining); progress, quiz, watch time and activity only for students who share progress.
    */
-  async students(orgId: string, filter: PageFilter) {
+  async students(orgId: string, filter: PageFilter & StudentRules & {onlyUserId?:string;playbookId?:string;search?:string}) {
     const rows = await this.driver.query(`WITH members AS (
       SELECT s.user_id,s.name,s.phone,MIN(e.joined_at)::bigint AS joined_at,COUNT(*)::int AS courses
       FROM institutes.students s JOIN institutes.enrollments e ON e.user_id=s.user_id
-      WHERE e.org_id=$1 AND e.left_at IS NULL AND ($2::text IS NULL OR e.course_id=$2) AND ($3::text IS NULL OR s.user_id>$3)
+      WHERE e.org_id=$1 AND e.left_at IS NULL AND ($2::text IS NULL OR e.course_id=$2) AND ($3::text IS NULL OR s.user_id>$3) AND ($18::text IS NULL OR s.user_id=$18) AND ($20::text IS NULL OR POSITION(LOWER($20) IN LOWER(COALESCE(s.name,'')))>0 OR POSITION($20 IN s.phone)>0)
       GROUP BY s.user_id,s.name,s.phone
     ), flagged AS (
       SELECT m.*,
@@ -857,18 +932,32 @@ export class InstitutesDb {
       FROM members m
     ), measured AS (
       SELECT f.*,
-        CASE WHEN sharing_progress THEN (SELECT COUNT(*)::int FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=f.user_id AND p.stage='done' AND ($2::text IS NULL OR p.course_id=$2)) END AS completed_videos,
-        CASE WHEN sharing_progress THEN (SELECT COALESCE(SUM(p.seconds),0)::int FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=f.user_id AND ($2::text IS NULL OR p.course_id=$2)) END AS watch_seconds,
-        CASE WHEN sharing_progress THEN (SELECT MAX(p.updated_at)::bigint FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=f.user_id AND ($2::text IS NULL OR p.course_id=$2)) END AS last_active,
-        CASE WHEN sharing_progress THEN (SELECT COUNT(DISTINCT p.updated_at/86400000)::int FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=f.user_id AND ($2::text IS NULL OR p.course_id=$2)) END AS active_days,
-        CASE WHEN sharing_progress THEN (SELECT ROUND(AVG(s.score*100.0/s.total))::int FROM (SELECT a.score,a.total FROM institutes.quiz_attempts a JOIN institutes.quizzes q ON (q.org_id,q.id)=(a.org_id,a.quiz_id) WHERE a.org_id=$1 AND a.user_id=f.user_id AND ($2::text IS NULL OR q.course_id=$2) UNION ALL SELECT z.score,z.total FROM institutes.quizme_scores z WHERE z.org_id=$1 AND z.user_id=f.user_id AND ($2::text IS NULL OR z.course_id=$2)) s) END AS quiz_score
+        CASE WHEN sharing_progress THEN (SELECT COUNT(*)::int FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=f.user_id AND p.stage='done' AND ($2::text IS NULL OR p.course_id=$2) AND (NOT $15::boolean OR EXISTS(SELECT 1 FROM institutes.courses fc WHERE fc.org_id=$1 AND fc.id=p.course_id AND fc.kind='free'))) END AS completed_videos,
+        CASE WHEN sharing_progress THEN (SELECT COALESCE(SUM(p.seconds),0)::int FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=f.user_id AND ($2::text IS NULL OR p.course_id=$2) AND (NOT $15::boolean OR EXISTS(SELECT 1 FROM institutes.courses fc WHERE fc.org_id=$1 AND fc.id=p.course_id AND fc.kind='free'))) END AS watch_seconds,
+        CASE WHEN sharing_progress THEN (SELECT MAX(p.updated_at)::bigint FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=f.user_id AND ($2::text IS NULL OR p.course_id=$2) AND (NOT $15::boolean OR EXISTS(SELECT 1 FROM institutes.courses fc WHERE fc.org_id=$1 AND fc.id=p.course_id AND fc.kind='free'))) END AS last_active,
+        CASE WHEN sharing_progress THEN (SELECT COUNT(DISTINCT p.updated_at/86400000)::int FROM institutes.progress p WHERE p.org_id=$1 AND p.user_id=f.user_id AND ($2::text IS NULL OR p.course_id=$2) AND (NOT $15::boolean OR EXISTS(SELECT 1 FROM institutes.courses fc WHERE fc.org_id=$1 AND fc.id=p.course_id AND fc.kind='free'))) END AS active_days,
+        CASE WHEN sharing_progress THEN (SELECT ROUND(AVG(s.score*100.0/s.total))::int FROM (SELECT a.score,a.total FROM institutes.quiz_attempts a JOIN institutes.quizzes q ON (q.org_id,q.id)=(a.org_id,a.quiz_id) WHERE a.org_id=$1 AND a.user_id=f.user_id AND ($2::text IS NULL OR q.course_id=$2) AND (NOT $15::boolean OR EXISTS(SELECT 1 FROM institutes.courses fc WHERE fc.org_id=$1 AND fc.id=q.course_id AND fc.kind='free')) UNION ALL SELECT z.score,z.total FROM institutes.quizme_scores z WHERE z.org_id=$1 AND z.user_id=f.user_id AND ($2::text IS NULL OR z.course_id=$2) AND (NOT $15::boolean OR EXISTS(SELECT 1 FROM institutes.courses fc WHERE fc.org_id=$1 AND fc.id=z.course_id AND fc.kind='free'))) s) END AS quiz_score
       FROM flagged f
     ), completed AS (
-      SELECT m.*,CASE WHEN sharing_progress THEN LEAST(100,COALESCE(ROUND(completed_videos*100.0/NULLIF((SELECT SUM(c.video_count) FROM institutes.courses c WHERE c.org_id=$1 AND ($2::text IS NULL OR c.id=$2) AND EXISTS(SELECT 1 FROM institutes.enrollments e WHERE e.org_id=$1 AND e.course_id=c.id AND e.user_id=m.user_id AND e.left_at IS NULL)),0)),0))::int END AS completion_percent
+      SELECT m.*,CASE WHEN sharing_progress THEN LEAST(100,COALESCE(ROUND(completed_videos*100.0/NULLIF((SELECT SUM(c.video_count) FROM institutes.courses c WHERE c.org_id=$1 AND (NOT $15::boolean OR c.kind='free') AND ($2::text IS NULL OR c.id=$2) AND EXISTS(SELECT 1 FROM institutes.enrollments e WHERE e.org_id=$1 AND e.course_id=c.id AND e.user_id=m.user_id AND e.left_at IS NULL)),0)),0))::int END AS completion_percent
       FROM measured m
     )
-    SELECT * FROM completed WHERE ($4::int IS NULL OR completion_percent>=$4) AND ($5::int IS NULL OR quiz_score>=$5) AND (NOT $6::boolean OR wants_contact) ORDER BY user_id LIMIT $7`,
-      [orgId, filter.courseId ?? null, filter.after ?? null, filter.minCompletion ?? null, filter.minQuizScore ?? null, !!filter.priority, filter.limit + 1]);
+    SELECT * FROM completed WHERE ($4::int IS NULL OR completion_percent>=$4) AND ($5::int IS NULL OR quiz_score>=$5) AND (NOT $6::boolean OR wants_contact)
+      AND ($8::int IS NULL OR (sharing_progress AND completed_videos>=$8))
+      AND ($9::int IS NULL OR (sharing_progress AND quiz_score<=$9))
+      AND ($10::bigint IS NULL OR (sharing_progress AND last_active<=$10))
+      AND ($11::bigint IS NULL OR joined_at>=$11)
+      AND ($12::boolean IS NULL OR sharing_progress=$12)
+      AND ($13::boolean IS NULL OR wants_contact=$13)
+      AND ($14::bigint IS NULL OR (NOT EXISTS(SELECT 1 FROM institutes.playbook_sends ps WHERE ps.org_id=$1 AND ps.user_id=completed.user_id AND ps.status='sent' AND ps.sent_at>=$14) AND NOT EXISTS(SELECT 1 FROM institutes.studio_outcomes so WHERE so.org_id=$1 AND so.user_id=completed.user_id AND so.created_at>=$14)))
+      AND (NOT $15::boolean OR EXISTS(SELECT 1 FROM institutes.enrollments e JOIN institutes.courses c ON (c.org_id,c.id)=(e.org_id,e.course_id) WHERE e.org_id=$1 AND e.user_id=completed.user_id AND e.left_at IS NULL AND c.kind='free' AND ($2::text IS NULL OR c.id=$2)))
+      AND ($16::int IS NULL OR (sharing_progress AND EXISTS(SELECT 1 FROM (SELECT day,day-LAG(day) OVER(ORDER BY day) AS gap FROM (SELECT DISTINCT day FROM institutes.studio_study_days sd WHERE org_id=$1 AND user_id=completed.user_id AND ($2::text IS NULL OR course_id=$2) AND (NOT $15::boolean OR EXISTS(SELECT 1 FROM institutes.courses fc WHERE fc.org_id=$1 AND fc.id=sd.course_id AND fc.kind='free'))) d) g WHERE g.day>=$17 AND g.gap>=$16)))
+      AND ($19::text IS NULL OR NOT EXISTS(SELECT 1 FROM institutes.playbook_sends ps WHERE ps.org_id=$1 AND ps.user_id=completed.user_id AND ((ps.status='open' AND ps.playbook_id<>$19) OR (ps.playbook_id=$19 AND ps.status IN ('sent','skipped')))))
+      ORDER BY user_id LIMIT $7`,
+      [orgId, filter.courseId ?? null, filter.after ?? null, filter.minCompletion ?? null, filter.minQuizScore ?? null, !!filter.priority, filter.limit + 1,
+       filter.minLessons??null,filter.maxQuiz??null,filter.quietDays===undefined?null:Date.now()-filter.quietDays*86400000,
+       filter.joinedWithinDays===undefined?null:Date.now()-filter.joinedWithinDays*86400000,filter.sharing??null,filter.wantsContact??null,
+       filter.notContactedDays===undefined?null:Date.now()-filter.notContactedDays*86400000,!!filter.freeOnly,filter.returnedDays??null,Math.floor(Date.now()/86400000)-7,filter.onlyUserId??null,filter.playbookId??null,filter.search??null]);
     // One extra row is fetched only to know whether there is a next page.
     const items = rows.slice(0, filter.limit);
     return { items, next: rows.length > filter.limit ? String(items.at(-1)!.user_id) : null };
@@ -918,7 +1007,7 @@ export class InstitutesDb {
     return this.driver.query(
       `SELECT r.id,r.user_id,s.name,s.phone,r.course_id,c.title AS course_title,r.source,r.note,r.created_at::bigint AS created_at,r.handled_at::bigint AS handled_at,r.handled_by
        FROM institutes.contact_requests r JOIN institutes.students s ON s.user_id=r.user_id LEFT JOIN institutes.courses c ON (c.org_id,c.id)=(r.org_id,r.course_id)
-       WHERE r.org_id=$1 ORDER BY (r.handled_at IS NOT NULL), COALESCE(r.handled_at,r.created_at) DESC LIMIT 300`,
+       WHERE r.org_id=$1 AND EXISTS(SELECT 1 FROM institutes.enrollments e WHERE e.org_id=r.org_id AND e.user_id=r.user_id AND e.left_at IS NULL) ORDER BY (r.handled_at IS NOT NULL), COALESCE(r.handled_at,r.created_at) DESC LIMIT 300`,
       [orgId],
     );
   }

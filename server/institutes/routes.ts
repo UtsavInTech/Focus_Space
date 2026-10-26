@@ -1,3 +1,5 @@
+import {studioWorkflow,type StudioRuntime} from './studio-workflows';
+import {contextInput,integer as studioInteger} from './studio-types';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { ApiError, CORS_HEADERS, readJsonBody, sendJson } from '../http';
 import { RateLimiter } from '../auth/rate-limit';
@@ -8,7 +10,7 @@ import * as v from './validate';
 import { importChannel, resolveChannel, youtubeFetch } from './import';
 import { TitleCache } from './titles';
 
-export interface InstituteDependencies {
+export interface InstituteDependencies extends StudioRuntime {
   database: () => Promise<InstitutesDb>;
   identity: (authorization: string | undefined) => Actor;
   startPhone: (actor: Actor, phone: string) => Promise<unknown>;
@@ -226,7 +228,12 @@ async function studioRoutes({ res, method, url, parts, actor, db, deps, body, re
   if (parts[1] !== 'studio') return false;
   const orgId = v.id(parts[2]);
   if (!(await db.role(orgId, actor!.id))) throw new ApiError(403, 'forbidden', 'Institute staff access is required.');
+  const workflow=await studioWorkflow(db,deps,orgId,actor!.id,method,parts,url,body);if(workflow!==undefined)return respond(workflow);
 
+  if(parts[3]==='context'&&parts.length===4){
+    if(method==='GET')return respond(await db.studioContext(orgId));
+    if(method==='POST'){const input=v.object(await body());return respond(await db.saveStudioContext(orgId,actor!.id,contextInput(input.data),studioInteger(input.version)));}
+  }
   if (method === 'POST' && parts[3] === 'channels' && parts.length === 4) {
     const input = v.object(await body());
     await db.suggestChannel(orgId, v.id(input.courseId), actor!.id, v.channel(input.channelId), true);
@@ -239,6 +246,7 @@ async function studioRoutes({ res, method, url, parts, actor, db, deps, body, re
   if (method === 'GET' && parts[3] === 'students' && parts.length === 5) return respond(await db.studentReport(orgId, v.id(parts[4]), actor!.id));
   if (method !== 'GET' || parts.length !== 4) return false;
 
+  if (parts[3] === 'setup') return respond(await db.setupChecklist(orgId));
   const filter = v.page(url.searchParams);
   if (parts[3] === 'courses') return respond({ courses: await db.courses(orgId) });
   if (parts[3] === 'channels' && filter.courseId) return respond({ channels: await db.channelSuggestions(orgId, filter.courseId) });

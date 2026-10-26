@@ -1,3 +1,4 @@
+import {randomUUID} from 'node:crypto';
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -241,6 +242,7 @@ export class UsageDb {
     this.db.exec('PRAGMA foreign_keys = ON;');
     this.db.exec(SCHEMA);
     this.migrate();
+    this.db.exec('CREATE TABLE IF NOT EXISTS studio_ai_usage(id TEXT PRIMARY KEY,org_id TEXT NOT NULL,month TEXT NOT NULL,model TEXT NOT NULL,held INTEGER NOT NULL,prompt_tokens INTEGER,completion_tokens INTEGER,settled INTEGER NOT NULL DEFAULT 0); CREATE INDEX IF NOT EXISTS studio_ai_org_month ON studio_ai_usage(org_id,month);');
   }
 
   /**
@@ -282,6 +284,12 @@ export class UsageDb {
   hasRecurringPayment(userId: string): boolean {
     return !!this.db.prepare(`SELECT 1 FROM payments WHERE user_id = ? AND period IN ('monthly', 'annual') LIMIT 1`).get(userId);
   }
+
+  reserveStudio(orgId:string,model:string,tokens:number,limit:number,month=new Date().toISOString().slice(0,7)):string|null{
+    this.db.exec('BEGIN IMMEDIATE');try{const row=this.db.prepare('SELECT COALESCE(SUM(held),0) AS used FROM studio_ai_usage WHERE org_id=? AND month=?').get(orgId,month) as {used:number};if(row.used+tokens>limit){this.db.exec('ROLLBACK');return null;}const id=randomUUID();this.db.prepare('INSERT INTO studio_ai_usage(id,org_id,month,model,held) VALUES(?,?,?,?,?)').run(id,orgId,month,model,tokens);this.db.exec('COMMIT');return id;}catch(e){this.db.exec('ROLLBACK');throw e;}
+  }
+  settleStudio(id:string,usage:{promptTokens:number|null;completionTokens:number|null}|null){if(usage&&Number.isSafeInteger(usage.promptTokens)&&Number.isSafeInteger(usage.completionTokens)&&usage.promptTokens!>=0&&usage.completionTokens!>=0)this.db.prepare('UPDATE studio_ai_usage SET held=?,prompt_tokens=?,completion_tokens=?,settled=1 WHERE id=? AND settled=0').run(usage.promptTokens!+usage.completionTokens!,usage.promptTokens,usage.completionTokens,id);}
+  studioUsage(orgId:string,month=new Date().toISOString().slice(0,7)){return this.db.prepare('SELECT COUNT(*) AS calls,COALESCE(SUM(held),0) AS tokens,COALESCE(SUM(prompt_tokens),0) AS promptTokens,COALESCE(SUM(completion_tokens),0) AS completionTokens FROM studio_ai_usage WHERE org_id=? AND month=?').get(orgId,month) as {calls:number;tokens:number;promptTokens:number;completionTokens:number};}
 
   close(): void {
     this.db.close();

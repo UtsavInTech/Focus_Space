@@ -50,9 +50,16 @@ afterAll(async () => {
 });
 
 describe('Postgres institutes data boundaries', () => {
+  it('derives setup from this institute only',async()=>{
+    const a=await course(),b=await db.createOrg('staff',{slug:randomUUID(),name:'Another demo institute'});
+    expect((await db.setupChecklist(a.orgId)).items.find(i=>i.id==='course')?.done).toBe(false);
+    await driver.query('INSERT INTO institutes.import_cache VALUES($1,$2,$3,$4::jsonb)',[a.orgId,a.courseId,Date.now(),JSON.stringify({fixture:true})]);
+    const checklist=await db.setupChecklist(a.orgId);expect(checklist.items.find(i=>i.id==='course')?.done).toBe(true);expect(checklist.total).toBe(7);
+    expect((await db.setupChecklist(String(b.id))).completed).toBe(0);
+  });
   it('migrates idempotently, and separates organisation roles and resources', async () => {
     await db.migrate();
-    expect(await driver.query('SELECT version FROM institutes.migrations')).toHaveLength(4);
+    expect(await driver.query('SELECT version FROM institutes.migrations')).toHaveLength(5);
     const a = await course();
     const b = await course();
     const person = actor();

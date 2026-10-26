@@ -8,6 +8,8 @@ import { InstitutesDb, type Driver } from './db';
 import { testDriver } from './test-driver';
 import { csv, institutePath, instituteRoutes, staffAllowed } from './routes';
 import { CONSENT_VERSION, type Actor, type CoursePayload } from './types';
+import {fakeStudioLlm} from './studio-fake';
+import {EMPTY_CONTEXT} from './studio-types';
 import { TitleCache } from './titles';
 let driver: Driver,db: InstitutesDb,identityDb: IdentityDb,server: Server,base: string;
 let orgId: string,otherOrg: string,courseId: string,staffToken: string,facultyToken: string,studentToken: string;
@@ -24,7 +26,7 @@ beforeAll(async()=>{
   courseId=String((await db.createCourse(orgId,staff.user.id,{title:'Course',kind:'free',channelId:channel})).id);
   const data:CoursePayload={brand:{name:'Institute A'},subjects:[{id:'s',title:'Subject',topics:[{id:'t',title:'Topic',subtopics:[],items:[{type:'video',videoId:'abcdefghijk'}]}]}],approvedChannels:[{id:channel}],modes:[]};
   await db.saveDraft(orgId,courseId,staff.user.id,data);await db.publish(orgId,courseId,staff.user.id);
-  const handler=instituteRoutes({database:async()=>{databaseCalls++;return db;},identity:header=>authenticate(identityDb,config,header).user,staff:staff.user.id,userExists:id=>!!identityDb.findUserById(id),clientIp:()=> 'test-address',startPhone:async()=>({sent:true}),verifyPhone:async()=>{},titles:new TitleCache(async id=>id==='abcdefghijk'?'Lesson A':null)});
+  const handler=instituteRoutes({ai:async(_org,prompt)=>(await fakeStudioLlm(prompt,{apiKey:'fake',model:'demo',maxTokens:100})).data,aiMode:'demo',database:async()=>{databaseCalls++;return db;},identity:header=>authenticate(identityDb,config,header).user,staff:staff.user.id,userExists:id=>!!identityDb.findUserById(id),clientIp:()=> 'test-address',startPhone:async()=>({sent:true}),verifyPhone:async()=>{},titles:new TitleCache(async id=>id==='abcdefghijk'?'Lesson A':null)});
   server=createServer(async(req,res)=>{
     try { if (!await handler(req,res)) sendJson(res,200,{legacy:true}); }
     catch(err) { if (err instanceof ApiError) sendJson(res,err.status,err.toResponse());else {sendJson(res,500,{error:'Unexpected'});throw err;} }
@@ -34,6 +36,13 @@ beforeAll(async()=>{
 afterAll(async()=>{await new Promise<void>(resolve=>server?.close(()=>resolve()));identityDb?.close();await driver?.close();});
 const request=(path:string,token?:string,body?:unknown)=>fetch(`${base}${path}`,{method:body===undefined?'GET':'POST',headers:{...(token?{Authorization:`Bearer ${token}`}:{ }),'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})});
 describe('institute HTTP authorization and contracts',()=>{
+  it('protects every Studio workflow with membership and validates writes',async()=>{
+    for(const route of ['setup','context','assistant','threads','lists','playbooks','results','search?q=a']){expect((await request(`/v1/studio/${orgId}/${route}`,facultyToken)).status).toBe(200);expect((await request(`/v1/studio/${otherOrg}/${route}`,facultyToken)).status).toBe(403);expect((await request(`/v1/studio/${orgId}/${route}`,studentToken)).status).toBe(403);}
+    expect((await request(`/v1/studio/${orgId}/ask`,facultyToken,{question:'Show enrolment fees'})).status).toBe(200);
+    expect((await request(`/v1/studio/${otherOrg}/ask`,facultyToken,{question:'Show enrolment fees'})).status).toBe(403);
+    expect((await request(`/v1/studio/${orgId}/context`,facultyToken,{data:EMPTY_CONTEXT,version:0})).status).toBe(200);
+    expect((await request(`/v1/studio/${orgId}/playbooks`,facultyToken,{name:'Invalid'})).status).toBe(400);
+  });
   it('authenticates before DB access and denies ordinary users staff access',async()=>{
     const before=databaseCalls;expect((await request('/v1/admin/orgs')).status).toBe(401);expect(databaseCalls).toBe(before);
     expect((await request('/v1/admin/orgs',studentToken)).status).toBe(403);expect(databaseCalls).toBe(before);
