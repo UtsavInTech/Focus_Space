@@ -92,3 +92,11 @@ Updated privacy content, the plain data summary and Store disclosure to explain 
 - Launch: `DEMO_API_PORT=8792 DEMO_REAL_PORT=8793 node scripts/institute-demo.mjs --serve-only --keep`.
 
 No screenshots are attached: the browser permission block prevented capture. The implementation and automated checks are complete; visual review in the running demo remains the explicit verification limitation.
+
+## User-facing UI follow-up
+
+Reworked the presentation after feedback that Studio felt vague. Home now leads with four real summary metrics, a specific call-request action, a focused ask area and a recommended setup step. Context has four navigable sections, grouped course fields, an example-message reference and a persistent save bar. Ask has a conversation rail, suggested questions, a clear composer and readable tables: internal account IDs stay hidden, dates/rupees/percentages are formatted, and extra columns are disclosed on demand. Playbooks show readable matching criteria, distinct review actions, a three-step explanation and individual message review panels. Selecting a playbook or editor brings that section into view. Results has a monthly summary, comparable playbook rows, export actions and message examples. Outcome entry uses explicit choices rather than a dropdown.
+
+Kept the existing Light/Deep palette, signature branding, API contracts and manual-sending behaviour. Added phone/tablet layouts and retained reduced-motion handling. Source-level review fixed a stale queue after cancelling an editor and prevented editing Context during an in-flight save.
+
+Follow-up verification: TypeScript passed; 16 Studio tests across three files passed; production website and local-demo website builds passed; diff whitespace check passed. The running demo's website bundle was refreshed without resetting its data. This UI-only pass did not repeat extension/API builds. Browser screenshots and visual acceptance remain unverified under the previously reported localhost permission block.

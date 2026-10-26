@@ -3,8 +3,8 @@ import { PlaybooksPage } from './PlaybooksPage';
 import { ResultsPage, resultsSentence, type Results } from './ResultsPage';
 import type { StudentRules } from '../../../../server/institutes/studio-types';
 import { ContextPage } from './ContextPage';
-import { SetupChecklist } from './SetupChecklist';
-import { HomeAsk, PagePurpose, SearchPalette, type Recent } from './NavigationTools';
+import { StudioHome } from './StudioHome';
+import { PagePurpose, SearchPalette, type Recent } from './NavigationTools';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ArrowLeft, BookOpen, ChevronRight, Inbox, LayoutDashboard, LogOut, Moon, Newspaper, Sun, Users } from 'lucide-react';
@@ -20,6 +20,7 @@ import { BriefPage, initials, Overview, RequestsPage, StudentsPage } from './pag
 import { StudentReport } from './StudentReport';
 import { useSmoothScroll } from './useSmoothScroll';
 import './studio.css';
+import './workspace.css';
 
 type Funnel = Totals & { videos: Row[] };
 type Outline = { version: number; data: CoursePayload; titles: Record<string, string> };
@@ -201,7 +202,7 @@ export function StudioApp({ orgs, org, onOrg, courses, call, token, appearance, 
         return <SectionRoom course={view} trail={ids} go={go} onApprove={canApprove ? approve(view.id) : undefined} />;
       }
       default:
-        return <><HomeAsk ask={text=>{setSavedList(undefined);setQuestion(text);go({room:'ask'});}}/><SetupChecklist org={org} call={call}/>{results&&<p><a href="#/results">{resultsSentence(results)}</a></p>}<Overview orgName={orgName} story={tell({ orgName, members, week: thisWeek, open, actions: todo.length, now })} actions={todo} series={series} week={thisWeek} members={members} open={open} go={go} now={now} /><section><h2>Jump back in</h2>{recents.length?recents.map((r,i)=><p key={i}><a href={placeHash(r.place)}>{r.label}</a></p>):<p>Open a student or lecture. It will appear here for your next visit.</p>}</section></>;
+        return <StudioHome org={org} orgName={orgName} call={call} students={members.length} waiting={open} results={results} ask={text=>{setSavedList(undefined);setQuestion(text);go({room:'ask'});}} recents={recents}><Overview orgName={orgName} story={tell({ orgName, members, week: thisWeek, open, actions: todo.length, now })} actions={todo} series={series} week={thisWeek} members={members} open={open} go={go} now={now} /></StudioHome>;
     }
   };
 
@@ -280,7 +281,7 @@ export function StudioApp({ orgs, org, onOrg, courses, call, token, appearance, 
           </nav>
         )}
         {error && <p role="alert" className="fss-error">{error}</p>}
-        <main className="fss-stage">{assistant&&<p className="fss-assistant-status">{assistant.mode==='demo'?'Demo assistant · fictional data and simulated responses':assistant.mode==='live'?'Institute assistant · live AI':'Assistant not configured'}{assistant.usage&&` · ${assistant.usage.tokens} tokens charged or reserved this month`}</p>}
+        <main className="fss-stage">{assistant&&<div className="fss-service-bar"><span>{assistant.mode==='demo'?'Demo workspace · fictional data & simulated AI':assistant.mode==='live'?'Institute assistant is available':'Institute assistant is not configured'}</span>{assistant.usage&&<details><summary>AI usage</summary><p>{assistant.usage.tokens.toLocaleString('en-IN')} tokens charged or reserved this month.</p></details>}</div>}
           <AnimatePresence mode="wait" custom={direction} initial={false}>
             <motion.div key={`${org}:${placeHash(place)}:${loading}`} custom={direction} variants={variants} initial="enter" animate="center" exit="exit"
               transition={{ duration: reduced ? 0.15 : 0.5, ease: [0.22, 1, 0.36, 1] }}>
