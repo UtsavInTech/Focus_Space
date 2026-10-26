@@ -1,3 +1,8 @@
+import {TitleCache} from '../../server/institutes/titles';
+import {studioAi} from '../../server/usage/studio';
+import {UsageDb} from '../../server/usage/db';
+import {fakeStudioLlm} from '../../server/institutes/studio-fake';
+import {EMPTY_CONTEXT} from '../../server/institutes/studio-types';
 // The demo API. Run by scripts/institute-demo.mjs through vite-node (for the `@/` imports); not on its own.
 //
 // It answers institute routes with the real handlers (server/institutes/routes.ts) on the real
@@ -154,6 +159,7 @@ for (let i = 0; i < CLASSMATES; i += 1) {
       if (random() < 0.4) break;
       clock = at(Math.min(41, joinDay + n * 3), hour);
       await db.recordProgress([{ orgId, courseId: freeCourseId, userId: user.id, videoId, stage: 'done', seconds: 1200 }]);
+      await db.quizMeScore(orgId,freeCourseId,user.id,videoId,6+Math.floor(random()*5),10);
     }
   }
 }
@@ -161,12 +167,29 @@ for (let i = 0; i < CLASSMATES; i += 1) {
 clock = today - DAY;
 const waiting = (await db.requests(orgId)).filter((r) => r.handled_at === null).sort((a, b) => Number(b.created_at) - Number(a.created_at));
 for (const request of waiting.slice(7)) await db.handleRequest(orgId, String(request.id), faculty.id);
+clock=at(1,10);
+await db.setMember(orgId,staff.id,'demo-faculty-second','faculty');
+await db.saveStudioContext(orgId,faculty.id,{...EMPTY_CONTEXT,about:'A fictional coaching centre for the local Studio demonstration.',products:[{name:'Foundation classroom course',fee:45000,startDate:'2026-11-15',mode:'offline',centre:'Demo learning centre'},{name:'Online revision course',fee:30000,startDate:'2026-11-20',mode:'online',centre:''}],offers:'Demo scholarship test on 2026-11-08. No scholarship is guaranteed.',counsellor:'Demo counsellor',callback:'+919000000000',tone:'Warm, practical, never pushy',language:'Hinglish',neverSay:'Never guarantee selection, marks, admission or a scholarship.',examples:['Hello, would you like help choosing your next step?','Aapki padhai kaisi chal rahi hai?','A short call is optional; tell us what suits you.'],rules:['Make the next step optional.']},0);
+const starts=[{name:'Ready for the paid course',rules:{freeOnly:true,minLessons:3,minQuiz:70}},{name:'High scorers falling behind',rules:{minQuiz:80,quietDays:7}},{name:'Came back after going quiet',rules:{returnedDays:7}},{name:'Needs a doubt session',rules:{minLessons:3,maxQuiz:50}},{name:'Scholarship test shortlist',rules:{minLessons:5,minQuiz:80}}];
+for(const [i,start]of starts.entries()){
+ const playbook=await db.savePlaybook(orgId,faculty.id,{...start,template:'Hello {{firstName}}, would you like to discuss your next step with {{counsellor}}?',channel:'whatsapp',personalize:true});
+ for(const day of [12,23,34,40]){clock=at(day,19);const matching=await db.playbookMatches(orgId,playbook.id);for(const [n,person]of matching.items.slice(0,3).entries()){const claim=await db.claimPlaybook(orgId,playbook.id,String(person.user_id));await db.savePlaybookDraft(orgId,String(claim.id),faculty.id,'Hello, would you like to discuss your next study step?',[]);await db.finishPlaybookSend(orgId,String(claim.id),faculty.id,'sent','Hello, would you like to discuss your next study step?');await db.recordOutcome(orgId,faculty.id,{userId:String(person.user_id),kind:n===0?'enrolled':n===1?'interested':'no_answer',course:`Demo paid course ${i+1}`,fee:45000,playbookId:playbook.id});}}
+}
+clock=at(41,20);
+await db.saveStudioQuestion(orgId,faculty.id,'Who asked us to call?',{calls:[{fn:'requests',args:{open:true}}],intent:'Contact requests'});
+const saved=await db.saveStudioQuestion(orgId,faculty.id,'How much did we record in enrolment fees?',{calls:[{fn:'outcomes',args:{}}],intent:'Recorded fees'});await db.pinStudioThread(orgId,saved,true);
 clock = null;
 globalThis.Date = RealDate;
 
 /* ─── HTTP ───────────────────────────────────────────────────────────────────── */
 
+const studioUsage=new UsageDb(process.env.DB_PATH??'');
+const liveAi=!!process.env.OPENAI_API_KEY;
+console.log(`Studio assistant: ${liveAi?'live provider':'fake (no provider requests)'}; seed token usage: ${studioUsage.studioUsage(orgId).tokens}.`);
 const handleInstitutes = instituteRoutes({
+  ai:studioAi(studioUsage,{apiKey:process.env.OPENAI_API_KEY??'demo-no-provider',model:process.env.STUDIO_MODEL??process.env.SETUP_MODEL??'gpt-4.1-mini',maxTokens:1200},Number(process.env.STUDIO_AI_MONTHLY_LIMIT??200000),liveAi?undefined:fakeStudioLlm),
+  usage:org=>studioUsage.studioUsage(org),aiMode:liveAi?'live':'demo',
+  ...(process.env.DEMO_STUDIO_ONLY==='1'?{titles:new TitleCache(async id=>`Demo lecture ${ids.indexOf(id)+1} · fictional course fixture`)}:{}),
   database: async () => db,
   identity: (header) => authenticate(identityDb, config, header).user,
   // The demo student joins without sharing contact details, so no SMS code is ever needed.
@@ -205,5 +228,5 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, '127.0.0.1', () => {
   // One line the orchestrator waits for.
-  console.log(`DEMO_READY ${JSON.stringify({ port: PORT, orgId, courseId, batchId, joinCode: DEMO.joinCode, quizId: String(quiz.id), users: DEMO.users, student: student.id })}`);
+  console.log(`DEMO_READY ${JSON.stringify({ assistantMode:liveAi?'live':'demo',assistantTokens:studioUsage.studioUsage(orgId).tokens,port: PORT, orgId, courseId, batchId, joinCode: DEMO.joinCode, quizId: String(quiz.id), users: DEMO.users, student: student.id })}`);
 });

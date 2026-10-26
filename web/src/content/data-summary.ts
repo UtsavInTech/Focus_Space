@@ -37,7 +37,7 @@ export interface DataGroup {
   tone: 'local' | 'sent';
 }
 
-export const DATA_GROUPS: DataGroup[] = [{id:'institutes',title:'Institute courses you choose to join',summary:'Joining needs an account and a verified Indian mobile number. The institute receives your name and number when you join.',tone:'sent',points:['Course milestones count towards totals. Named course progress, study time and quiz scores reach the institute only if you share progress.','“Yes, contact me” and “Talk to your faculty” put you first in the institute’s list. Both are optional.','Both choices can be withdrawn from your account. Courses and study tools remain available with sharing off. Personal Spaces are never reported.']},
+export const DATA_GROUPS: DataGroup[] = [{id:'institutes',title:'Institute courses you choose to join',summary:'Joining needs an account and a verified Indian mobile number. The institute receives your name and number when you join.',tone:'sent',points:['The institute assistant uses course records to answer staff questions and draft messages. Analysis uses aggregates and pseudonymous student identifiers; individual drafts may include a student’s first name and shared course facts. Phone numbers are excluded from AI requests. Staff review messages and record contact outcomes and agreed course fees. FocusSpace stores institute context, saved questions, draft edits and outcomes; these fee records are not payment verification.','Course milestones count towards totals. Named course progress, study time and quiz scores reach the institute only if you share progress.','“Yes, contact me” and “Talk to your faculty” put you first in the institute’s list. Both are optional.','Both choices can be withdrawn from your account. Courses and study tools remain available with sharing off. Personal Spaces are never reported.']},
   {
     id: 'browser',
     title: 'Stays on your computer',
@@ -79,14 +79,14 @@ export const DATA_GROUPS: DataGroup[] = [{id:'institutes',title:'Institute cours
   {
     id: 'ai',
     title: 'What goes to the AI',
-    summary: 'Only when you ask for an explanation, a quiz, notes, a mind map or a chat message.',
+    summary: 'When you request a learning action, or institute staff ask questions and prepare messages in Studio.',
     tone: 'sent',
     points: [
       'The moment you asked about: the video’s title and channel, your timestamp, the nearby outline, your space and topic names, a short stretch of the transcript, and your question.',
       'For a chat message, also up to three short passages from elsewhere in the same video that match your question. Your browser picks them; the transcript is not uploaded to find them.',
       'To outline a video no one has outlined yet, its captions are sent once. Only the outline is kept, and it is shared with everyone watching that video.',
       'Not your watch history, not your other videos. A request never carries the whole transcript.',
-      'OpenAI processes it for us. We do not keep your prompts or the answers.',
+      'OpenAI processes it for us. Personal learning prompts and answers are not kept. Institute Studio stores saved staff questions and reviewed message drafts and edits.',
       'Quiz me questions are checked by a second model, reached through OpenRouter, before you see them. It receives each question and the stretch of transcript it came from. We keep only how many questions you were shown.',
       'Once a day at most, that this install was used (a random id, kept only as a hash), so we can count active users, plus the names of any FocusSpace features a YouTube change broke that day. Nothing about what you watched, and it can be turned off in Settings.',
       'Voice, only when you talk to FocusSpace: your recording is turned into text, and replies into speech, by OpenAI. We keep only how many seconds you used, never the recording or what was said.',
@@ -102,7 +102,7 @@ export const DATA_GROUPS: DataGroup[] = [{id:'institutes',title:'Institute cours
  */
 export const DATA_DOES: string[] = [
   'Keeps your personal Spaces, notes, mind maps and personal history in your browser.',
-  'Sends the AI only the moment you ask about, never your history or subscriptions.',
+  'Sends requested learning context or permitted institute records to AI; never personal history or subscriptions.',
   'Stores your account and plan only if you sign in.',
 ];
 

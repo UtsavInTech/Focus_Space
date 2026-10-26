@@ -1,7 +1,7 @@
 # Institutes, Phase 1 pilot
 
 Phase 1 pilot implementation is built locally: Postgres APIs, official playlist import, staff Control room,
-read-only Studio metrics with institute channel approval, student enrolment/consent pages, and cached
+Studio questions, reviewed outreach and recorded outcomes with institute channel approval, student enrolment/consent pages, and cached
 read-only extension Spaces. This is not a public launch. No institute partnership or deployment is claimed.
 
 ## Storage and identity
@@ -13,7 +13,7 @@ simulate a multi-process Postgres deployment; run integration/load tests against
 
 `DATABASE_URL` selects Postgres for the `institutes` schema only. Identity, sessions, billing and usage
 stay in SQLite. The key joining them is the authenticated `user_id`. SQL lives only in `db.ts`; test
-SQL is used only to inspect invariants. Migration versions 1–3 run under a transaction/advisory lock.
+SQL is used only to inspect invariants. Migration versions 1–5 run under a transaction/advisory lock.
 Published versions have a database trigger that forbids updates/deletes. Roll back by publishing a new
 version of a previous draft, not changing history.
 
@@ -131,7 +131,7 @@ read. Its SQL statement snapshot is its linearization point; withdrawals committ
   matching; persisted labels come from our catalog or `Playlist N`/`Other`. Staff reviews before publishing.
 - Imports are explicit and cached per course for 24 hours. A failed/in-flight attempt also holds that
   course's daily claim, preventing repeated quota consumption. Duplicate pagination tokens fail closed.
-- Outside-channel approval is a limited Studio write exception; metrics and student data remain read-only.
+- Outside-channel approval, Studio Context, questions, playbooks, message reviews and outcomes are explicit Studio writes; learning metrics remain server-derived.
   Staff adds the approved id to the reviewed draft. Suggestions/approvals are audited.
 - Extension schema 6 owns `instituteCache` per account. Refresh on YouTube open and the periodic tick;
   version payloads use ETag. Offline uses cache; explicit 401/403/404 discards inaccessible content.
@@ -167,3 +167,39 @@ Before public launch, verify a real Postgres service under concurrency/load, liv
 SMS delivery, production configuration and manual extension/browser flows. Browser visual QA was unavailable
 because saved browser permissions denied access; no screenshot validation is claimed. No new public
 service, phone/tablet player, institute billing, CRM integration or faculty quiz editor is included.
+
+## Studio counselling workspace
+
+All routes below require an authenticated `owner`, `admin` or `faculty` role in `:org`. All SQL is in `db.ts`; model plans cannot supply SQL. Read-only query functions reuse consent-filtered queries.
+
+| Method | `/v1/studio/:org/` suffix | Contract |
+| --- | --- | --- |
+| GET | `setup` | Seven server-derived completion items; course requires successful import and publication |
+| GET, POST | `context` | Latest `{version,data}`; save with expected version; stale edits return 409 |
+| GET | `assistant` | Live/demo/unavailable mode and current institute token accounting |
+| GET | `search?q=...` | Up to 40 enrolled students by name/number; lookup stays on server |
+| POST | `ask` | `{question,threadId?}` → validated plan, real tables, grounded answer, how, follow-ups |
+| GET | `threads`, `threads/:id` | Recent threads or questions/plans; reports are rerun, not persisted as snapshots |
+| POST | `threads/:id` | `{pinned:boolean}` |
+| GET, POST | `lists` | Saved rule definitions; create `{name,rules}` |
+| GET | `lists/:id?after=...` | Re-run saved rules using current sharing choices |
+| GET, POST | `playbooks` | List / create reviewed `{name,rules,template,channel,personalize}` |
+| POST | `playbooks/:id` | Update reviewed definition; invalidate old open drafts |
+| GET | `playbooks/:id?after=...` | Current matches; blocked/completed reviews excluded before pagination |
+| POST | `draft` | `{playbookId,userId}` → claim one open review, prepare draft and line evidence |
+| POST | `send` | `{id,status:'sent'|'skipped',draft}`; records staff action, never delivers messages |
+| POST | `lessons` | Summarise recent sent AI-draft edits; proposed rules require explicit Context save |
+| POST | `outcomes` | `{userId,kind,playbookId?,course?,fee?}`; enrolled requires course and positive integer rupees |
+| GET | `results?from=...&to=...` | Inclusive/exclusive epoch-ms period; default current India calendar month |
+
+Migration 5 tables: `studio_context` (append-only versions through API), `studio_edits`, `studio_threads`, `studio_messages`, `studio_lists`, `playbooks`, `playbook_sends`, `studio_outcomes`, `studio_study_days`. Every staff mutation is audited. A partial unique constraint prevents two open reviews for the same student/institute. Enrolments are unique per institute/student/course label: repeated recording returns a conflict rather than inflating fees. Use a consistent paid-course label. Study days begin when this version is installed; gaps before that cannot be reconstructed accurately.
+
+### AI and consent boundaries
+
+`studio-ai.ts` validates one to three typed read-only functions: students, studentSummary, courseLessons, activity, requests, outcomes, playbookMatches. Names and numbers used to locate a student are resolved inside the institute first; analysis receives pseudonyms and permitted facts, never the number. Unknown functions/fields/types fail validation. Tables and counts are server results. Numeric claims in prose must occur in evidence; an unverifiable explanation is replaced with a notice beside the real table. This is a numeric consistency check, not a proof of every semantic claim. Staff must review messages.
+
+Drafting receives only the student's first name, shared report facts and staff Context (callback number removed). Callback details are added after AI. Raw contact-request notes are excluded. Approved writing rules are staff-authored instructions; suggested rules from edits are not applied automatically. Progress withdrawal or course departure clears the student's stored drafts, line evidence and edit examples and closes open reviews. Questions retain redacted text and query definitions, not historical report data. Outcome and fee records are retained as institute business records; there is no automatic retention purge in this version.
+
+`server/usage/studio.ts` meters the provider through existing `server/openai.ts`, with `STUDIO_MODEL` and `STUDIO_AI_MONTHLY_LIMIT` documented in [deployment](../../docs/DEPLOY.md). Only explicit staff requests invoke AI. Demo mode has a deterministic fake planner, not a production fallback.
+
+Results show **staff-recorded agreed fees**, not verified cash receipts or causal attribution. Best messages are ranked by linked enrolled students then agreed fees, within the selected month. An outcome can be attributed to a playbook only after a message is marked sent. No automatic messaging, visitor tracking or IP-based identification is added.

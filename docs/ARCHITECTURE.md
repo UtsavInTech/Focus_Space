@@ -146,3 +146,9 @@ Extension schema 6 keeps account-owned course JSON and ETags, compiles read-only
 personal quotas, and refreshes on YouTube open/periodic ticks. Personal Spaces never send institute
 milestones or scores. Offline cache remains usable; explicit access refusal removes course content.
 No-institute learners retain their existing personal modes/settings. The signature branding is unchanged.
+
+### Studio questions and reviewed outreach
+
+Consent v2 shares an enrolled student's name and verified number with their institute as stated before joining. Identified progress, quiz scores and study activity remain opt-in. Migration 4 records the join notice and contact requests; migration 5 adds the Studio counselling tables described in `server/institutes/README.md`.
+
+The existing Studio shell now includes Home/setup, Ask, Context, Playbooks and Results. A question follows PLAN → typed validation → org-scoped database RUN → minimized evidence → numeric-checked WRITE. Only `server/openai.ts` calls the provider; SQLite usage reservations enforce per-institute monthly budgets. Saved lists keep rules, not student snapshots. Context uses optimistic versioning. Message preparation rechecks consent after AI, requires manual review, and never sends. Staff record outcomes; rupee totals mean agreed fees, not proven revenue caused by FocusSpace. No new dependencies.

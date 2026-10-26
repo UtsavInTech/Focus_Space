@@ -175,3 +175,13 @@ real Postgres, SMS, live import and manual browser checks. Build assets here are
 
 New persistent tables: `institutes.import_cache`, `institutes.channel_approvals`, `institutes.quizme_scores`.
 The complete API route table is in [the institute server guide](../server/institutes/README.md).
+
+## Institute Studio assistant
+
+- `OPENAI_API_KEY`: existing server-only provider key; no browser key. Studio uses `server/openai.ts` through `callOpenAIJson`.
+- `STUDIO_MODEL`: optional; defaults to `SETUP_MODEL`, otherwise `gpt-4.1-mini`.
+- `STUDIO_AI_MONTHLY_LIMIT`: nonnegative integer **tokens per institute per UTC calendar month**, default `200000`; zero disables AI requests. This is independent of learner credits. Each request reserves a conservative UTF-8 byte estimate plus maximum output and overhead atomically in SQLite. Successful responses settle to provider token counts. Failed or uncertain requests retain the reservation rather than pretending they cost nothing. The UI reports charged/reserved tokens.
+
+Migration 5 creates Studio Context versions, edit history, questions, saved lists, playbooks, message reviews, outcomes and study-day records in PostgreSQL. SQLite `studio_ai_usage` holds institute-level accounting. Back up both stores before a production rollout; this change has not been deployed. Existing institute authentication and request rate limits still apply. Staff records are scoped to their institute. No message-delivery credentials or WhatsApp Business integration are needed.
+
+Local demo: `node scripts/institute-demo.mjs --serve-only --keep`. This starts the API and website without browser automation, using fictional lesson fixtures if no video ids were supplied. `DEMO_API_PORT` and `DEMO_REAL_PORT` override the default 8790/8791 ports. The site uses port 5174. Demo AI is fake unless an `OPENAI_API_KEY` is provided in the process environment; the mode is labelled in Studio. Fake requests settle to zero provider tokens. Never use demo accounts or fixtures in production.

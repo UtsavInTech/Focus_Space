@@ -1,5 +1,6 @@
 // A local, self-contained demo of an institute Space — no real services, no YouTube API key.
 //
+//   node scripts/institute-demo.mjs --serve-only --keep → local site and API only; no browser automation
 //   node scripts/institute-demo.mjs                 → release/institute-demo/*.png
 //   node scripts/institute-demo.mjs --ids a,b,c,…   → the same, with these video ids for this run
 //   node scripts/institute-demo.mjs --keep          → leaves the API, site and browser running to click around
@@ -37,8 +38,8 @@ const ROOT = resolve(new URL('..', import.meta.url).pathname);
 const OUT = join(ROOT, 'release', 'institute-demo');
 const EXTENSION = join(OUT, 'extension');
 const WEB = join(OUT, 'web');
-const API_PORT = 8790;
-const REAL_PORT = 8791;
+const API_PORT = Number(process.env.DEMO_API_PORT ?? 8790);
+const REAL_PORT = Number(process.env.DEMO_REAL_PORT ?? 8791);
 const SITE_PORT = 5174; // the manifest lets site.js run on localhost:5174
 const API = `http://127.0.0.1:${API_PORT}`;
 const SITE = `http://localhost:${SITE_PORT}`;
@@ -78,6 +79,7 @@ async function idsFromPlaylist(url) {
 /** VIDEO_IDS from course.ts (read as text, so this file needs no TypeScript loader), or --ids. */
 function videoIds() {
   const given = flag('--ids');
+  if(args.includes('--serve-only')&&!given)return Array.from({length:30},(_,i)=>`demo${String(i+1).padStart(7,'0')}`);
   if (given) return given.split(',').map((id) => id.trim()).filter(Boolean);
   const source = readFileSync(join(ROOT, 'scripts', 'institute-demo', 'course.ts'), 'utf8');
   const list = /export const VIDEO_IDS: string\[\] = \[([\s\S]*?)\];/.exec(source)?.[1] ?? '';
@@ -121,14 +123,15 @@ function start(name, command, commandArgs, env, ready) {
 
 async function startApi(ids) {
   const work = mkdtempSync(join(tmpdir(), 'focusspace-institute-demo-'));
-  const env = { DB_PATH: join(work, 'identity.db'), AUTH_TOKEN_SECRET: randomBytes(24).toString('hex') };
+  const env = { DEMO_STUDIO_ONLY:args.includes('--serve-only')?'1':'0', DB_PATH: join(work, 'identity.db'), AUTH_TOKEN_SECRET: randomBytes(24).toString('hex') };
   log('· building the API');
   run('npm', ['run', 'build:server']);
   // The real API. AI is not part of the demo, so its key is a placeholder that is never used.
   await start('FocusSpace API', 'node', ['dist-server/index.mjs'], { ...env, PORT: String(REAL_PORT), HOST: '127.0.0.1', OPENAI_API_KEY: 'demo-not-used' }, /FocusSpace API on/);
   const [, ready] = await start('Demo API', 'npx', ['vite-node', 'scripts/institute-demo/api.ts'], { ...env, DEMO_API_PORT: String(API_PORT), REAL_API: `http://127.0.0.1:${REAL_PORT}`, DEMO_IDS: JSON.stringify(ids) }, /DEMO_READY (.+)\n/);
   log(`· API ready on ${API} (institute data in PGlite, accounts in ${env.DB_PATH})`);
-  return { seed: JSON.parse(ready), work };
+  const seed=JSON.parse(ready);log(`· Studio assistant: ${seed.assistantMode}; ${seed.assistantTokens} seed tokens.`);
+  return { seed, work };
 }
 
 function buildClients() {
@@ -276,6 +279,7 @@ try {
   log(`· seeded ${seed.users.student} (student), ${seed.users.faculty} (institute owner), join code ${seed.joinCode}`);
   buildClients();
   await startSite();
+  if(args.includes('--serve-only')){log(`Demo ready: ${SITE}/studio — server only, no browser automation.`);await new Promise(()=>{});}
   const browser = await chromium.launch();
   await studioFunnel(browser);
   await browser.close();

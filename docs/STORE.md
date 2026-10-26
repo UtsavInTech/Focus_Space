@@ -87,7 +87,7 @@ Review these categories against the Store questionnaire before submission:
 
 - Authentication information: the account credentials/session information processed by the existing account service; the extension never receives an institute’s credentials or a YouTube password. Review the exact Store questionnaire against these flows before submission.
 
-- Not collected for institute reporting: personal communications, precise location, health or financial information. Payment data is handled by Razorpay’s own checkout, as before.
+- Not collected for institute reporting: precise location, health data, bank details or payment credentials. Studio stores staff message drafts and edits, contact outcomes and agreed course fees; it does not verify collection of those fees. Payment data for FocusSpace subscriptions is handled by Razorpay’s checkout.
 
 Certify all three: not sold to third parties; used only for the stated single
 purpose; not used for creditworthiness or lending.
@@ -128,3 +128,9 @@ Upload in this order:
 - [ ] Review takes days to weeks; plan the launch around that, not the other way round
 - [ ] Once the listing exists: set `VITE_CHROME_WEB_STORE_URL` on the website service and redeploy it, so "Add to Chrome" opens the listing
 - [ ] Fresh-install test with the packaged ZIP, a real account (sign-up code arrives, sign in/out), a real ₹ payment (then refund), and an A → B account switch on one Chrome profile
+
+## Institute Studio assistant disclosure — 26 October 2026
+
+The institute assistant uses course records to answer staff questions and draft messages. Analysis uses aggregates and pseudonymous student identifiers; individual drafts may include a student’s first name and shared course facts. Phone numbers are excluded from AI requests. Staff review messages and record contact outcomes and agreed course fees. FocusSpace stores institute context, saved questions, draft edits and outcomes; these fee records are not payment verification.
+
+OpenAI is the assistant provider. Progress-based matching requires current progress-sharing consent. Saved questions contain phone-redacted text and query plans, not stored report snapshots. Message sending remains a manual WhatsApp, phone or copy action. Institute Context and writing preferences are supplied by staff; no website visitor identification is added. Token metering stores counts, model and institute id, not prompts or answers.
