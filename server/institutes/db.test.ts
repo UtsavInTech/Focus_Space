@@ -51,9 +51,11 @@ afterAll(async () => {
 
 describe('Postgres institutes data boundaries', () => {
   it('derives setup from this institute only',async()=>{
+    // A draft does not count; a published course does, imported from YouTube or built by hand.
+    const draftOrg=String((await db.createOrg('staff',{slug:randomUUID(),name:'Draft only'})).id);
+    await db.createCourse(draftOrg,'staff',{title:'Draft',kind:'free',channelId:channel});
+    expect((await db.setupChecklist(draftOrg)).items.find(i=>i.id==='course')?.done).toBe(false);
     const a=await course(),b=await db.createOrg('staff',{slug:randomUUID(),name:'Another demo institute'});
-    expect((await db.setupChecklist(a.orgId)).items.find(i=>i.id==='course')?.done).toBe(false);
-    await driver.query('INSERT INTO institutes.import_cache VALUES($1,$2,$3,$4::jsonb)',[a.orgId,a.courseId,Date.now(),JSON.stringify({fixture:true})]);
     const checklist=await db.setupChecklist(a.orgId);expect(checklist.items.find(i=>i.id==='course')?.done).toBe(true);expect(checklist.total).toBe(7);
     expect((await db.setupChecklist(String(b.id))).completed).toBe(0);
   });

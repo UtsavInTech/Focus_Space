@@ -70,7 +70,8 @@ async function idsFromPlaylist(url) {
   const response = await fetch(url, { headers: { 'Accept-Language': 'en-IN,en' } });
   if (!response.ok) throw new Error(`YouTube answered ${response.status} for that playlist.`);
   const html = await response.text();
-  const ids = [...new Set([...html.matchAll(/"playlistVideoRenderer":\{"videoId":"([\w-]{11})"/g)].map((m) => m[1]))];
+  // Older pages list playlistVideoRenderer; current ones list video lockups (lockupViewModel).
+  const ids = [...new Set([...html.matchAll(/"playlistVideoRenderer":\{"videoId":"([\w-]{11})"|"contentId":"([\w-]{11})","contentType":"LOCKUP_CONTENT_TYPE_VIDEO"/g)].map((m) => m[1] ?? m[2]))];
   if (!ids.length) throw new Error('No videos found on that page. Is the playlist public?');
   log(`// ${ids.length} videos, in playlist order. Paste into scripts/institute-demo/course.ts:`);
   log(`export const VIDEO_IDS: string[] = ${JSON.stringify(ids.slice(0, 40), null, 2)};`);
@@ -172,7 +173,7 @@ async function studioFunnel(browser) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1.25, colorScheme: 'dark' });
   const page = await context.newPage();
   await siteSignIn(page, 'demo-faculty@example.com', '/studio');
-  await page.locator('.fsw-tool-metrics').waitFor({ timeout: 20000 });
+  await page.locator('.fss-workspace-head, .fss-nav').first().waitFor({ timeout: 20000 });
   await shot(page, 'studio-funnel');
   await context.close();
 }
@@ -213,9 +214,15 @@ async function studentFlow() {
   // 2. Join on the website with the code: signed-in, both sharing choices start off; the student shares progress.
   const site = await context.newPage();
   await siteSignIn(site, 'demo-student@example.com', `/join/${JOIN_CODE}`);
+  // Phone first, proven by the demo's SMS code (shown on the page; no SMS is sent), then the sharing choice.
   await site.locator('input[type=tel]').fill('+919876500001');
-  await site.locator('.fsw-tool-check input[type=checkbox]').first().check();
-  await site.getByRole('button', { name: 'Join course' }).click();
+  await site.getByRole('button', { name: 'Send code' }).click();
+  const demoCode = (await site.locator('.fsw-join-fine', { hasText: 'The code is' }).innerText({ timeout: 15000 })).match(/(\d{6})/)[1];
+  await site.getByLabel('SMS code').fill(demoCode);
+  await site.getByRole('button', { name: 'Verify' }).click();
+  await site.locator('.fsw-join-ok').waitFor({ timeout: 15000 });
+  await site.locator('.fsw-join-choice input[type=checkbox]').first().check();
+  await site.locator('.fsw-join-go').click();
   await site.getByText('You’re enrolled').waitFor({ timeout: 20000 });
   log(`  ✓ joined with ${JOIN_CODE}`);
 
@@ -290,6 +297,7 @@ try {
   if (error.youtube) console.error('  Everything before YouTube ran. Run the demo where www.youtube.com and i.ytimg.com are reachable to capture the institute home.');
 }
 log(`\nScreenshots in ${OUT}: ${shots.join(', ') || 'none'}`);
+if (failed) process.exitCode = 1;
 if (args.includes('--keep') && !failed) {
   log(`Still running: API ${API}, website ${SITE}. Ctrl+C to stop.`);
   await new Promise(() => {});

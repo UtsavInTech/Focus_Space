@@ -249,7 +249,8 @@ export function Journey({ steps }: { steps: { label: string; value: number; hint
 export function DailyBars({ days }: { days: { day: string; started: number; done: number }[] }) {
   const [hover, setHover] = useState<number | null>(null);
   const max = Math.max(1, ...days.map((d) => d.started));
-  const ticks = [0, Math.round(max / 2), max];
+  // No repeated labels when the scale is small ("1, 1, 0" for an empty month).
+  const ticks = [...new Set([0, Math.round(max / 2), max])];
   const label = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' });
   return (
     <div className="fss-daily">

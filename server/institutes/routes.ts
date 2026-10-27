@@ -85,6 +85,8 @@ interface Limiters {
   join: RateLimiter;
   progress: RateLimiter;
   read: RateLimiter;
+  /** Studio and admin pages: one screen loads several reads per course, so staff get more room. */
+  staff: RateLimiter;
 }
 
 /** A handler answers and returns true, or returns false to let the next group try. */
@@ -446,6 +448,7 @@ export function instituteRoutes(input: InstituteDependencies) {
     join: new RateLimiter(20, 10 * 60_000),
     progress: new RateLimiter(120, 60_000),
     read: new RateLimiter(120, 60_000),
+    staff: new RateLimiter(600, 60_000),
   };
   let queue: ProgressQueue | undefined;
   const limited = (limiter: RateLimiter, key: string) => {
@@ -462,7 +465,8 @@ export function instituteRoutes(input: InstituteDependencies) {
     const publicGet = req.method === 'GET' && (parts[1] === 'courses' || parts[1] === 'join');
     const identity = () => deps.identity(req.headers.authorization);
     const actor = publicGet ? (req.headers.authorization ? identity() : undefined) : identity();
-    limited(limiters.read, `read:${actor?.id ?? deps.clientIp(req)}`);
+    const staffPage = parts[1] === 'studio' || parts[1] === 'admin';
+    limited(staffPage ? limiters.staff : limiters.read, `${staffPage ? 'staff' : 'read'}:${actor?.id ?? deps.clientIp(req)}`);
     if (parts[1] === 'admin' && !staffAllowed(actor!, deps.staff ?? '')) throw new ApiError(403, 'forbidden', 'FocusSpace staff access is required.');
 
     const db = await deps.database();

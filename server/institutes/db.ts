@@ -879,7 +879,7 @@ export class InstitutesDb {
 
   async setupChecklist(orgId: string) {
     const [state] = await this.driver.query(`SELECT
-      EXISTS(SELECT 1 FROM institutes.courses c JOIN institutes.import_cache i ON (i.org_id,i.course_id)=(c.org_id,c.id) WHERE c.org_id=$1 AND c.status='published' AND i.payload_json IS NOT NULL) AS course,
+      EXISTS(SELECT 1 FROM institutes.courses c WHERE c.org_id=$1 AND c.status='published') AS course,
       EXISTS(SELECT 1 FROM institutes.enrollments WHERE org_id=$1 AND batch_id IS NOT NULL AND left_at IS NULL) AS batch,
       EXISTS(SELECT 1 FROM institutes.quizzes WHERE org_id=$1 AND status='published') AS quiz,
       EXISTS(SELECT 1 FROM institutes.assignments WHERE org_id=$1 AND kind='today') AS today,
@@ -887,7 +887,7 @@ export class InstitutesDb {
     const context=await this.studioContext(orgId);
     const [review]=await this.driver.query('SELECT COUNT(*)::int AS n FROM institutes.playbooks WHERE org_id=$1 AND reviewed_at IS NOT NULL',[orgId]);
     const items = [
-      {id:'course',label:'Publish your first imported course',done:!!state.course,href:'/admin'},
+      {id:'course',label:'Publish your first course',done:!!state.course,href:'/admin'},
       {id:'batch',label:'Share a batch code and welcome its first student',done:!!state.batch,href:'/admin'},
       {id:'quiz',label:'Publish an institute quiz',done:!!state.quiz,href:'/admin'},
       {id:'today',label:'Choose today’s class',done:!!state.today,href:'/admin'},

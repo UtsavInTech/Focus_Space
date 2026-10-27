@@ -97,6 +97,13 @@ describe('institute HTTP authorization and contracts',()=>{
     const statuses=[];for(let i=0;i<22;i++) statuses.push((await request(`/v1/join/guess-code-${i}`)).status);
     expect(statuses).toContain(429);
   });
+  it('gives Studio staff room for a busy minute while student reads stay at 120',async()=>{
+    const studio=await Promise.all(Array.from({length:150},()=>request(`/v1/studio/${orgId}/setup`,facultyToken).then(r=>r.status)));
+    expect(studio.every(s=>s===200)).toBe(true);
+    const reader=signup().accessToken;
+    const reads=await Promise.all(Array.from({length:125},()=>request('/v1/me/institutes',reader).then(r=>r.status)));
+    expect(reads).toContain(429);
+  });
   it('prevents unverified email staff grants, and neutralises spreadsheet formulas',()=>{
     const actor:Actor={id:'user',email:'staff@example.com',name:null,phone:null,emailVerified:false};
     expect(staffAllowed(actor,'staff@example.com')).toBe(false);expect(staffAllowed({...actor,emailVerified:true},'STAFF@example.com')).toBe(true);

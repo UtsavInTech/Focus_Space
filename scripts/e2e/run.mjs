@@ -176,9 +176,18 @@ console.log('First run on YouTube');
 await step('Install opens one YouTube tab asking "What do you want to focus on?"', async () => {
   assert(youtubePages().length === 1, `expected one YouTube tab, got ${youtubePages().length}`);
   await yt.waitForLoadState('domcontentloaded');
-  await waitFor(async () => (await slotText('home')).includes('What do you want to focus on?'), 'first-run prompt', 30000);
+  // A new install is asked about an exam first; "not preparing for an exam" goes on to the general picker.
+  await waitFor(async () => /What are you preparing for\?|What do you want to focus on\?/.test(await slotText('home')), 'first-run prompt', 30000);
+  if ((await slotText('home')).includes('What are you preparing for?')) {
+    await shot(yt, 'first-run-exam');
+    await yt.click(home('.fs-exam-skip'));
+  }
+  await waitFor(async () => (await slotText('home')).includes('What do you want to focus on?'), 'general picker after skipping the exam', 15000);
   await shot(yt, 'first-run');
   await yt.click(home('.fs-first-run button:has-text("DSA")'));
+  // Choosing a suggestion opens the optional "Creators for DSA" step; the test adds its channels below.
+  const skipCreators = yt.getByRole('button', { name: 'Skip for now' });
+  await skipCreators.waitFor({ timeout: 10000 }).then(() => skipCreators.click()).catch(() => undefined);
   await waitFor(async () => (await slotText('home')).includes('From your subscriptions') || (await slotText('home')).includes('Best matches from YouTube'), 'DSA home after choosing', 20000);
   const { settings } = await storage.get(['settings']);
   assert(settings.onboarded && settings.activeModeId === 'dsa', 'onboarding not saved');
