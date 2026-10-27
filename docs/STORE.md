@@ -16,33 +16,40 @@ discover after a review.
 
 ## Listing
 
-**Name:** FocusSpace — Intent-Driven Learning for YouTube
+**Name:** FocusSpace: Intent-Driven Learning for YouTube (taken from the manifest)
 
 **Short description** (132 characters max)
 
-> Tell YouTube what you came to learn. FocusSpace ranks your subscriptions around it, hides the noise, and turns videos into notes.
+> Pick your exam and YouTube becomes a classroom: a step-by-step path, only your syllabus in the feed, and an AI tutor on every lecture.
 
-**Category:** Productivity
+**Category:** Education
 **Language:** English
 
 **Detailed description**
 
-> YouTube has the content. FocusSpace gives it structure.
+> YouTube has every lecture you need. FocusSpace puts them in order.
 >
-> Pick what you are learning — DSA, system design, Punjabi music, anything — and YouTube reorganises around it. Your own subscriptions come first, ranked by how well they match what you are actually studying, with the best of the wider YouTube woven in. Shorts and the other attention traps are gone.
+> Tell FocusSpace what you're preparing for (UPSC, NEET, JEE, SSC, banking, B.Tech, or any topic of your own) and the YouTube home page becomes a classroom for it.
 >
-> On a video, FocusSpace follows the course you are on. When the creator links a playlist, that playlist becomes your learning path: what you have watched, where you are, what is genuinely next, and what you skipped. It reads the creator's chapters, the timestamps in the description, the outlines viewers write in the comments and the transcript, and builds a map of the lecture — then tells you which part you are in as you watch.
+> START IN THE RIGHT PLACE
+> The first video on your home explains the syllabus and how to begin. After that, your whole syllabus is one path (for UPSC: Prelims, CSAT, Mains, Interview), and "You are here" moves with you as you study.
 >
-> When you want help, it is there: explain this moment, give me an example, quiz me on this, make me notes, draw me a mind map. Notes and mind maps are grounded in the part of the video you actually watched, and come in English, हिंदी or Hinglish — technical terms left alone, because that is what you will be examined on.
+> EVERY TOPIC IS A SHORT COURSE
+> Open a topic like Polity and you get a short course: what it is, the full picture, then each part in order (Constitution, Fundamental Rights and so on), with a Next button and the videos you've already finished ticked off. Open a subtopic and it gets its own page.
 >
-> • No API key to bring. It works the moment you install it.
-> • No account needed to start.
-> • Your personal watch history and subscriptions stay in your browser. For institute courses you join, course totals are counted; named course progress and quiz scores are shared only if you choose, and contact sharing is a separate verified choice. Personal Spaces are never shared.
-> • The player is never touched, and Focus Mode turns off in one click.
+> NOTHING ELSE ON THE PAGE
+> Shorts, trending and off-topic videos are gone. Continue watching only shows lessons, never the music you played while studying. Your own subscriptions come first, ranked by how well they match your syllabus.
 >
-> Free: 3 Spaces without an account, 5 with a free account, and an AI allowance. Paid plans start at ₹299 / $3.99 a month.
+> AN AI TUTOR ON EVERY LECTURE
+> On a video, ask FocusSpace to explain this moment, give an example, quiz you, or make notes and mind maps from the part you watched, in English, हिंदी or Hinglish. Technical terms stay as they are, because that's what you'll be examined on.
 >
-> Not affiliated with YouTube or Google.
+> • Works the moment you install it. No API key, and no account needed to start.
+> • Your watch history and subscriptions stay in your browser. For institute courses you join, course totals are counted; named progress and quiz scores are shared only if you choose.
+> • The YouTube player is never touched, and Focus Mode turns off in one click (Alt+Shift+F).
+>
+> Free: 3 Spaces without an account, 5 with a free account, and a daily AI allowance. Paid plans start at ₹299 / $3.99 a month.
+>
+> FocusSpace is not affiliated with YouTube or Google.
 
 **Privacy policy URL:** https://focusspace.xyz/privacy
 **Homepage URL:** https://focusspace.xyz
@@ -97,25 +104,30 @@ own form handles them, so "financial information" is correctly left unticked.
 
 ---
 
-## Screenshots (1280×800) and promo tile (440×280)
+## Store images
 
-Generated from the store build against the live API, so every AI answer, note
-and mind map in them is real output:
+The images are not kept in the repository. The listing uses five 1280×800 screenshots, each a real
+capture of the store build on YouTube (AI output is genuine, not a test double) under a one-line
+headline, in this order:
 
-```bash
-VITE_API_URL=https://api.focusspace.xyz VITE_SITE_URL=https://focusspace.xyz npm run build
-node scripts/store-shots.mjs     # → release/store-assets/
-```
+1. The exam picker, showing every exam on one screen
+2. A Space home: the "Start here" syllabus video and the path through the stages
+3. A topic page as a short course: steps, Next, subtopics
+4. A lecture with the study panel and an Explain answer
+5. A mind map made from a lecture
 
-Upload in this order:
+Plus a small promo tile (440×280) and a marquee promo tile (1400×560). The store icon is
+`icons/icon-128.png` from the package, drawn by `scripts/generate-icons.mjs`.
 
-1. `1-home.png` — the rebuilt home: space chips, ranked channels with match badges, the best match from YouTube
-2. `2-watch-explain.png` — a lecture with the rail and a real Explain answer
-3. `3-mind-map.png` — a mind map, expanded
-4. `4-notes-hinglish.png` — Make Notes in Hinglish, with the language options
-5. `5-first-run.png` — the first-run picker, "What do you want to focus on?"
-
-`promo-tile-440x280.png` is the required small promo tile.
+--- | --- |
+| Store icon (128×128) | comes from the zip (`icons/icon-128.png`); a copy is `store-icon-128.png` |
+| Screenshot 1 | `1-exams.png`: every exam on one screen (UPSC, SSC, banking, JEE, NEET, GATE…) |
+| Screenshot 2 | `2-home.png`: UPSC home, "Start here" syllabus video and the path |
+| Screenshot 3 | `3-topic.png`: Polity as a short course with Next |
+| Screenshot 4 | `4-watch.png`: a lecture with a real Explain answer |
+| Screenshot 5 | `5-mind-map.png`: a mind map made from a lecture |
+| Small promo tile (440×280) | `promo-small-440x280.png` |
+| Marquee promo tile (1400×560) | `promo-marquee-1400x560.png` |
 
 ---
 

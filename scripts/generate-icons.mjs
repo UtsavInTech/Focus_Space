@@ -84,10 +84,11 @@ function inTriangle(u, v) {
   return Math.abs(y) <= halfHeight;
 }
 
-function sample(u, v) {
+/** `crisp`: hard edges (smoothed by supersampling), for the large icon; the tiny ones need the soft ramp. */
+function sample(u, v, crisp = false) {
   const d = Math.hypot(u - C, v - C);
   let alpha = 0;
-  const cover = (distance, half) => Math.max(0, Math.min(1, half + 0.5 - distance));
+  const cover = (distance, half) => (crisp ? (distance <= half ? 1 : 0) : Math.max(0, Math.min(1, half + 0.5 - distance)));
 
   // Outer ring and its ticks are the lighter part of the mark; the inner ring and triangle are solid.
   alpha = Math.max(alpha, cover(Math.abs(d - OUTER_R), OUTER_HALF) * 0.5);
@@ -99,18 +100,38 @@ function sample(u, v) {
   return alpha > 0 ? [BRAND, alpha] : null;
 }
 
+/*
+ * The 128px icon is what the Chrome Web Store, the install dialog and chrome://extensions show, on white.
+ * There the thin red lines look faint, so it is a solid red tile with the mark in white instead. Google's
+ * guidance: the artwork is 96×96 inside 16px of transparent padding (4 to 28 in the 32-unit design space).
+ */
+const TILE_HALF = 12;
+const TILE_R = 5.2;
+const TILE_RGB = [0xe5, 0x1a, 0x24];
+const WHITE = [0xff, 0xff, 0xff];
+const MARK_SCALE = 0.7;
+function sampleTile(u, v) {
+  const qx = Math.abs(u - C) - (TILE_HALF - TILE_R);
+  const qy = Math.abs(v - C) - (TILE_HALF - TILE_R);
+  const edge = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - TILE_R;
+  if (edge > 0) return null;
+  const mark = sample(C + (u - C) / MARK_SCALE, C + (v - C) / MARK_SCALE, true);
+  const a = mark ? Math.min(1, mark[1] * 1.35) : 0;
+  return [TILE_RGB.map((c, i) => c * (1 - a) + WHITE[i] * a), 1];
+}
+
 for (const out of OUTS) mkdirSync(out, { recursive: true });
 /** Each size's finished PNG, kept for the .ico written at the end. */
 const pngs = new Map();
 for (const size of SIZES) {
   const rgba = Buffer.alloc(size * size * 4);
-  const SS = 4;
+  const SS = size === 128 ? 8 : 4;
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       let r = 0, g = 0, b = 0, a = 0;
       for (let sy = 0; sy < SS; sy++) {
         for (let sx = 0; sx < SS; sx++) {
-          const c = sample(((x + (sx + 0.5) / SS) / size) * 32, ((y + (sy + 0.5) / SS) / size) * 32);
+          const c = (size === 128 ? sampleTile : sample)(((x + (sx + 0.5) / SS) / size) * 32, ((y + (sy + 0.5) / SS) / size) * 32);
           if (c) {
             const [rgb, alpha] = c;
             r += rgb[0] * alpha;

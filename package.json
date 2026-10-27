@@ -2,7 +2,7 @@
   "name": "focusspace",
   "private": true,
   "license": "UNLICENSED",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "FocusSpace — an intent-driven learning layer for YouTube (Chrome extension, Manifest V3).",
   "type": "module",
   "engines": {
