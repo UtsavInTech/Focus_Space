@@ -1,7 +1,7 @@
 import { InstituteHome } from './InstituteHome';
 import { isReadOnlySpace } from '@/institutes/home';
 import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { ArrowLeft, Check, ChevronDown, ChevronRight, History, Pencil, Plus, Power, RefreshCw, Search, Sparkles, Trophy, Users, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronRight, History, Pencil, Plus, Power, Quote, RefreshCw, Route, Search, Sparkles, Trophy, Users, X } from 'lucide-react';
 import type { LearningMode, Settings, Topic } from '@/types/domain';
 import { activeModeOf, addTemplateWithChannels, missingTemplates, selectMode, setChannelRule, setFocusEnabled, SpaceLimitError, updateMode } from '@/modes/service';
 import { groupId, groupTitle, scopeIds, subjectAsTopic, subjectOf, subtopicsOf, withSubtopic, withTopic } from '@/modes/groups';
@@ -28,10 +28,11 @@ import { examInfo, isExamId, type ExamId } from '@/modes/exams';
 import { ExamPicker } from './ExamPicker';
 import { Billboard, type Featured } from './home/Billboard';
 import { Row } from './home/Row';
-import { PosterCard, PosterSkeletons } from './home/PosterCard';
+import { PosterCard, PosterSkeletons, thumbnailUrl } from './home/PosterCard';
+import { buildTopicPlan, currentStep, quoteOfTheDay, SPACE_INTRO, type PlanStep, type PlanVideo } from './home/topic-plan';
 import { usePinnedBar } from './home/usePinnedBar';
 import { LearningPath, PathPosition, useTopicProgress, COVERED_AFTER } from './home/LearningPath';
-import { useHomeTopic } from './home/nav';
+import { lastPlace, useHomeTopic } from './home/nav';
 import { FullScreenButton, FullScreenOffer, useFullScreen } from './home/FullScreen';
 import { FocusSpaceHistoryRow, FocusSpaceLibraryRow } from './home/FocusSpaceRows';
 import { continueToVisible, discoveredToVisible, libraryToVisible, publishContinueWatching, publishFeedVideos } from '../data/visible-feed';
@@ -350,7 +351,11 @@ interface Pick {
   card: CardData;
   relevance: number;
   topicId: string | null;
+  /** The words it matched ("constitution"), for placing it on a topic's path. */
+  terms: string[];
 }
+
+type PlanPick = PlanVideo & { pick: Pick };
 
 const MIN_ROW = 3;
 const MAX_TOPIC_ROWS = 6;
@@ -363,6 +368,9 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
   const subtopics = useMemo(() => (topic && !subject ? subtopicsOf(topic).slice(0, 30) : []), [topic, subject]);
   const [subtopic, setSubtopic] = useState<string | null>(null);
   useEffect(() => setSubtopic(null), [topicId]);
+  // A step picked from the topic's path; otherwise the billboard opens on the learner's own step.
+  const [stepAt, setStepAt] = useState<number | null>(null);
+  useEffect(() => setStepAt(null), [topicId, subtopic]);
   const { view, loading, channelIds } = useFeedView(mode);
   const store = useStorage(['watchHistory', 'sync'] as const);
   const subs = useMemo(() => {
@@ -427,9 +435,14 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
     if (nearEnd && entries.length > visible) setVisible((v) => v + PAGE);
   }, [nearEnd, entries.length, visible]);
 
-  const covers = (terms: string[]) => coveredTerms(mode, terms);
+  // What a card covers; when no subtopic matched, its topic ("Botany") still says more than a match score.
+  const covers = (terms: string[], topicId?: string | null) => {
+    const found = coveredTerms(mode, terms);
+    const topic = topicId ? mode.topics.find((t) => t.id === topicId)?.name : undefined;
+    return found.length || !topic ? found : [titleCase(topic)];
+  };
   const subCard = (v: FeedVideo): CardData => ({
-    covers: covers(v.matched),
+    covers: covers(v.matched, v.topicId),
     id: v.id,
     title: v.title,
     channelTitle: v.channelTitle,
@@ -453,7 +466,7 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
     tier: d.cls.tier,
     source: 'discovery',
     why: d.reasons.join(' · '),
-    covers: covers(d.cls.matchedTerms),
+    covers: covers(d.cls.matchedTerms, d.topicId),
     about: aboutLine(d.video.description) || coversLine(covers(d.cls.matchedTerms)),
   });
 
@@ -461,20 +474,53 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
   const picks = useMemo(() => {
     const seen = new Set<string>();
     const all: Pick[] = [];
-    for (const v of subs) if (!seen.has(v.id) && seen.add(v.id)) all.push({ card: subCard(v), relevance: v.relevance, topicId: v.topicId });
-    for (const d of discovery.items) if (!seen.has(d.video.id) && seen.add(d.video.id)) all.push({ card: discCard(d), relevance: d.cls.relevance, topicId: d.topicId });
+    for (const v of subs) if (!seen.has(v.id) && seen.add(v.id)) all.push({ card: subCard(v), relevance: v.relevance, topicId: v.topicId, terms: v.matched });
+    for (const d of discovery.items) if (!seen.has(d.video.id) && seen.add(d.video.id)) all.push({ card: discCard(d), relevance: d.cls.relevance, topicId: d.topicId, terms: d.cls.matchedTerms });
     return all.sort((a, b) => b.relevance - a.relevance);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subs, discovery.items, progress]);
 
   const topicName = (id: string | null) => mode.topics.find((t) => t.id === id)?.name ?? null;
+  const planVideos = useMemo<PlanPick[]>(() => picks.map((p) => ({ id: p.card.id, title: p.card.title, durationSec: p.card.durationSec, terms: p.terms, relevance: p.relevance, pick: p })), [picks]);
+  const slideOf = (p: Pick, eyebrow: string, more?: Featured['more']): Featured => ({
+    id: p.card.id,
+    title: p.card.title,
+    channelTitle: p.card.channelTitle,
+    durationSec: p.card.durationSec,
+    eyebrow,
+    // What is in the video, in its own words; "Covers Botany." only repeats the tags.
+    why: p.card.about && !p.card.about.startsWith('Covers ') ? p.card.about : '',
+    tierLabel: null,
+    covers: p.card.covers?.slice(0, 3),
+    progress: p.card.progress,
+    topicId: p.topicId,
+    topicName: topicName(p.topicId),
+    ...(more ? { more } : {}),
+  });
+
+  // The Space opens on its first lesson: what the syllabus is and how to begin.
+  const intro = useMemo(
+    () => ((mode.kind ?? 'learning') === 'learning' && !topic ? buildTopicPlan({ name: mode.name, intro: `The ${mode.name} syllabus and how to start`, introPattern: SPACE_INTRO, parts: [], videos: planVideos }).find((st) => st.kind === 'intro') ?? null : null),
+    [mode, planVideos, topic],
+  );
+
+  // Where the learner is: the place they went to last, or the topic of the lesson they watched last.
+  const at = useMemo(() => {
+    const visit = lastPlace(mode.id);
+    const watched = (store?.watchHistory ?? []).find((e) => e.modeId === mode.id && e.topicId);
+    const seen = watched?.topicId ? { topicId: watched.topicId, at: watched.watchedAt } : null;
+    return [visit, seen].filter((x): x is { topicId: string; at: number } => !!x).sort((a, b) => b.at - a.at)[0]?.topicId ?? null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode.id, store?.watchHistory, topicId]);
+
   const featured = useMemo<Featured[]>(() => {
     const out: Featured[] = [];
+    if (intro) out.push(slideOf(intro.video.pick, `Start here · ${intro.label}`));
     const resume = continuing.find((c) => c.kind === 'resume' && (c.progress ?? 0) > 0.02);
     if (resume)
       out.push({ id: resume.videoId, title: resume.title, channelTitle: resume.channelTitle, durationSec: null, eyebrow: 'Continue learning', why: resume.reason, tierLabel: null, progress: resume.progress, topicId: null, topicName: null });
     picks
-      .filter((p) => p.card.tier === 'excellent' || p.card.tier === 'strong')
+      .filter((p) => (p.card.tier === 'excellent' || p.card.tier === 'strong') && !out.some((o) => o.id === p.card.id))
       .slice(0, 5 - out.length)
       .forEach((p, i) =>
         out.push({
@@ -495,7 +541,7 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
       );
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [picks, continuing, mode]);
+  }, [picks, continuing, mode, intro]);
 
   const topicRows = useMemo(() => {
     if (topic) return [];
@@ -506,6 +552,7 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
       .slice(0, MAX_TOPIC_ROWS);
   }, [picks, mode.topics, topic]);
 
+  const learning = (mode.kind ?? 'learning') === 'learning';
   const top10 = picks.slice(0, 10);
   const fromChannels = subs.slice(0, 16).map(subCard);
   const fresh = discovery.items.slice(0, 16).map(discCard);
@@ -515,6 +562,14 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
   const syncError = store?.sync.lastError;
   const warming = loading || (discovery.loading && picks.length === 0);
 
+  const syncNote = syncError && (
+    <div className="fs-note">
+      {syncError}
+      <button type="button" className="fs-link" onClick={() => void sendMessage('library/sync', { force: true })}>
+        <RefreshCw size={14} aria-hidden /> Retry
+      </button>
+    </div>
+  );
   const notes = (
     <>
       {syncError && (
@@ -583,37 +638,79 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
       await updateMode(mode.id, { topics: next.topics });
       if (next.id) onTopic(next.id);
     };
+    /*
+     * The page is a short course, like the Space's home: 1 What is Polity, 2 Understand Polity, then
+     * each subtopic (or, for a stage like Mains, each of its topics). The billboard shows the step the
+     * learner is on; "Next" and the step list move them along.
+     */
+    const name = subtopic ? titleCase(subtopic) : topic.name;
+    const parts = subtopic ? [] : subject ? subject.topics.map((t) => t.name) : subtopics;
+    const plan = buildTopicPlan({ name, parts, videos: planVideos }).map((st) => (st.kind === 'part' ? { ...st, label: titleCase(st.label) } : st));
+    const here = currentStep(plan, progress);
+    const active = Math.min(stepAt ?? here, Math.max(0, plan.length - 1));
+    const openPart = (st: PlanStep<PlanPick>): Featured['more'] => {
+      if (!st.subtopic) return undefined;
+      if (subject) {
+        const t = subject.topics.find((x) => x.name === st.subtopic);
+        return t ? { label: `Open ${t.name}`, go: () => onTopic(t.id) } : undefined;
+      }
+      return { label: `More ${st.label}`, go: () => setSubtopic(st.subtopic!.toLowerCase()) };
+    };
+    const slides = plan.map((st, i) => slideOf(st.video.pick, `Step ${i + 1} of ${plan.length} · ${st.label}`, openPart(st)));
+    const words = [name, ...(subtopic ? [] : subtopicsOf(topic))].map(normalizeText).filter((w) => w.length > 2);
+    const topicContinue = continuing.filter((c) => words.some((w) => normalizeText(c.title).includes(w)));
+    const pick = (i: number) => {
+      setStepAt(i);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
     return (
       <>
-        <section className="fs-section" aria-label={`${topic.name} videos`}>
-          <Crumbs mode={mode} topic={topic} subject={!!subject} onTopic={onTopic} />
-          {!subject && <PathPosition mode={mode} topic={topic} onTopic={onTopic} />}
+        <div className="fs-topic-head">
+          <Crumbs mode={mode} topic={topic} subject={!!subject} onTopic={onTopic} subtopic={subtopic ? name : null} onLeaveSubtopic={() => setSubtopic(null)} />
+          {!subject && !subtopic && <PathPosition mode={mode} topic={topic} onTopic={onTopic} />}
+        </div>
+        {syncNote}
+
+        {slides.length > 0 ? <Billboard items={slides} onTopic={onTopic} steps index={active} onIndex={setStepAt} /> : warming ? <div className="fs-billboard fs-billboard-skeleton fs-skeleton" aria-hidden /> : null}
+
+        {plan.length > 1 && <TopicSteps name={name} steps={plan} here={here} active={active} progress={progress} onPick={pick} />}
+
+        {subject && <SubjectTopics mode={mode} topics={subject.topics} onTopic={onTopic} onAdd={addTopic} subjectName={subject.title} />}
+        {!subject && !subtopic && (
+          <div className="fs-subtopics is-row" role="tablist" aria-label={`Subtopics of ${topic.name}`}>
+            <span className="fs-subtopics-label">Subtopics of {topic.name}</span>
+            {subtopics.map((k) => (
+              <button key={k} type="button" role="tab" className="fs-chip" aria-selected={false} onClick={() => setSubtopic(k)}>
+                {titleCase(k)}
+              </button>
+            ))}
+            <AddInline label="Add subtopic" placeholder={`A subtopic of ${topic.name}`} onAdd={addSubtopic} />
+          </div>
+        )}
+
+        {topicContinue.length > 0 && (
+          <Row title={`Continue ${name}`} icon={<History size={20} aria-hidden />}>
+            {topicContinue.slice(0, 12).map((item) => (
+              <PosterCard
+                key={item.videoId}
+                card={{ id: item.videoId, url: item.url, title: item.title, channelTitle: item.channelTitle, views: null, time: CONTINUE_LABEL[item.kind], durationSec: null, progress: item.progress, tier: 'strong', source: 'subscription', why: item.reason }}
+              />
+            ))}
+          </Row>
+        )}
+
+        <section className="fs-section" aria-label={`${name} videos`}>
           <div className="fs-section-head">
-            <h2>{subtopic ? `${topic.name} · ${titleCase(subtopic)}` : subject ? `All of ${topic.name}` : `${topic.name} videos`}</h2>
+            <h2>{subject ? `Everything in ${topic.name}` : `All ${name} videos`}</h2>
             {summary && <span>{summary}</span>}
           </div>
-          {subject && <SubjectTopics mode={mode} topics={subject.topics} onTopic={onTopic} onAdd={addTopic} subjectName={subject.title} />}
-          {!subject && (
-            <div className="fs-subtopics" role="tablist" aria-label={`${topic.name} subtopics`}>
-              <span className="fs-subtopics-label">Subtopics</span>
-              <button type="button" role="tab" className="fs-chip" aria-selected={!subtopic} onClick={() => setSubtopic(null)}>
-                All of {topic.name}
-              </button>
-              {subtopics.map((k) => (
-                <button key={k} type="button" role="tab" className="fs-chip" aria-selected={subtopic === k} onClick={() => setSubtopic(subtopic === k ? null : k)}>
-                  {titleCase(k)}
-                </button>
-              ))}
-              <AddInline label="Add subtopic" placeholder={`A subtopic of ${topic.name}`} onAdd={addSubtopic} />
-            </div>
-          )}
-          {notes}
           {grid}
           {emptyState}
           {endOfFeed}
           {discovery.error && entries.length > 0 && <div className="fs-note">{discovery.error}</div>}
         </section>
-        {!subject && <TopicPlaylist mode={mode} topic={topic} />}
+        {!subject && !subtopic && <TopicPlaylist mode={mode} topic={topic} />}
+        <ExploreMore mode={mode} current={topic} onTopic={onTopic} />
       </>
     );
   }
@@ -622,7 +719,7 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
     <>
       {featured.length > 0 ? <Billboard items={featured} onTopic={onTopic} /> : warming ? <div className="fs-billboard fs-billboard-skeleton fs-skeleton" aria-hidden /> : null}
       {notes}
-      <LearningPath mode={mode} onTopic={onTopic} />
+      <LearningPath mode={mode} onTopic={onTopic} at={at} />
 
       {continuing.length > 0 && (
         <Row title="Continue learning" icon={<History size={20} aria-hidden />}>
@@ -678,13 +775,16 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
       <FocusSpaceLibraryRow />
 
       {/* Your subscriptions come last on purpose: the shelves above are what FocusSpace picked for this Space. */}
-      {fromChannels.length >= MIN_ROW && (
+      {!learning && fromChannels.length >= MIN_ROW && (
         <Row title="From your channels" subtitle="Teachers you already trust" icon={<Users size={20} aria-hidden />}>
           {fromChannels.map((c) => (
             <PosterCard key={c.id} card={c} />
           ))}
         </Row>
       )}
+
+      {/* Where to go next and a line worth reading, in place of a list of channels; above the endless grid so it is seen. */}
+      {learning && <ExploreMore mode={mode} current={null} onTopic={onTopic} />}
 
       <section className="fs-section fs-browse" aria-label={`Everything for ${mode.name}`}>
         <div className="fs-section-head">
@@ -696,7 +796,7 @@ function SpaceFeed({ mode, topicId, onTopic }: { mode: LearningMode; topicId: st
         {discovery.error && entries.length > 0 && <div className="fs-note">{discovery.error}</div>}
       </section>
 
-      <ChannelsSection mode={mode} view={view} discovered={discovery.items} channelIds={channelIds} />
+      {!learning && <ChannelsSection mode={mode} view={view} discovered={discovery.items} channelIds={channelIds} />}
     </>
   );
 }
@@ -901,12 +1001,14 @@ const titleCase = (text: string) => text.replace(/[\p{L}\p{N}]+/gu, (w) => (ACRO
  * Where you are, and the way back: "← Back · NEET › Chemistry › Organic Chemistry". Back goes up one
  * level (topic → its subject → the Space's home); every crumb is a way straight there.
  */
-function Crumbs({ mode, topic, subject, onTopic }: { mode: LearningMode; topic: Topic; subject: boolean; onTopic: (id: string | null) => void }) {
+function Crumbs({ mode, topic, subject, onTopic, subtopic = null, onLeaveSubtopic }: { mode: LearningMode; topic: Topic; subject: boolean; onTopic: (id: string | null) => void; subtopic?: string | null; onLeaveSubtopic?: () => void }) {
   const parent = !subject && topic.group ? groupId(topic.group) : null;
+  // In a subtopic (Polity → Constitution), Back goes to the topic; otherwise up one level.
+  const back = subtopic ? { label: `Back to ${topic.name}`, go: () => onLeaveSubtopic?.() } : { label: parent ? `Back to ${groupTitle(topic.group!)}` : `Back to ${mode.name} home`, go: () => onTopic(parent) };
   return (
     <nav className="fs-crumbs" aria-label="Where you are">
-      <button type="button" className="fs-crumb-back" onClick={() => onTopic(parent)}>
-        <ArrowLeft size={16} aria-hidden /> {parent ? `Back to ${groupTitle(topic.group!)}` : `Back to ${mode.name} home`}
+      <button type="button" className="fs-crumb-back" onClick={back.go}>
+        <ArrowLeft size={16} aria-hidden /> {back.label}
       </button>
       <span className="fs-crumb-trail">
         <button type="button" className="fs-link" onClick={() => onTopic(null)}>
@@ -921,9 +1023,86 @@ function Crumbs({ mode, topic, subject, onTopic }: { mode: LearningMode; topic: 
           </>
         )}
         <ChevronRight size={14} aria-hidden />
-        <b aria-current="page">{topic.name}</b>
+        {subtopic ? (
+          <>
+            <button type="button" className="fs-link" onClick={() => onLeaveSubtopic?.()}>
+              {topic.name}
+            </button>
+            <ChevronRight size={14} aria-hidden />
+            <b aria-current="page">{subtopic}</b>
+          </>
+        ) : (
+          <b aria-current="page">{topic.name}</b>
+        )}
       </span>
     </nav>
+  );
+}
+
+/** The topic's lessons in order, each with its state: watched, where you are, or still ahead. */
+function TopicSteps({ name, steps, here, active, progress, onPick }: { name: string; steps: PlanStep<PlanPick>[]; here: number; active: number; progress: Map<string, number>; onPick: (i: number) => void }) {
+  return (
+    <section className="fs-steps" aria-label={`Your ${name} path`}>
+      <header className="fs-steps-head">
+        <h2>
+          <Route size={20} aria-hidden /> Your {name} path
+        </h2>
+        <span className="fs-shelf-sub">
+          {steps.length} steps · you are on step {here + 1}
+        </span>
+      </header>
+      <ol className="fs-steps-list">
+        {steps.map((st, i) => {
+          const done = (progress.get(st.video.id) ?? 0) >= 0.8;
+          return (
+            <li key={st.video.id}>
+              <button type="button" className={`fs-step${i === here ? ' is-here' : ''}${done ? ' is-done' : ''}${i === active ? ' is-active' : ''}`} aria-current={i === here ? 'step' : undefined} onClick={() => onPick(i)}>
+                <span className="fs-step-art">
+                  <img src={thumbnailUrl(st.video.id, 'mq')} alt="" loading="lazy" />
+                  <span className="fs-step-num">{done ? <Check size={13} aria-hidden /> : i + 1}</span>
+                </span>
+                <span className="fs-step-text">
+                  <b>{st.label}</b>
+                  <small>{i === here ? 'You are here' : done ? 'Watched' : st.video.title}</small>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+/**
+ * The end of a learning page: other topics to go to (this stage's first), and one line worth reading.
+ * It replaces the list of subscribed channels, which a learner did not come here to manage.
+ */
+function ExploreMore({ mode, current, onTopic }: { mode: LearningMode; current: Topic | null; onTopic: (id: string) => void }) {
+  const quote = quoteOfTheDay();
+  const near = current?.group ? mode.topics.filter((t) => t.group === current.group && t.id !== current.id) : [];
+  const rest = mode.topics.filter((t) => t.id !== current?.id && !near.includes(t));
+  const others = [...near, ...rest].slice(0, 14);
+  return (
+    <section className="fs-explore" aria-label="Explore more">
+      {others.length > 0 && (
+        <div className="fs-explore-topics">
+          <h2>{current ? 'Explore other topics' : `More of ${mode.name} to explore`}</h2>
+          <div className="fs-chips fs-chips-wrap">
+            {others.map((t) => (
+              <button key={t.id} type="button" className="fs-chip" onClick={() => onTopic(t.id)}>
+                {t.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <figure className="fs-quote">
+        <Quote size={22} aria-hidden />
+        <blockquote>{quote.text}</blockquote>
+        <figcaption>{quote.by}</figcaption>
+      </figure>
+    </section>
   );
 }
 

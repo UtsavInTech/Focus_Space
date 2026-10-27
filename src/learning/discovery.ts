@@ -49,12 +49,16 @@ export function discoveryQueriesFor(mode: LearningMode, topic?: Topic | null): s
   if (topic)
     return unique([
       scoped(topic.name),
+      // The topic page opens on "What is Polity": search for that first lesson early.
+      ...(mode.kind === 'learning' ? [scoped(`${topic.name} introduction`)] : []),
       mode.kind === 'learning' ? `${topic.name} explained` : topic.name,
       ...subtopicsOf(topic).slice(0, SUBTOPIC_QUERIES).map(scoped),
       ...(mode.kind === 'learning' ? [scoped(`${topic.name} one shot`), scoped(`${topic.name} full course`)] : []),
     ]);
   return unique([
     mode.kind === 'learning' ? `${hint} tutorial` : hint,
+    // The home opens on "The UPSC syllabus and how to start".
+    ...(mode.kind === 'learning' ? [`${hint} syllabus and how to start`] : []),
     ...mode.topics.slice(0, 8).map((t) => scoped(t.name)),
     mode.kind === 'learning' ? `${hint} full course` : `best ${hint}`,
   ]);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { interleave, seriesSearchQuery } from './next';
+import { belongsToSpace, interleave, seriesSearchQuery } from './next';
 
 describe('finding the next episode by search', () => {
   it('uses the series’ own word for an episode', () => {
@@ -16,5 +16,19 @@ describe('finding the next episode by search', () => {
 describe('more than one series at once', () => {
   it('takes turns, so every series gets its next episode in', () => {
     expect(interleave([['a1', 'a2', 'a3'], ['b1'], ['c1', 'c2']])).toEqual(['a1', 'b1', 'c1', 'a2', 'c2', 'a3']);
+  });
+});
+
+describe('Continue learning keeps to the Space', () => {
+  const upsc = { id: 'upsc', kind: 'learning' as const };
+  it('drops a song played while UPSC was on, since it matched no UPSC topic', () => {
+    expect(belongsToSpace({ modeId: 'upsc', topicId: null }, upsc, () => false)).toBe(false);
+  });
+  it('keeps a lesson filed under a UPSC topic, and anything that matches UPSC on its own', () => {
+    expect(belongsToSpace({ modeId: 'upsc', topicId: 'prelims-gs-polity' }, upsc, () => false)).toBe(true);
+    expect(belongsToSpace({ modeId: 'dsa', topicId: null }, upsc, () => true)).toBe(true);
+  });
+  it('in a music Space, what was played there is enough', () => {
+    expect(belongsToSpace({ modeId: 'music', topicId: null }, { id: 'music', kind: 'media' as const }, () => false)).toBe(true);
   });
 });

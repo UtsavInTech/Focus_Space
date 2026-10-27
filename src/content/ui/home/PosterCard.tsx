@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { m, useReducedMotion } from 'motion/react';
 import { Play, Sparkles } from 'lucide-react';
-import { TIER_LABEL } from '@/learning/classifier';
 import { compactNumber } from '@/learning/library';
 import { watchUrl } from '@/integrations/youtube/urls';
 import { YtLink } from '@/ui/nav';
@@ -70,8 +69,8 @@ export function PosterCard({ card, rank, plain = false, badge, footer }: { card:
           <span className="fs-poster-title">{card.title}</span>
           <span className="fs-poster-meta">{meta}</span>
           {!plain && <span className="fs-poster-tags">
-            {/* What it covers ("Photosynthesis") says more than a score does; the score is the fallback. */}
-            <span className={`fs-match${strong ? ' is-strong' : ''}`}>{card.covers?.[0] ?? TIER_LABEL[card.tier]}</span>
+            {/* What it covers ("Photosynthesis", or its topic): never a bare score like "Excellent match". */}
+            {card.covers?.[0] && <span className={`fs-match${strong ? ' is-strong' : ''}`}>{card.covers[0]}</span>}
             {card.source !== 'discovery' && <span className="fs-poster-src">{SOURCE_LABEL[card.source]}</span>}
           </span>}
         </span>

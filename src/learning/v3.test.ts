@@ -161,7 +161,9 @@ describe('YouTube discovery ranking', () => {
     expect(all).toContain('LLMs & Transformers machine learning');
     const topic = ai.topics.find((t) => t.id === 'llms')!;
     const forTopic = discoveryQueriesFor(ai, topic);
-    expect(forTopic.slice(0, 2)).toEqual(['LLMs & Transformers machine learning', 'LLMs & Transformers explained']);
+    // The topic, then its first lesson ("What is …" opens the topic page), then the explainers.
+    expect(forTopic.slice(0, 3)).toEqual(['LLMs & Transformers machine learning', 'LLMs & Transformers introduction machine learning', 'LLMs & Transformers explained']);
+    expect(all[1]).toBe('machine learning syllabus and how to start');
     // Then one search per subtopic, so a topic page keeps loading past the first result pages.
     const sub = topic.keywords.find((k) => !k.startsWith('~') && k !== topic.name.toLowerCase())!;
     expect(forTopic.some((q) => q.startsWith(sub))).toBe(true);

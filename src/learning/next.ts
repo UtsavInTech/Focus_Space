@@ -1,3 +1,4 @@
+import type { LearningMode } from '@/types/domain';
 import { normalizeText } from './text';
 
 /**
@@ -173,6 +174,17 @@ const watchUrl = (videoId: string, playlistId?: string | null) => `https://www.y
 const thumb = (id: string) => `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
 
 /** Videos started but not finished, most recent first. */
+/**
+ * Whether a watched video belongs in this Space's "Continue learning". Being watched while the Space
+ * was on is not enough in a learning Space: a song played with UPSC active matched no UPSC topic, and
+ * it must not come back as UPSC. Media Spaces (music) have no syllabus, so for them it is enough.
+ */
+export function belongsToSpace(entry: { modeId: string; topicId: string | null }, mode: Pick<LearningMode, 'id' | 'kind'>, matchesSpace: () => boolean): boolean {
+  const learning = (mode.kind ?? 'learning') === 'learning';
+  if (entry.modeId === mode.id && (!learning || entry.topicId)) return true;
+  return matchesSpace();
+}
+
 export function resumeItems(entries: HistoryLike[], now = Date.now(), maxAgeDays = 45): NextLearningItem[] {
   return entries
     .filter((e) => e.progress >= 0.05 && e.progress < COMPLETE_AT && now - e.watchedAt < maxAgeDays * 86_400_000)

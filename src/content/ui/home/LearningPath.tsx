@@ -3,7 +3,7 @@ import { m, useReducedMotion } from 'motion/react';
 import { ArrowRight, Check, Route } from 'lucide-react';
 import type { LearningMode, Topic } from '@/types/domain';
 import { useStorage } from '@/ui/hooks';
-import { groupId } from '@/modes/groups';
+import { groupId, isGroupId } from '@/modes/groups';
 
 /**
  * A Space as a path: its stages in the order they are learned (System Design: Foundations → HLD
@@ -64,9 +64,11 @@ interface PathOptions {
   /** The line under each topic; subtopic count by default. */
   detail?: (topic: Topic) => string;
   minStages?: number;
+  /** Where the learner last was (a topic, or a stage as "group:mains"): "You are here" follows it. */
+  at?: string | null;
 }
 
-export function LearningPath({ mode, onTopic, progress: given, isCovered, detail, minStages = 2 }: { mode: LearningMode; onTopic: (id: string) => void } & PathOptions) {
+export function LearningPath({ mode, onTopic, progress: given, isCovered, detail, minStages = 2, at = null }: { mode: LearningMode; onTopic: (id: string) => void } & PathOptions) {
   const reduce = useReducedMotion();
   const stages = useMemo(() => stagesOf(mode, minStages), [mode, minStages]);
   const own = useTopicProgress(mode.id);
@@ -75,8 +77,11 @@ export function LearningPath({ mode, onTopic, progress: given, isCovered, detail
 
   const covered = (t: Topic) => (isCovered ? isCovered(t, progress.get(t.id) ?? 0) : (progress.get(t.id) ?? 0) >= COVERED_AFTER);
   const stageDone = (s: Stage) => s.topics.every(covered);
-  const here = Math.max(0, stages.findIndex((s) => !stageDone(s)));
-  const nextTopic = stages[here].topics.find((t) => !covered(t)) ?? stages[here].topics[0];
+  // The stage they went to last; with no visit yet, the first stage not yet done.
+  const atTopic = at && !isGroupId(at) ? mode.topics.find((t) => t.id === at) ?? null : null;
+  const visited = at ? stages.findIndex((s) => (atTopic ? s.topics.some((t) => t.id === atTopic.id) : groupId(s.name) === at)) : -1;
+  const here = visited >= 0 ? visited : Math.max(0, stages.findIndex((s) => !stageDone(s)));
+  const nextTopic = (atTopic && visited >= 0 ? atTopic : null) ?? stages[here].topics.find((t) => !covered(t)) ?? stages[here].topics[0];
 
   return (
     <section className="fs-path" aria-label={`Your path through ${mode.name}`}>
@@ -88,7 +93,7 @@ export function LearningPath({ mode, onTopic, progress: given, isCovered, detail
           {stages.length} stages · {mode.topics.length} topics · {mode.topics.reduce((n, t) => n + subtopicCount(t), 0)} subtopics
         </span>
         <button type="button" className="fs-cta fs-cta-primary fs-path-go" onClick={() => onTopic(nextTopic.id)}>
-          {here === 0 && !progress.size ? 'Start' : 'Continue'}: {nextTopic.name} <ArrowRight size={16} aria-hidden />
+          {visited < 0 && here === 0 && !progress.size ? 'Start' : 'Continue'}: {nextTopic.name} <ArrowRight size={16} aria-hidden />
         </button>
       </header>
       <ol className="fs-path-steps">
@@ -120,7 +125,7 @@ export function LearningPath({ mode, onTopic, progress: given, isCovered, detail
               <ul className="fs-path-topics">
                 {stage.topics.map((t) => (
                   <li key={t.id}>
-                    <button type="button" className={`fs-path-topic${covered(t) ? ' is-covered' : ''}`} onClick={() => onTopic(t.id)}>
+                    <button type="button" className={`fs-path-topic${covered(t) ? ' is-covered' : ''}${i === here && t.id === nextTopic.id ? ' is-here' : ''}`} aria-current={i === here && t.id === nextTopic.id ? 'step' : undefined} onClick={() => onTopic(t.id)}>
                       {covered(t) && <Check size={12} aria-hidden />}
                       <span>{t.name}</span>
                       <small>{detail ? detail(t) : `${subtopicCount(t)} subtopics`}</small>

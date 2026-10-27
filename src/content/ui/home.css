@@ -594,3 +594,51 @@
 .fs-report-sent { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 600; }
 @media (max-width: 1100px) { .fs-report-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .fs-report-grid { grid-template-columns: minmax(0, 1fr); } .fs-report-talk { flex-direction: column; align-items: stretch; } }
+
+/* ─── A topic as a short course (SpaceHome topic page) ─────────────────────── */
+
+/* One line above the billboard: the way back and the way on, nothing stacked. */
+.fs-topic-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
+.fs-topic-head .fs-crumbs { flex: 1 1 auto; min-width: 0; }
+.fs-topic-head .fs-path-position { flex: none; padding: 0; background: none; }
+.fs-topic-head .fs-path-crumb { display: none; }
+
+/* The red follows the learner on the path: the stage, and the topic in it. */
+.fs-path-topic.is-here { background: var(--fs-accent-soft); }
+.fs-path-topic.is-here span { color: var(--fs-accent-text); }
+
+.fs-steps { display: flex; flex-direction: column; gap: 12px; }
+.fs-steps-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 14px; }
+.fs-steps-head h2 { display: inline-flex; align-items: center; gap: 10px; margin: 0; font-size: 21px; font-weight: 750; color: var(--fs-text); }
+.fs-steps-head h2 svg { color: var(--fs-brand); align-self: center; }
+.fs-steps-list { list-style: none; margin: 0; padding: 4px 2px 8px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 1fr); gap: 12px; overflow-x: auto; scrollbar-width: none; }
+.fs-steps-list::-webkit-scrollbar { display: none; }
+.fs-step { width: 100%; display: flex; flex-direction: column; gap: 10px; padding: 10px; border: none; border-radius: 14px; background: var(--fs-surface-2); box-shadow: inset 0 0 0 1px var(--fs-border); color: var(--fs-text); font: inherit; text-align: left; cursor: pointer; transition: box-shadow 140ms ease, transform 140ms ease; }
+.fs-step:hover { transform: translateY(-2px); box-shadow: inset 0 0 0 1px var(--fs-border-strong); }
+.fs-step.is-active { box-shadow: inset 0 0 0 1.5px var(--fs-text-3); }
+.fs-step.is-here { box-shadow: inset 0 0 0 1.5px var(--fs-accent), 0 16px 36px -22px rgba(229, 9, 20, 0.6); }
+.fs-step-art { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 9px; overflow: hidden; background: var(--fs-surface-3); }
+.fs-step-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fs-step-num { position: absolute; top: 8px; left: 8px; min-width: 26px; height: 26px; padding: 0 6px; display: grid; place-items: center; border-radius: 999px; background: rgba(0, 0, 0, 0.72); color: #fff; font-size: 13px; font-weight: 800; }
+.fs-step.is-here .fs-step-num { background: var(--fs-accent); }
+.fs-step.is-done .fs-step-num { background: var(--fs-match); color: #052e12; }
+.fs-step-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 0 2px 2px; }
+.fs-step-text b { font-size: 15px; font-weight: 750; line-height: 1.25; }
+.fs-step-text small { font-size: 12px; color: var(--fs-text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fs-step.is-here .fs-step-text small { color: var(--fs-accent-text); font-weight: 700; }
+
+/* Subtopics as one scrolling line, not a wall of chips above the lessons. */
+.fs-subtopics.is-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.fs-subtopics.is-row::-webkit-scrollbar { display: none; }
+.fs-subtopics.is-row > * { flex: none; }
+
+/* The end of a learning page: where to go next, and one line worth reading. */
+.fs-explore { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px; align-items: stretch; }
+@media (max-width: 900px) { .fs-explore { grid-template-columns: 1fr; } }
+.fs-explore-topics { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; border-radius: 16px; background: var(--fs-surface-2); }
+.fs-explore-topics h2 { margin: 0; font-size: 19px; font-weight: 750; color: var(--fs-text); }
+.fs-quote { position: relative; margin: 0; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 22px 24px; border-radius: 16px; background: linear-gradient(135deg, var(--fs-accent-soft), transparent 70%), var(--fs-surface-2); box-shadow: inset 0 0 0 1px var(--fs-border); }
+.fs-quote svg { color: var(--fs-brand); }
+.fs-quote blockquote { margin: 0; font-size: 19px; font-weight: 650; line-height: 1.4; color: var(--fs-text); }
+.fs-quote figcaption { font-size: 13px; color: var(--fs-text-2); }
+.fs-quote figcaption::before { content: '— '; }

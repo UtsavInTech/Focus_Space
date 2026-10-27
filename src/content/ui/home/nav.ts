@@ -14,10 +14,38 @@ interface HomeNav {
 let state: HomeNav = { modeId: null, topicId: null };
 const listeners = new Set<() => void>();
 
+/*
+ * Where the learner last went in each Space (a topic or "group:mains"), so the path's "You are here"
+ * follows them to Mains or the Interview instead of staying on the first stage. A per-browser
+ * convenience: without storage it is simply forgotten.
+ */
+const LAST_KEY = 'focusspace:last-place';
+export interface Place {
+  topicId: string;
+  at: number;
+}
+let last: Record<string, Place> = (() => {
+  try {
+    return JSON.parse(localStorage.getItem(LAST_KEY) ?? '{}') as Record<string, Place>;
+  } catch {
+    return {};
+  }
+})();
+function remember(modeId: string, topicId: string) {
+  last = { ...last, [modeId]: { topicId, at: Date.now() } };
+  try {
+    localStorage.setItem(LAST_KEY, JSON.stringify(last));
+  } catch {
+    /* kept for this page only */
+  }
+}
+export const lastPlace = (modeId: string): Place | null => last[modeId] ?? null;
+
 export const homeNav = {
   get: () => state,
   set(next: HomeNav) {
     if (next.modeId === state.modeId && next.topicId === state.topicId) return;
+    if (next.modeId && next.topicId) remember(next.modeId, next.topicId);
     state = next;
     listeners.forEach((l) => l());
   },

@@ -5,7 +5,7 @@ import { fingerprintOf, isRelevant } from '@/learning/classifier';
 import { getClassifier } from '@/ai/registry';
 import { discoveryQueriesFor, rankDiscovery, type DiscoveredVideo, type DiscoveryCandidate } from '@/learning/discovery';
 import type { FeedView } from '@/learning/feed-view';
-import { COMPLETE_AT, interleave, mergeNextItems, resumeItems, seriesItems, seriesNumber, type HistoryLike, type NextLearningItem } from '@/learning/next';
+import { belongsToSpace, COMPLETE_AT, interleave, mergeNextItems, resumeItems, seriesItems, seriesNumber, type HistoryLike, type NextLearningItem } from '@/learning/next';
 import { sendMessage } from '@/messaging/runtime';
 import { useStorage } from '@/ui/hooks';
 import { fetchDiscoveryPage, loadHistory, loadRecommendations, pageYouTube } from './youtube';
@@ -139,7 +139,7 @@ export function useContinueWatching(mode: LearningMode, view: FeedView | null): 
     const now = Date.now();
     const byId = new Map<string, HistoryLike & { channelId: string | null }>();
     for (const e of store?.watchHistory ?? []) {
-      const relevant = e.modeId === mode.id || isRelevant(classifier.classify({ videoId: e.videoId, title: e.title, channelId: e.channelId ?? undefined, channelTitle: e.channelTitle }, mode));
+      const relevant = belongsToSpace(e, mode, () => isRelevant(classifier.classify({ videoId: e.videoId, title: e.title, channelId: e.channelId ?? undefined, channelTitle: e.channelTitle }, mode)));
       if (relevant) byId.set(e.videoId, { videoId: e.videoId, title: e.title, channelTitle: e.channelTitle, channelId: e.channelId, progress: e.progress, watchedAt: e.watchedAt, playlistId: e.playlistId });
     }
     // YouTube's own history (signed in): ordered newest first, no exact times.

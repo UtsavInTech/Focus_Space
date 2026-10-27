@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, m, useReducedMotion } from 'motion/react';
-import { Info, Play } from 'lucide-react';
+import { ArrowRight, Info, Play } from 'lucide-react';
 import { watchUrl } from '@/integrations/youtube/urls';
 import { YtLink } from '@/ui/nav';
 import { formatDuration } from '../FeedCard';
@@ -31,23 +31,34 @@ export interface Featured {
   progress: number | null;
   topicId: string | null;
   topicName: string | null;
+  /** A way into what this video belongs to ("More Constitution"), instead of the topic button. */
+  more?: { label: string; go: () => void };
 }
 
 const ROTATE_MS = 9000;
 const EASE = [0.2, 0, 0, 1] as const;
 
-export function Billboard({ items, onTopic }: { items: Featured[]; onTopic: (topicId: string) => void }) {
+/**
+ * `steps`: the items are a topic's lessons in order (1 What is Polity, 2 Understand Polity, …). Then the
+ * billboard does not rotate on its own; it opens on the learner's step and moves on with "Next".
+ * `index`/`onIndex` let the page's step list drive it.
+ */
+export function Billboard({ items, onTopic, steps = false, index: given, onIndex }: { items: Featured[]; onTopic: (topicId: string) => void; steps?: boolean; index?: number; onIndex?: (i: number) => void }) {
   const reduce = useReducedMotion();
-  const [index, setIndex] = useState(0);
+  const [own, setOwn] = useState(0);
+  const index = given ?? own;
+  const setIndex = (i: number) => (onIndex ?? setOwn)(i);
   const [paused, setPaused] = useState(false);
   const count = items.length;
   const item = items[Math.min(index, count - 1)];
+  const next = steps && index < count - 1 ? items[index + 1] : null;
 
   useEffect(() => {
-    if (reduce || paused || count < 2) return;
-    const timer = window.setTimeout(() => setIndex((i) => (i + 1) % count), ROTATE_MS);
+    if (steps || reduce || paused || count < 2) return;
+    const timer = window.setTimeout(() => setIndex((index + 1) % count), ROTATE_MS);
     return () => window.clearTimeout(timer);
-  }, [index, paused, reduce, count]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, paused, reduce, count, steps]);
 
   useEffect(() => {
     if (index >= count) setIndex(0);
@@ -101,10 +112,23 @@ export function Billboard({ items, onTopic }: { items: Featured[]; onTopic: (top
               <Play size={22} fill="currentColor" aria-hidden />
               {item.progress !== null && item.progress > 0.02 ? 'Resume' : 'Play'}
             </YtLink>
-            {item.topicId && item.topicName && (
-              <button type="button" className="fs-cta fs-cta-ghost" onClick={() => onTopic(item.topicId!)}>
+            {item.more ? (
+              <button type="button" className="fs-cta fs-cta-ghost" onClick={item.more.go}>
                 <Info size={20} aria-hidden />
-                More {item.topicName}
+                {item.more.label}
+              </button>
+            ) : (
+              item.topicId &&
+              item.topicName && (
+                <button type="button" className="fs-cta fs-cta-ghost" onClick={() => onTopic(item.topicId!)}>
+                  <Info size={20} aria-hidden />
+                  More {item.topicName}
+                </button>
+              )
+            )}
+            {next && (
+              <button type="button" className="fs-cta fs-cta-ghost" onClick={() => setIndex(index + 1)}>
+                Next: {next.eyebrow.split(' · ').pop()} <ArrowRight size={18} aria-hidden />
               </button>
             )}
           </div>
@@ -130,7 +154,7 @@ export function Billboard({ items, onTopic }: { items: Featured[]; onTopic: (top
         </m.div>
       </AnimatePresence>
 
-      {count > 1 && (
+      {count > 1 && !steps && (
         <div className="fs-billboard-dots" role="tablist" aria-label="Featured videos">
           {items.map((it, i) => (
             <button key={it.id} type="button" role="tab" aria-selected={i === index} aria-label={it.title} className="fs-billboard-dot" onClick={() => setIndex(i)}>
